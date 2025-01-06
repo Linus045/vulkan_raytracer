@@ -26,10 +26,10 @@ public:
   Transform transform;
 
   Camera() {
-    transform.position = glm::vec3(1.5, 3.5, 6);
+    transform.position = glm::vec3(2, 3.5, 6);
     glm::vec3 up = globalUp;
     transform.rotation = glm::quatLookAt(
-        glm::normalize(glm::vec3(1.5, 3.5, 0) - transform.position), up);
+        glm::normalize(glm::vec3(2, 3.5, 7) - transform.position), up);
 
     updateViewMatrix();
   }
@@ -93,7 +93,7 @@ public:
 
 private:
   float pitchLimit_degree = 89.0f; // Limit for up/down rotation (in degrees)
-  bool cameraMoved = false;
+  bool cameraMoved = true; // start with true to reset image on first frame
 
   glm::mat4 projectionMatrix;
   glm::mat4 viewMatrix;

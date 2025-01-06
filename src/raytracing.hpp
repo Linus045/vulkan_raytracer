@@ -1855,16 +1855,17 @@ inline void raytraceImage(VkDevice logicalDevice,
     uniformStructure.frameCount += 1;
   }
 
-  // VkResult result =
-  //     vkMapMemory(logicalDevice, uniformDeviceMemoryHandle, 0,
-  //                 sizeof(UniformStructure), 0, &hostUniformMemoryBuffer);
+  VkResult result =
+      vkMapMemory(logicalDevice, uniformDeviceMemoryHandle, 0,
+                  sizeof(UniformStructure), 0, &hostUniformMemoryBuffer);
 
-  // memcpy(hostUniformMemoryBuffer, &uniformStructure,
-  // sizeof(UniformStructure));
+  memcpy(hostUniformMemoryBuffer, &uniformStructure, sizeof(UniformStructure));
 
-  // if (result != VK_SUCCESS) {
-  //   throw new std::runtime_error("initRayTracing - vkMapMemory");
-  // }
+  if (result != VK_SUCCESS) {
+    throw new std::runtime_error("initRayTracing - vkMapMemory");
+  }
+
+  vkUnmapMemory(logicalDevice, uniformDeviceMemoryHandle);
 }
 
 } // namespace ltracer

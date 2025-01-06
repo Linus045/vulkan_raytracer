@@ -98,6 +98,7 @@ public:
 
     initImgui(vulkanInstance, queueFamilyIndices);
 
+    // TODO: recreate raytraceImage when resizing
     createRaytracingImage(physicalDevice, logicalDevice,
                           window->getSwapChainImageFormat(),
                           window->getSwapChainExtent(), queueFamilyIndices);
@@ -383,6 +384,8 @@ public:
     ImGui::ShowDemoWindow();
     // ################## IMGUI
 
+    ImGui::EndFrame();
+
     ImGui::Render();
   }
 
@@ -400,8 +403,7 @@ public:
 
   /// Draws the frame and updates the surface
   void drawFrame(std::shared_ptr<Camera> camera, float delta) {
-
-    // ltracer::raytraceImage(logicalDevice, camera, rayTraceImageHandle);
+    ltracer::raytraceImage(logicalDevice, camera, rayTraceImageHandle);
 
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE,
                     UINT64_MAX);
@@ -811,7 +813,7 @@ private:
     VkAttachmentDescription colorAttachment{
         .format = window->getSwapChainImageFormat(),
         .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -1045,22 +1047,22 @@ private:
     renderPassInfo.clearValueCount = 1; // 1;
     renderPassInfo.pClearValues = &clearColor;
 
-    // vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
-    //                      VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(commandBuffer, &renderPassInfo,
+                         VK_SUBPASS_CONTENTS_INLINE);
 
-    // VkViewport viewport{};
-    // viewport.width = static_cast<float>(swapChainExtent.width);
-    // viewport.height = -static_cast<float>(swapChainExtent.height);
-    // viewport.x = 0.0f;
-    // viewport.y = static_cast<float>(swapChainExtent.height);
-    // viewport.minDepth = 0.0f;
-    // viewport.maxDepth = 1.0f;
-    // vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
+    VkViewport viewport{};
+    viewport.width = static_cast<float>(swapChainExtent.width);
+    viewport.height = -static_cast<float>(swapChainExtent.height);
+    viewport.x = 0.0f;
+    viewport.y = static_cast<float>(swapChainExtent.height);
+    viewport.minDepth = 0.0f;
+    viewport.maxDepth = 1.0f;
+    vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
 
-    // VkRect2D scissor{};
-    // scissor.offset = {0, 0};
-    // scissor.extent = swapChainExtent;
-    // vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+    VkRect2D scissor{};
+    scissor.offset = {0, 0};
+    scissor.extent = swapChainExtent;
+    vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
     // std::vector<VkBuffer> indexBuffers(meshObjects.size());
 
@@ -1102,11 +1104,11 @@ private:
 
     // TODO: IMGUI STUFF
 
-    // renderImguiFrame();
+    renderImguiFrame();
 
-    // ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
-    // vkCmdEndRenderPass(commandBuffer);
+    vkCmdEndRenderPass(commandBuffer);
 
     if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS) {
       throw std::runtime_error("failed to record command buffer");
