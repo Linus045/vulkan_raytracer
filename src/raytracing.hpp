@@ -277,25 +277,18 @@ inline void createCommandPool(VkDevice logicalDevice,
   });
 }
 
-// TODO: Split into multiple functions for each step
-inline void initRayTracing(VkPhysicalDevice physicalDevice,
-                           VkDevice logicalDevice,
-                           std::shared_ptr<DeletionQueue> deletionQueue,
-                           std::shared_ptr<ltracer::Window> window,
-                           VkSwapchainKHR swapChain,
-                           std::vector<VkImageView> &swapChainImageViews,
-                           VkFormat swapChainFormat, VkExtent2D extent,
-                           RaytracingInfo &raytracingInfo) {
-  // Requesting ray tracing properties
+inline void
+requestRaytracingProperties(VkPhysicalDevice physicalDevice,
+                            VkPhysicalDeviceRayTracingPipelinePropertiesKHR
+                                &physicalDeviceRayTracingPipelineProperties) {
   VkPhysicalDeviceProperties physicalDeviceProperties;
   vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
-  VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-      physicalDeviceRayTracingPipelineProperties = {
-          .sType =
-              VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
-          .pNext = NULL,
-      };
+  physicalDeviceRayTracingPipelineProperties = {
+      .sType =
+          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+      .pNext = NULL,
+  };
 
   VkPhysicalDeviceProperties2 physicalDeviceProperties2 = {
       .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
@@ -304,40 +297,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   };
 
   vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties2);
+}
 
-  VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-  vkGetPhysicalDeviceMemoryProperties(physicalDevice,
-                                      &physicalDeviceMemoryProperties);
-
-  VkResult result;
-
-  std::vector<float> queuePrioritiesList = {1.0f};
-  VkDeviceQueueCreateInfo deviceQueueCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .queueFamilyIndex =
-          raytracingInfo.queueFamilyIndices.presentFamily.value(),
-      .queueCount = 1,
-      .pQueuePriorities = queuePrioritiesList.data(),
-  };
-  // =========================================================================
-  // Submission Queue
-  vkGetDeviceQueue(logicalDevice,
-                   raytracingInfo.queueFamilyIndices.graphicsFamily.value(), 0,
-                   &queueHandle);
-
-  // =========================================================================
-  // Device Pointer Functions
-  grabDeviceProcAddr(logicalDevice);
-
-  // =========================================================================
-  // Command Pool
-  createCommandPool(logicalDevice, deletionQueue, raytracingInfo);
-
-  // =========================================================================
-  // Command Buffers
-
+inline void createCommandBufferBuildTopAndBottomLevel(
+    VkDevice logicalDevice, std::shared_ptr<DeletionQueue> deletionQueue,
+    RaytracingInfo &raytracingInfo) {
   VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
       .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
       .pNext = NULL,
@@ -346,7 +310,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .commandBufferCount = 1,
   };
 
-  result = vkAllocateCommandBuffers(
+  VkResult result = vkAllocateCommandBuffers(
       logicalDevice, &commandBufferAllocateInfo,
       &raytracingInfo.commandBufferBuildTopAndBottomLevel);
 
@@ -359,21 +323,10 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     vkFreeCommandBuffers(logicalDevice, commandPoolHandle, 1,
                          &raytracingInfo.commandBufferBuildTopAndBottomLevel);
   });
+}
 
-  // =========================================================================
-  // Surface Features
-  VkSurfaceCapabilitiesKHR surfaceCapabilities;
-  result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-      physicalDevice, window->getVkSurface(), &surfaceCapabilities);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error(
-        "initRayTracing - vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
-  }
-
-  // =========================================================================
-  // Descriptor Pool
-
+inline void createDescriptorPool(std::shared_ptr<DeletionQueue> deletionQueue,
+                                 VkDevice logicalDevice) {
   std::vector<VkDescriptorPoolSize> descriptorPoolSizeList = {
       {.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
        .descriptorCount = 1},
@@ -391,8 +344,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .pPoolSizes = descriptorPoolSizeList.data(),
   };
 
-  result = vkCreateDescriptorPool(logicalDevice, &descriptorPoolCreateInfo,
-                                  NULL, &descriptorPoolHandle);
+  VkResult result = vkCreateDescriptorPool(
+      logicalDevice, &descriptorPoolCreateInfo, NULL, &descriptorPoolHandle);
 
   if (result != VK_SUCCESS) {
     throw new std::runtime_error("initRayTracing - vkCreateDescriptorPool");
@@ -401,10 +354,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   deletionQueue->push_function([=]() {
     vkDestroyDescriptorPool(logicalDevice, descriptorPoolHandle, NULL);
   });
+}
 
-  // =========================================================================
-  // Descriptor Set Layout
-
+inline void
+createDescriptorSetLayout(std::shared_ptr<DeletionQueue> deletionQueue,
+                          VkDevice logicalDevice) {
   std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindingList = {
       {
           .binding = 0,
@@ -451,7 +405,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .bindingCount = (uint32_t)descriptorSetLayoutBindingList.size(),
       .pBindings = descriptorSetLayoutBindingList.data()};
 
-  result =
+  VkResult result =
       vkCreateDescriptorSetLayout(logicalDevice, &descriptorSetLayoutCreateInfo,
                                   NULL, &descriptorSetLayoutHandle);
 
@@ -464,10 +418,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayoutHandle,
                                  NULL);
   });
+}
 
-  // =========================================================================
-  // Material Descriptor Set Layout
-
+inline void
+createMaterialDescriptorSetLayout(std::shared_ptr<DeletionQueue> deletionQueue,
+                                  VkDevice logicalDevice) {
   std::vector<VkDescriptorSetLayoutBinding>
       materialDescriptorSetLayoutBindingList = {
           {.binding = 0,
@@ -488,7 +443,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .bindingCount = (uint32_t)materialDescriptorSetLayoutBindingList.size(),
       .pBindings = materialDescriptorSetLayoutBindingList.data()};
 
-  result = vkCreateDescriptorSetLayout(
+  VkResult result = vkCreateDescriptorSetLayout(
       logicalDevice, &materialDescriptorSetLayoutCreateInfo, NULL,
       &materialDescriptorSetLayoutHandle);
 
@@ -501,12 +456,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     vkDestroyDescriptorSetLayout(logicalDevice,
                                  materialDescriptorSetLayoutHandle, NULL);
   });
-  // =========================================================================
-  // Allocate Descriptor Sets
+}
 
-  std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList = {
-      descriptorSetLayoutHandle, materialDescriptorSetLayoutHandle};
-
+inline void allocateDescriptorSetLayouts(
+    std::vector<VkDescriptorSetLayout> &descriptorSetLayoutHandleList,
+    RaytracingInfo &raytracingInfo, VkDevice logicalDevice) {
   VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
       .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
       .pNext = NULL,
@@ -515,17 +469,20 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .pSetLayouts = descriptorSetLayoutHandleList.data(),
   };
 
-  result =
+  VkResult result =
       vkAllocateDescriptorSets(logicalDevice, &descriptorSetAllocateInfo,
                                raytracingInfo.descriptorSetHandleList.data());
 
   if (result != VK_SUCCESS) {
     throw new std::runtime_error("initRayTracing - vkAllocateDescriptorSets");
   }
+}
 
-  // =========================================================================
-  // Pipeline Layout
-
+inline void createPipelineLayout(
+    std::shared_ptr<DeletionQueue> deletionQueue,
+    RaytracingInfo &raytracingInfo,
+    std::vector<VkDescriptorSetLayout> &descriptorSetLayoutHandleList,
+    VkDevice logicalDevice) {
   VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
       .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
       .pNext = NULL,
@@ -536,8 +493,9 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .pushConstantRangeCount = 0,
       .pPushConstantRanges = NULL};
 
-  result = vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo,
-                                  NULL, &raytracingInfo.pipelineLayoutHandle);
+  VkResult result =
+      vkCreatePipelineLayout(logicalDevice, &pipelineLayoutCreateInfo, NULL,
+                             &raytracingInfo.pipelineLayoutHandle);
 
   if (result != VK_SUCCESS) {
     throw new std::runtime_error("initRayTracing - vkCreatePipelineLayout");
@@ -547,9 +505,10 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     vkDestroyPipelineLayout(logicalDevice, raytracingInfo.pipelineLayoutHandle,
                             NULL);
   });
-  // =========================================================================
-  // Ray Closest Hit Shader Module
+}
 
+inline void loadShaderModules(std::shared_ptr<DeletionQueue> deletionQueue,
+                              VkDevice logicalDevice) {
   std::ifstream rayClosestHitFile("shaders/shader.rchit.spv",
                                   std::ios::binary | std::ios::ate);
   std::streamsize rayClosestHitFileSize = rayClosestHitFile.tellg();
@@ -570,7 +529,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .codeSize = (uint32_t)rayClosestHitShaderSource.size() * sizeof(uint32_t),
       .pCode = rayClosestHitShaderSource.data()};
 
-  result =
+  VkResult result =
       vkCreateShaderModule(logicalDevice, &rayClosestHitShaderModuleCreateInfo,
                            NULL, &rayClosestHitShaderModuleHandle);
 
@@ -680,9 +639,12 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   deletionQueue->push_function([=]() {
     vkDestroyShaderModule(logicalDevice, rayMissShadowShaderModuleHandle, NULL);
   });
-  // =========================================================================
-  // Ray Tracing Pipeline
+}
 
+inline void
+createRaytracingPipeline(std::shared_ptr<DeletionQueue> deletionQueue,
+                         RaytracingInfo &raytracingInfo,
+                         VkDevice logicalDevice) {
   std::vector<VkPipelineShaderStageCreateInfo>
       pipelineShaderStageCreateInfoList = {
           {.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -766,7 +728,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       .basePipelineIndex = 0,
   };
 
-  result = pvkCreateRayTracingPipelinesKHR(
+  VkResult result = pvkCreateRayTracingPipelinesKHR(
       logicalDevice, VK_NULL_HANDLE, VK_NULL_HANDLE, 1,
       &rayTracingPipelineCreateInfo, NULL,
       &raytracingInfo.rayTracingPipelineHandle);
@@ -780,10 +742,13 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle,
                       NULL);
   });
+}
 
-  // =========================================================================
-  // load OBJ Model
-
+inline void loadOBJScene(std::string scenePath, uint32_t &primitiveCount,
+                         std::vector<float> &vertices,
+                         std::vector<uint32_t> &indexList,
+                         std::vector<tinyobj::shape_t> &shapes,
+                         std::vector<tinyobj::material_t> &materials) {
   // std::filesystem::path arrowPath = "3d-models/up_arrow.obj";
   // auto loaded_model = loadModel(arrowPath);
 
@@ -793,7 +758,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   tinyobj::ObjReaderConfig reader_config;
   tinyobj::ObjReader reader;
 
-  if (!reader.ParseFromFile("3d-models/cube_scene.obj", reader_config)) {
+  if (!reader.ParseFromFile(scenePath, reader_config)) {
     if (!reader.Error().empty()) {
       std::cerr << "TinyObjReader: " << reader.Error();
     }
@@ -805,11 +770,12 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   const tinyobj::attrib_t &attrib = reader.GetAttrib();
-  const std::vector<tinyobj::shape_t> &shapes = reader.GetShapes();
-  const std::vector<tinyobj::material_t> &materials = reader.GetMaterials();
+  vertices = attrib.vertices;
 
-  uint32_t primitiveCount = 0;
-  std::vector<uint32_t> indexList;
+  shapes = reader.GetShapes();
+  materials = reader.GetMaterials();
+
+  primitiveCount = 0;
   for (tinyobj::shape_t shape : shapes) {
 
     primitiveCount += shape.mesh.num_face_vertices.size();
@@ -818,183 +784,15 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       indexList.push_back(index.vertex_index);
     }
   }
+}
 
-  // =========================================================================
-  // Vertex Buffer
-  VkBufferCreateInfo vertexBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(float) * attrib.vertices.size() * 3,
-      .usage =
-          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &vertexBufferCreateInfo, NULL,
-                          &vertexBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function(
-      [=]() { vkDestroyBuffer(logicalDevice, vertexBufferHandle, NULL); });
-
-  VkMemoryRequirements vertexMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, vertexBufferHandle,
-                                &vertexMemoryRequirements);
-
-  // VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-  // vkGetPhysicalDeviceMemoryProperties(physicalDevice,
-  //                                     &physicalDeviceMemoryProperties);
-  uint32_t vertexMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((vertexMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      vertexMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo vertexMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = vertexMemoryRequirements.size,
-      .memoryTypeIndex = vertexMemoryTypeIndex};
-
-  result = vkAllocateMemory(logicalDevice, &vertexMemoryAllocateInfo, NULL,
-                            &vertexDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, vertexBufferHandle,
-                              vertexDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
-
-  void *hostVertexMemoryBuffer;
-  result = vkMapMemory(logicalDevice, vertexDeviceMemoryHandle, 0,
-                       sizeof(float) * attrib.vertices.size() * 3, 0,
-                       &hostVertexMemoryBuffer);
-
-  memcpy(hostVertexMemoryBuffer, attrib.vertices.data(),
-         sizeof(float) * attrib.vertices.size() * 3);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkMapMemory");
-  }
-
-  vkUnmapMemory(logicalDevice, vertexDeviceMemoryHandle);
-
-  deletionQueue->push_function(
-      [=]() { vkFreeMemory(logicalDevice, vertexDeviceMemoryHandle, NULL); });
-  VkBufferDeviceAddressInfo vertexBufferDeviceAddressInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-      .pNext = NULL,
-      .buffer = vertexBufferHandle};
-
-  VkDeviceAddress vertexBufferDeviceAddress = pvkGetBufferDeviceAddressKHR(
-      logicalDevice, &vertexBufferDeviceAddressInfo);
-
-  // =========================================================================
-  // Index Buffer
-
-  VkBufferCreateInfo indexBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(uint32_t) * indexList.size(),
-      .usage =
-          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
-          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &indexBufferCreateInfo, NULL,
-                          &indexBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-  deletionQueue->push_function(
-      [=]() { vkDestroyBuffer(logicalDevice, indexBufferHandle, NULL); });
-
-  VkMemoryRequirements indexMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, indexBufferHandle,
-                                &indexMemoryRequirements);
-
-  uint32_t indexMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((indexMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      indexMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo indexMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = indexMemoryRequirements.size,
-      .memoryTypeIndex = indexMemoryTypeIndex};
-
-  result = vkAllocateMemory(logicalDevice, &indexMemoryAllocateInfo, NULL,
-                            &indexDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, indexBufferHandle,
-                              indexDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
-
-  void *hostIndexMemoryBuffer;
-  result = vkMapMemory(logicalDevice, indexDeviceMemoryHandle, 0,
-                       sizeof(uint32_t) * indexList.size(), 0,
-                       &hostIndexMemoryBuffer);
-
-  memcpy(hostIndexMemoryBuffer, indexList.data(),
-         sizeof(uint32_t) * indexList.size());
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkMapMemory");
-  }
-
-  vkUnmapMemory(logicalDevice, indexDeviceMemoryHandle);
-  deletionQueue->push_function(
-      [=]() { vkFreeMemory(logicalDevice, indexDeviceMemoryHandle, NULL); });
-
-  VkBufferDeviceAddressInfo indexBufferDeviceAddressInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-      .pNext = NULL,
-      .buffer = indexBufferHandle};
-
-  VkDeviceAddress indexBufferDeviceAddress = pvkGetBufferDeviceAddressKHR(
-      logicalDevice, &indexBufferDeviceAddressInfo);
-
-  // =========================================================================
-  // Bottom Level Acceleration Structure
-
+inline VkDeviceAddress createAndBuildBottomLevelAccelerationStructure(
+    std::shared_ptr<DeletionQueue> deletionQueue,
+    VkDeviceAddress indexBufferDeviceAddress, VkDevice logicalDevice,
+    VkPhysicalDevice physicalDevice, uint32_t primitiveCount,
+    uint32_t verticesCount, VkDeviceAddress vertexBufferDeviceAddress,
+    RaytracingInfo &raytracingInfo) {
+  // create Bottom Level Acceleration Structure
   VkAccelerationStructureGeometryDataKHR
       bottomLevelAccelerationStructureGeometryData = {
           .triangles = {
@@ -1004,7 +802,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
               .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
               .vertexData = {.deviceAddress = vertexBufferDeviceAddress},
               .vertexStride = sizeof(float) * 3,
-              .maxVertex = (uint32_t)attrib.vertices.size(),
+              .maxVertex = verticesCount,
               .indexType = VK_INDEX_TYPE_UINT32,
               .indexData = {.deviceAddress = indexBufferDeviceAddress},
               .transformData = {.deviceAddress = 0}}};
@@ -1050,74 +848,15 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       bottomLevelMaxPrimitiveCountList.data(),
       &bottomLevelAccelerationStructureBuildSizesInfo);
 
-  VkBufferCreateInfo bottomLevelAccelerationStructureBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = bottomLevelAccelerationStructureBuildSizesInfo
-                  .accelerationStructureSize,
-      .usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice,
-                          &bottomLevelAccelerationStructureBufferCreateInfo,
-                          NULL, &bottomLevelAccelerationStructureBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice, bottomLevelAccelerationStructureBufferHandle,
-                    NULL);
-  });
-
-  VkMemoryRequirements bottomLevelAccelerationStructureMemoryRequirements;
-  vkGetBufferMemoryRequirements(
-      logicalDevice, bottomLevelAccelerationStructureBufferHandle,
-      &bottomLevelAccelerationStructureMemoryRequirements);
-
-  uint32_t bottomLevelAccelerationStructureMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-
-    if ((bottomLevelAccelerationStructureMemoryRequirements.memoryTypeBits &
-         (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-
-      bottomLevelAccelerationStructureMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo bottomLevelAccelerationStructureMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = bottomLevelAccelerationStructureMemoryRequirements.size,
-      .memoryTypeIndex = bottomLevelAccelerationStructureMemoryTypeIndex,
-  };
-
-  result = vkAllocateMemory(
-      logicalDevice, &bottomLevelAccelerationStructureMemoryAllocateInfo, NULL,
-      &bottomLevelAccelerationStructureDeviceMemoryHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(
-      logicalDevice, bottomLevelAccelerationStructureBufferHandle,
-      bottomLevelAccelerationStructureDeviceMemoryHandle, 0);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue,
+      bottomLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryAllocateFlagsInfo,
+      bottomLevelAccelerationStructureBufferHandle,
+      bottomLevelGeometryInstanceDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   VkAccelerationStructureCreateInfoKHR
       bottomLevelAccelerationStructureCreateInfo = {
@@ -1131,7 +870,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
           .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
           .deviceAddress = 0};
 
-  result = pvkCreateAccelerationStructureKHR(
+  VkResult result = pvkCreateAccelerationStructureKHR(
       logicalDevice, &bottomLevelAccelerationStructureCreateInfo, NULL,
       &bottomLevelAccelerationStructureHandle);
 
@@ -1141,15 +880,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice,
-                 bottomLevelAccelerationStructureDeviceMemoryHandle, NULL);
     pvkDestroyAccelerationStructureKHR(
         logicalDevice, bottomLevelAccelerationStructureHandle, NULL);
   });
 
-  // =========================================================================
   // Build Bottom Level Acceleration Structure
-
   VkAccelerationStructureDeviceAddressInfoKHR
       bottomLevelAccelerationStructureDeviceAddressInfo = {
           .sType =
@@ -1161,77 +896,14 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       pvkGetAccelerationStructureDeviceAddressKHR(
           logicalDevice, &bottomLevelAccelerationStructureDeviceAddressInfo);
 
-  VkBufferCreateInfo bottomLevelAccelerationStructureScratchBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = bottomLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
-      .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(
-      logicalDevice, &bottomLevelAccelerationStructureScratchBufferCreateInfo,
-      NULL, &bottomLevelAccelerationStructureScratchBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice,
-                    bottomLevelAccelerationStructureScratchBufferHandle, NULL);
-  });
-
-  VkMemoryRequirements
-      bottomLevelAccelerationStructureScratchMemoryRequirements;
-  vkGetBufferMemoryRequirements(
-      logicalDevice, bottomLevelAccelerationStructureScratchBufferHandle,
-      &bottomLevelAccelerationStructureScratchMemoryRequirements);
-
-  uint32_t bottomLevelAccelerationStructureScratchMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-
-    if ((bottomLevelAccelerationStructureScratchMemoryRequirements
-             .memoryTypeBits &
-         (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-
-      bottomLevelAccelerationStructureScratchMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo
-      bottomLevelAccelerationStructureScratchMemoryAllocateInfo = {
-          .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-          .pNext = &memoryAllocateFlagsInfo,
-          .allocationSize =
-              bottomLevelAccelerationStructureScratchMemoryRequirements.size,
-          .memoryTypeIndex =
-              bottomLevelAccelerationStructureScratchMemoryTypeIndex};
-
-  result = vkAllocateMemory(
-      logicalDevice, &bottomLevelAccelerationStructureScratchMemoryAllocateInfo,
-      NULL, &bottomLevelAccelerationStructureDeviceScratchMemoryHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(
-      logicalDevice, bottomLevelAccelerationStructureScratchBufferHandle,
-      bottomLevelAccelerationStructureDeviceScratchMemoryHandle, 0);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
+  createBuffer(physicalDevice, logicalDevice, deletionQueue,
+               bottomLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
+               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                   VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryAllocateFlagsInfo,
+               bottomLevelAccelerationStructureScratchBufferHandle,
+               bottomLevelAccelerationStructureDeviceScratchMemoryHandle,
+               {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   VkBufferDeviceAddressInfo
       bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
@@ -1315,9 +987,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice,
-                 bottomLevelAccelerationStructureDeviceScratchMemoryHandle,
-                 NULL);
     vkDestroyFence(logicalDevice,
                    bottomLevelAccelerationStructureBuildFenceHandle, NULL);
   });
@@ -1338,12 +1007,14 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     throw new std::runtime_error("initRayTracing - vkWaitForFences");
   }
 
-  // vkResetCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
-  // 0);
+  return bottomLevelAccelerationStructureDeviceAddress;
+}
 
-  // =========================================================================
-  // Top Level Acceleration Structure
-
+inline void createAndBuildTopLevelAccelerationStructure(
+    VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress,
+    std::shared_ptr<DeletionQueue> deletionQueue, VkDevice logicalDevice,
+    VkPhysicalDevice physicalDevice, RaytracingInfo &raytracingInfo) {
+  // Create Top Level Acceleration Structure
   VkAccelerationStructureInstanceKHR bottomLevelAccelerationStructureInstance =
       {.transform = {.matrix = {{1.0, 0.0, 0.0, 0.0},
                                 {0.0, 1.0, 0.0, 0.0},
@@ -1355,76 +1026,18 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
        .accelerationStructureReference =
            bottomLevelAccelerationStructureDeviceAddress};
 
-  VkBufferCreateInfo bottomLevelGeometryInstanceBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(VkAccelerationStructureInstanceKHR),
-      .usage =
-          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue,
+      sizeof(VkAccelerationStructureInstanceKHR),
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice,
-                          &bottomLevelGeometryInstanceBufferCreateInfo, NULL,
-                          &bottomLevelGeometryInstanceBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice, bottomLevelGeometryInstanceBufferHandle,
-                    NULL);
-  });
-
-  VkMemoryRequirements bottomLevelGeometryInstanceMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice,
-                                bottomLevelGeometryInstanceBufferHandle,
-                                &bottomLevelGeometryInstanceMemoryRequirements);
-
-  uint32_t bottomLevelGeometryInstanceMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-
-    if ((bottomLevelGeometryInstanceMemoryRequirements.memoryTypeBits &
-         (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      bottomLevelGeometryInstanceMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo bottomLevelGeometryInstanceMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = bottomLevelGeometryInstanceMemoryRequirements.size,
-      .memoryTypeIndex = bottomLevelGeometryInstanceMemoryTypeIndex};
-
-  result = vkAllocateMemory(
-      logicalDevice, &bottomLevelGeometryInstanceMemoryAllocateInfo, NULL,
-      &bottomLevelGeometryInstanceDeviceMemoryHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result =
-      vkBindBufferMemory(logicalDevice, bottomLevelGeometryInstanceBufferHandle,
-                         bottomLevelGeometryInstanceDeviceMemoryHandle, 0);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+      bottomLevelGeometryInstanceBufferHandle,
+      bottomLevelGeometryInstanceDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   void *hostbottomLevelGeometryInstanceMemoryBuffer;
-  result =
+  VkResult result =
       vkMapMemory(logicalDevice, bottomLevelGeometryInstanceDeviceMemoryHandle,
                   0, sizeof(VkAccelerationStructureInstanceKHR), 0,
                   &hostbottomLevelGeometryInstanceMemoryBuffer);
@@ -1438,10 +1051,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   vkUnmapMemory(logicalDevice, bottomLevelGeometryInstanceDeviceMemoryHandle);
-  deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice, bottomLevelGeometryInstanceDeviceMemoryHandle,
-                 NULL);
-  });
 
   VkBufferDeviceAddressInfo bottomLevelGeometryInstanceDeviceAddressInfo = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -1500,71 +1109,15 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       topLevelMaxPrimitiveCountList.data(),
       &topLevelAccelerationStructureBuildSizesInfo);
 
-  VkBufferCreateInfo topLevelAccelerationStructureBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size =
-          topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
-      .usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice,
-                          &topLevelAccelerationStructureBufferCreateInfo, NULL,
-                          &topLevelAccelerationStructureBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice, topLevelAccelerationStructureBufferHandle,
-                    NULL);
-  });
-  VkMemoryRequirements topLevelAccelerationStructureMemoryRequirements;
-  vkGetBufferMemoryRequirements(
-      logicalDevice, topLevelAccelerationStructureBufferHandle,
-      &topLevelAccelerationStructureMemoryRequirements);
-
-  uint32_t topLevelAccelerationStructureMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-
-    if ((topLevelAccelerationStructureMemoryRequirements.memoryTypeBits &
-         (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-
-      topLevelAccelerationStructureMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo topLevelAccelerationStructureMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = topLevelAccelerationStructureMemoryRequirements.size,
-      .memoryTypeIndex = topLevelAccelerationStructureMemoryTypeIndex};
-
-  result = vkAllocateMemory(
-      logicalDevice, &topLevelAccelerationStructureMemoryAllocateInfo, NULL,
-      &topLevelAccelerationStructureDeviceMemoryHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(
-      logicalDevice, topLevelAccelerationStructureBufferHandle,
-      topLevelAccelerationStructureDeviceMemoryHandle, 0);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue,
+      topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
+      VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryAllocateFlagsInfo,
+      topLevelAccelerationStructureBufferHandle,
+      topLevelAccelerationStructureDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   VkAccelerationStructureCreateInfoKHR topLevelAccelerationStructureCreateInfo =
       {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -1587,14 +1140,10 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice, topLevelAccelerationStructureDeviceMemoryHandle,
-                 NULL);
-
     pvkDestroyAccelerationStructureKHR(
         logicalDevice, topLevelAccelerationStructureHandle, NULL);
   });
 
-  // =========================================================================
   // Build Top Level Acceleration Structure
 
   VkAccelerationStructureDeviceAddressInfoKHR
@@ -1608,73 +1157,14 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
       pvkGetAccelerationStructureDeviceAddressKHR(
           logicalDevice, &topLevelAccelerationStructureDeviceAddressInfo);
 
-  VkBufferCreateInfo topLevelAccelerationStructureScratchBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = topLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
-      .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(
-      logicalDevice, &topLevelAccelerationStructureScratchBufferCreateInfo,
-      NULL, &topLevelAccelerationStructureScratchBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice,
-                    topLevelAccelerationStructureScratchBufferHandle, NULL);
-  });
-
-  VkMemoryRequirements topLevelAccelerationStructureScratchMemoryRequirements;
-  vkGetBufferMemoryRequirements(
-      logicalDevice, topLevelAccelerationStructureScratchBufferHandle,
-      &topLevelAccelerationStructureScratchMemoryRequirements);
-
-  uint32_t topLevelAccelerationStructureScratchMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-
-    if ((topLevelAccelerationStructureScratchMemoryRequirements.memoryTypeBits &
-         (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
-            VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-
-      topLevelAccelerationStructureScratchMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo topLevelAccelerationStructureScratchMemoryAllocateInfo =
-      {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-       .pNext = &memoryAllocateFlagsInfo,
-       .allocationSize =
-           topLevelAccelerationStructureScratchMemoryRequirements.size,
-       .memoryTypeIndex = topLevelAccelerationStructureScratchMemoryTypeIndex};
-
-  result = vkAllocateMemory(
-      logicalDevice, &topLevelAccelerationStructureScratchMemoryAllocateInfo,
-      NULL, &topLevelAccelerationStructureDeviceScratchMemoryHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(
-      logicalDevice, topLevelAccelerationStructureScratchBufferHandle,
-      topLevelAccelerationStructureDeviceScratchMemoryHandle, 0);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTracing - vkBindBufferMemory");
-  }
+  createBuffer(physicalDevice, logicalDevice, deletionQueue,
+               topLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
+               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+                   VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, memoryAllocateFlagsInfo,
+               topLevelAccelerationStructureScratchBufferHandle,
+               topLevelAccelerationStructureDeviceScratchMemoryHandle,
+               {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   VkBufferDeviceAddressInfo
       topLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
@@ -1752,9 +1242,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice,
-                 topLevelAccelerationStructureDeviceScratchMemoryHandle, NULL);
-
     vkDestroyFence(logicalDevice, topLevelAccelerationStructureBuildFenceHandle,
                    NULL);
   });
@@ -1774,81 +1261,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   if (result != VK_SUCCESS && result != VK_TIMEOUT) {
     throw new std::runtime_error("initRayTracing - vkWaitForFences");
   }
+}
 
-  // =========================================================================
-  // Uniform Buffer
-  VkBufferCreateInfo uniformBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(UniformStructure),
-      .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &uniformBufferCreateInfo, NULL,
-                          &uniformBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function(
-      [=]() { vkDestroyBuffer(logicalDevice, uniformBufferHandle, NULL); });
-
-  VkMemoryRequirements uniformMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, uniformBufferHandle,
-                                &uniformMemoryRequirements);
-
-  uint32_t uniformMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((uniformMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      uniformMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo uniformMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = uniformMemoryRequirements.size,
-      .memoryTypeIndex = uniformMemoryTypeIndex};
-
-  result = vkAllocateMemory(logicalDevice, &uniformMemoryAllocateInfo, NULL,
-                            &uniformDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, uniformBufferHandle,
-                              uniformDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkBindBufferMemory");
-  }
-
-  result = vkMapMemory(logicalDevice, uniformDeviceMemoryHandle, 0,
-                       sizeof(UniformStructure), 0, &hostUniformMemoryBuffer);
-
-  memcpy(hostUniformMemoryBuffer, &uniformStructure, sizeof(UniformStructure));
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkMapMemory");
-  }
-
-  vkUnmapMemory(logicalDevice, uniformDeviceMemoryHandle);
-
-  deletionQueue->push_function(
-      [=]() { vkFreeMemory(logicalDevice, uniformDeviceMemoryHandle, NULL); });
-  // =========================================================================
-  // Update Descriptor Set
-
+inline void
+updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
+                                         RaytracingInfo &raytracingInfo) {
   VkWriteDescriptorSetAccelerationStructureKHR
       accelerationStructureDescriptorInfo = {
           .sType =
@@ -1926,10 +1343,228 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
   vkUpdateDescriptorSets(logicalDevice, writeDescriptorSetList.size(),
                          writeDescriptorSetList.data(), 0, NULL);
+}
+
+// TODO: Split into multiple functions for each step
+inline void initRayTracing(VkPhysicalDevice physicalDevice,
+                           VkDevice logicalDevice,
+                           std::shared_ptr<DeletionQueue> deletionQueue,
+                           std::shared_ptr<ltracer::Window> window,
+                           VkSwapchainKHR swapChain,
+                           std::vector<VkImageView> &swapChainImageViews,
+                           VkFormat swapChainFormat, VkExtent2D extent,
+                           RaytracingInfo &raytracingInfo) {
+
+  // Requesting ray trcing properties
+  VkPhysicalDeviceRayTracingPipelinePropertiesKHR
+      physicalDeviceRayTracingPipelineProperties;
+  requestRaytracingProperties(physicalDevice,
+                              physicalDeviceRayTracingPipelineProperties);
+
+  VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
+  vkGetPhysicalDeviceMemoryProperties(physicalDevice,
+                                      &physicalDeviceMemoryProperties);
+
+  VkResult result;
+
+  // std::vector<float> queuePrioritiesList = {1.0f};
+  // VkDeviceQueueCreateInfo deviceQueueCreateInfo = {
+  //     .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+  //     .pNext = NULL,
+  //     .flags = 0,
+  //     .queueFamilyIndex =
+  //         raytracingInfo.queueFamilyIndices.presentFamily.value(),
+  //     .queueCount = 1,
+  //     .pQueuePriorities = queuePrioritiesList.data(),
+  // };
+
+  // =========================================================================
+  // Submission Queue
+  vkGetDeviceQueue(logicalDevice,
+                   raytracingInfo.queueFamilyIndices.graphicsFamily.value(), 0,
+                   &queueHandle);
+
+  // =========================================================================
+  // Device Pointer Functions
+  grabDeviceProcAddr(logicalDevice);
+
+  // =========================================================================
+  // Command Pool
+  createCommandPool(logicalDevice, deletionQueue, raytracingInfo);
+
+  // =========================================================================
+  // Command Buffers
+
+  createCommandBufferBuildTopAndBottomLevel(logicalDevice, deletionQueue,
+                                            raytracingInfo);
+
+  // =========================================================================
+  // Surface Features
+  // VkSurfaceCapabilitiesKHR surfaceCapabilities;
+  // result = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
+  //     physicalDevice, window->getVkSurface(), &surfaceCapabilities);
+
+  // if (result != VK_SUCCESS) {
+  //   throw new std::runtime_error(
+  //       "initRayTracing - vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
+  // }
+
+  // =========================================================================
+  // Descriptor Pool
+
+  createDescriptorPool(deletionQueue, logicalDevice);
+
+  // =========================================================================
+  // Descriptor Set Layout
+
+  createDescriptorSetLayout(deletionQueue, logicalDevice);
+
+  // =========================================================================
+  // Material Descriptor Set Layout
+  createMaterialDescriptorSetLayout(deletionQueue, logicalDevice);
+
+  // =========================================================================
+  // Allocate Descriptor Sets
+
+  std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList = {
+      descriptorSetLayoutHandle, materialDescriptorSetLayoutHandle};
+
+  allocateDescriptorSetLayouts(descriptorSetLayoutHandleList, raytracingInfo,
+                               logicalDevice);
+
+  // =========================================================================
+  // Pipeline Layout
+  createPipelineLayout(deletionQueue, raytracingInfo,
+                       descriptorSetLayoutHandleList, logicalDevice);
+  // =========================================================================
+  // Ray Closest Hit Shader Module
+  loadShaderModules(deletionQueue, logicalDevice);
+
+  // =========================================================================
+  // Ray Tracing Pipeline
+  createRaytracingPipeline(deletionQueue, raytracingInfo, logicalDevice);
+
+  // =========================================================================
+  // load OBJ Model
+
+  uint32_t primitiveCount = 0;
+  std::vector<float> vertices;
+  std::vector<uint32_t> indexList;
+  std::string scenePath = "3d-models/cube_scene.obj";
+  std::vector<tinyobj::shape_t> shapes;
+  std::vector<tinyobj::material_t> materials;
+  loadOBJScene(scenePath, primitiveCount, vertices, indexList, shapes,
+               materials);
+
+  // =========================================================================
+  // Vertex Buffer
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue,
+      sizeof(float) * vertices.size() * 3,
+      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+      vertexBufferHandle, vertexDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+
+  void *hostVertexMemoryBuffer;
+  result = vkMapMemory(logicalDevice, vertexDeviceMemoryHandle, 0,
+                       sizeof(float) * vertices.size() * 3, 0,
+                       &hostVertexMemoryBuffer);
+
+  memcpy(hostVertexMemoryBuffer, vertices.data(),
+         sizeof(float) * vertices.size() * 3);
+
+  if (result != VK_SUCCESS) {
+    throw new std::runtime_error("initRayTracing - vkMapMemory");
+  }
+
+  vkUnmapMemory(logicalDevice, vertexDeviceMemoryHandle);
+
+  VkBufferDeviceAddressInfo vertexBufferDeviceAddressInfo = {
+      .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+      .pNext = NULL,
+      .buffer = vertexBufferHandle};
+
+  VkDeviceAddress vertexBufferDeviceAddress = pvkGetBufferDeviceAddressKHR(
+      logicalDevice, &vertexBufferDeviceAddressInfo);
+
+  // =========================================================================
+  // Index Buffer
+
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue,
+      sizeof(uint32_t) * indexList.size(),
+      VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
+          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+      indexBufferHandle, indexDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+
+  void *hostIndexMemoryBuffer;
+  result = vkMapMemory(logicalDevice, indexDeviceMemoryHandle, 0,
+                       sizeof(uint32_t) * indexList.size(), 0,
+                       &hostIndexMemoryBuffer);
+
+  memcpy(hostIndexMemoryBuffer, indexList.data(),
+         sizeof(uint32_t) * indexList.size());
+
+  if (result != VK_SUCCESS) {
+    throw new std::runtime_error("initRayTracing - vkMapMemory");
+  }
+
+  vkUnmapMemory(logicalDevice, indexDeviceMemoryHandle);
+
+  VkBufferDeviceAddressInfo indexBufferDeviceAddressInfo = {
+      .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+      .pNext = NULL,
+      .buffer = indexBufferHandle};
+
+  VkDeviceAddress indexBufferDeviceAddress = pvkGetBufferDeviceAddressKHR(
+      logicalDevice, &indexBufferDeviceAddressInfo);
+
+  // =========================================================================
+  // Bottom Level Acceleration Structure
+  VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress =
+      createAndBuildBottomLevelAccelerationStructure(
+          deletionQueue, indexBufferDeviceAddress, logicalDevice,
+          physicalDevice, primitiveCount, vertices.size(),
+          vertexBufferDeviceAddress, raytracingInfo);
+
+  // vkResetCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
+  // 0);
+
+  // =========================================================================
+  // Top Level Acceleration Structure
+  createAndBuildTopLevelAccelerationStructure(
+      bottomLevelAccelerationStructureDeviceAddress, deletionQueue,
+      logicalDevice, physicalDevice, raytracingInfo);
+
+  // =========================================================================
+  // Uniform Buffer
+  createBuffer(physicalDevice, logicalDevice, deletionQueue,
+               sizeof(UniformStructure), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+               uniformBufferHandle, uniformDeviceMemoryHandle,
+               {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+
+  result = vkMapMemory(logicalDevice, uniformDeviceMemoryHandle, 0,
+                       sizeof(UniformStructure), 0, &hostUniformMemoryBuffer);
+  if (result != VK_SUCCESS) {
+    throw new std::runtime_error("initRayTraci - vkMapMemory");
+  }
+  memcpy(hostUniformMemoryBuffer, &uniformStructure, sizeof(UniformStructure));
+
+  vkUnmapMemory(logicalDevice, uniformDeviceMemoryHandle);
+
+  // =========================================================================
+  // Update Descriptor Set
+  updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo);
 
   // =========================================================================
   // Material Index Buffer
-
   std::vector<uint32_t> materialIndexList;
   for (tinyobj::shape_t shape : shapes) {
     for (int index : shape.mesh.material_ids) {
@@ -1937,62 +1572,12 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     }
   }
 
-  VkBufferCreateInfo materialIndexBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(uint32_t) * materialIndexList.size(),
-      .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &materialIndexBufferCreateInfo, NULL,
-                          &materialIndexBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice, materialIndexBufferHandle, NULL);
-  });
-
-  VkMemoryRequirements materialIndexMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, materialIndexBufferHandle,
-                                &materialIndexMemoryRequirements);
-
-  uint32_t materialIndexMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((materialIndexMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      materialIndexMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo materialIndexMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = materialIndexMemoryRequirements.size,
-      .memoryTypeIndex = materialIndexMemoryTypeIndex};
-
-  result = vkAllocateMemory(logicalDevice, &materialIndexMemoryAllocateInfo,
-                            NULL, &materialIndexDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, materialIndexBufferHandle,
-                              materialIndexDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkBindBufferMemory");
-  }
+  createBuffer(physicalDevice, logicalDevice, deletionQueue,
+               sizeof(uint32_t) * materialIndexList.size(),
+               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+               materialIndexBufferHandle, materialIndexDeviceMemoryHandle,
+               {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   void *hostMaterialIndexMemoryBuffer;
   result = vkMapMemory(logicalDevice, materialIndexDeviceMemoryHandle, 0,
@@ -2007,9 +1592,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   vkUnmapMemory(logicalDevice, materialIndexDeviceMemoryHandle);
-  deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice, materialIndexDeviceMemoryHandle, NULL);
-  });
 
   // =========================================================================
   // Material Buffer
@@ -2029,61 +1611,12 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
     memcpy(materialList[x].emission, materials[x].emission, sizeof(float) * 3);
   }
 
-  VkBufferCreateInfo materialBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = sizeof(Material) * materialList.size(),
-      .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &materialBufferCreateInfo, NULL,
-                          &materialBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkCreateBuffer");
-  }
-
-  deletionQueue->push_function(
-      [=]() { vkDestroyBuffer(logicalDevice, materialBufferHandle, NULL); });
-
-  VkMemoryRequirements materialMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, materialBufferHandle,
-                                &materialMemoryRequirements);
-
-  uint32_t materialMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((materialMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      materialMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo materialMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = materialMemoryRequirements.size,
-      .memoryTypeIndex = materialMemoryTypeIndex};
-
-  result = vkAllocateMemory(logicalDevice, &materialMemoryAllocateInfo, NULL,
-                            &materialDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, materialBufferHandle,
-                              materialDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkBindBufferMemory");
-  }
+  createBuffer(physicalDevice, logicalDevice, deletionQueue,
+               sizeof(Material) * materialList.size(),
+               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+               VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+               materialBufferHandle, materialDeviceMemoryHandle,
+               {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   void *hostMaterialMemoryBuffer;
   result = vkMapMemory(logicalDevice, materialDeviceMemoryHandle, 0,
@@ -2098,8 +1631,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   vkUnmapMemory(logicalDevice, materialDeviceMemoryHandle);
-  deletionQueue->push_function(
-      [=]() { vkFreeMemory(logicalDevice, materialDeviceMemoryHandle, NULL); });
 
   // =========================================================================
   // Update Material Descriptor Set
@@ -2142,69 +1673,18 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
   // =========================================================================
   // Shader Binding Table
-
   VkDeviceSize progSize =
       physicalDeviceRayTracingPipelineProperties.shaderGroupBaseAlignment;
 
   VkDeviceSize shaderBindingTableSize = progSize * 4;
 
-  VkBufferCreateInfo shaderBindingTableBufferCreateInfo = {
-      .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-      .pNext = NULL,
-      .flags = 0,
-      .size = shaderBindingTableSize,
-      .usage = VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-               VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-      .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-      .queueFamilyIndexCount = 1,
-      .pQueueFamilyIndices =
-          &raytracingInfo.queueFamilyIndices.presentFamily.value()};
-
-  result = vkCreateBuffer(logicalDevice, &shaderBindingTableBufferCreateInfo,
-                          NULL, &shaderBindingTableBufferHandle);
-
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkCreateBuffer");
-  }
-  deletionQueue->push_function([=]() {
-    vkDestroyBuffer(logicalDevice, shaderBindingTableBufferHandle, NULL);
-  });
-
-  VkMemoryRequirements shaderBindingTableMemoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, shaderBindingTableBufferHandle,
-                                &shaderBindingTableMemoryRequirements);
-
-  uint32_t shaderBindingTableMemoryTypeIndex = -1;
-  for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-       x++) {
-    if ((shaderBindingTableMemoryRequirements.memoryTypeBits & (1 << x)) &&
-        (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-         VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) ==
-            VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT) {
-
-      shaderBindingTableMemoryTypeIndex = x;
-      break;
-    }
-  }
-
-  VkMemoryAllocateInfo shaderBindingTableMemoryAllocateInfo = {
-      .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-      .pNext = &memoryAllocateFlagsInfo,
-      .allocationSize = shaderBindingTableMemoryRequirements.size,
-      .memoryTypeIndex = shaderBindingTableMemoryTypeIndex};
-
-  result =
-      vkAllocateMemory(logicalDevice, &shaderBindingTableMemoryAllocateInfo,
-                       NULL, &shaderBindingTableDeviceMemoryHandle);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkAllocateMemory");
-  }
-
-  result = vkBindBufferMemory(logicalDevice, shaderBindingTableBufferHandle,
-                              shaderBindingTableDeviceMemoryHandle, 0);
-  if (result != VK_SUCCESS) {
-    throw new std::runtime_error("initRayTraci - vkBindBufferMemory");
-  }
+  createBuffer(
+      physicalDevice, logicalDevice, deletionQueue, shaderBindingTableSize,
+      VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
+          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryAllocateFlagsInfo,
+      shaderBindingTableBufferHandle, shaderBindingTableDeviceMemoryHandle,
+      {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
   char *shaderHandleBuffer = new char[shaderBindingTableSize];
   result = pvkGetRayTracingShaderGroupHandlesKHR(
@@ -2237,9 +1717,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
   }
 
   vkUnmapMemory(logicalDevice, shaderBindingTableDeviceMemoryHandle);
-  deletionQueue->push_function([=]() {
-    vkFreeMemory(logicalDevice, shaderBindingTableDeviceMemoryHandle, NULL);
-  });
 
   VkBufferDeviceAddressInfo shaderBindingTableBufferDeviceAddressInfo = {
       .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

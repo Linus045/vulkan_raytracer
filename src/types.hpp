@@ -2,10 +2,12 @@
 
 #include <cstdint>
 #include <fstream>
+#include <memory>
 #include <optional>
 #include <stdexcept>
 
 #include "glm/ext/matrix_float4x4.hpp"
+#include "src/deletion_queue.hpp"
 #include <vulkan/vulkan_core.h>
 
 namespace ltracer {
@@ -89,21 +91,28 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
   throw std::runtime_error("failed to find suitable memory type!");
 }
 
-inline void createBuffer(VkPhysicalDevice physicalDevice,
-                         VkDevice logicalDevice, VkDeviceSize size,
-                         VkBufferUsageFlags usage,
-                         VkMemoryPropertyFlags properties, VkBuffer &buffer,
-                         VkDeviceMemory &bufferMemory) {
+inline void
+createBuffer(VkPhysicalDevice physicalDevice, VkDevice logicalDevice,
+             std::shared_ptr<DeletionQueue> deletionQueue, VkDeviceSize size,
+             VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
+             VkMemoryAllocateFlagsInfo &additionalMemoryAllocateFlagsInfo,
+             VkBuffer &buffer, VkDeviceMemory &bufferMemory,
+             std::vector<uint32_t> queueFamilyIndices) {
   VkBufferCreateInfo bufferInfo{};
   bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
   bufferInfo.size = size;
   bufferInfo.usage = usage;
   bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+  bufferInfo.queueFamilyIndexCount = queueFamilyIndices.size();
+  bufferInfo.pQueueFamilyIndices = queueFamilyIndices.data();
 
   if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) !=
       VK_SUCCESS) {
     throw std::runtime_error("failed to create vertex buffer");
   }
+
+  deletionQueue->push_function(
+      [=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
 
   VkMemoryRequirements memoryRequirements;
   vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
@@ -111,6 +120,7 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
   VkMemoryAllocateInfo allocInfo{};
   allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
   allocInfo.allocationSize = memoryRequirements.size;
+  allocInfo.pNext = &additionalMemoryAllocateFlagsInfo,
   allocInfo.memoryTypeIndex = findMemoryType(
       physicalDevice, memoryRequirements.memoryTypeBits, properties);
   if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) !=
@@ -118,6 +128,8 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
     throw std::runtime_error("failed to allocate vertex buffer memory");
   }
 
+  deletionQueue->push_function(
+      [=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
   vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
 }
 
