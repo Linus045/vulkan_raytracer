@@ -1,0 +1,30 @@
+#version 460
+// #extension GL_EXT_ray_tracing : require                 // This is about ray tracing
+
+// gsnShaderOptions: precompiler="GL_EXT_ray_tracing, recursion: 2, app: 1"
+// IMPORTANT: do not remove the line above
+
+/**** ABOUT ****/
+// A minimal example
+
+/**** COMMON START ****/
+// In the COMMON section, the structs "RayPayloadType" and "HitAttributeType" must be defined.
+// Furthermore, your own helper functions must be defined here (can be called in all shaders).
+
+struct RayPayloadType {
+  vec3 color; // unused
+}; // type of the "payload" variable
+
+struct HitAttributeType {
+  vec3 normal; // unused
+}; // type of the "hit" variable
+
+/**** COMMON END ****/
+
+// Ray tracing shaders must be defined in the following order:
+// ray generation, closest-hit, miss, intersection, any-hit
+
+void main() { /**** RAY GENERATION SHADER ****/
+  // set RGBA color
+  // gsnSetPixel(vec4(1.0, 1.0, 0.0, 1.0));
+}

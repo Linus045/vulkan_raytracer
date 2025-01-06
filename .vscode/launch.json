@@ -1,0 +1,56 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+		{
+			"name": "Launch (codelldb)",
+			"type": "cppvsdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/bin/vulkan_experiments",
+			"cwd": "${workspaceFolder}/build/bin",
+			"args": [],
+            "preLaunchTask": "CMake: build"
+		},
+        {
+            "name": "Launch (cppdbg/cpptools)[nvim]",
+            "type": "cppdbg",
+            "request": "launch",
+            "nvim_preLaunchTask": "cmake --build ${workspaceFolder}/build",
+			"program": "${workspaceFolder}/build/bin/vulkan_experiments",
+            "args": [],
+            "stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/bin",
+            "externalConsole": false,
+        },
+        {
+            "name": "(gdb) Launch",
+            "type": "cppvsdbg",
+            "request": "launch",
+            // Resolved by CMake Tools:
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${command:cmake.launchTargetDirectory}",
+            "environment": [
+                {
+                    // add the directory where our target was built to the PATHs
+                    // it gets resolved by CMake Tools:
+                    "name": "PATH",
+                    "value": "${env:PATH}:${command:cmake.getLaunchTargetDirectory}"
+                },
+                {
+                    "name": "OTHER_VALUE",
+                    "value": "Something something"
+                }
+            ],
+            "console": "integratedTerminal",
+            // "MIMode": "gdb",
+            // "setupCommands": [
+            //     {
+            //         "description": "Enable pretty-printing for gdb",
+            //         "text": "-enable-pretty-printing",
+            //         "ignoreFailures": true
+            //     }
+            // ]
+        }
+    ]
+}

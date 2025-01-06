@@ -1,0 +1,185 @@
+cmake_minimum_required(VERSION 3.29)
+project(vulkan_experiments VERSION 1.0)
+
+
+### Require out-of-source builds
+file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
+if(EXISTS "${LOC_PATH}")
+    message(FATAL_ERROR "You cannot build this in a source directory (or any directory with a CMakeLists.txt file). "
+                        "Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
+endif()
+
+### Build type
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to 'RelWithDebInfo' as none was specified.")
+  set(CMAKE_BUILD_TYPE "RelWithDebInfo" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+  "Debug" "Release" "RelWithDebInfo")
+endif()
+
+
+set(CMAKE_CXX_STANDARD 23)
+set(CXX_STANDARD_REQUIRED ON)
+
+set(target_name vulkan_experiments)
+
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+if ( MSVC )
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
+
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
+
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL ${CMAKE_BINARY_DIR}/bin)
+
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/lib)
+  set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
+endif ( MSVC )
+
+# these instructions search the directory tree when CMake is
+# invoked and put all files that match the pattern in the variables
+# `sources` and `data`
+file(GLOB_RECURSE sources      src/*.cpp src/*.h src/*.hpp)
+file(GLOB_RECURSE data resources/*)
+
+add_subdirectory(3rdparty/glm)
+add_subdirectory(3rdparty/glfw)
+add_subdirectory(3rdparty/tinyobjloader)
+
+include_directories(3rdparty/tinyobjloader)
+include_directories(3rdparty/glm)
+include_directories(3rdparty/imgui)
+
+
+###############################################################################
+## compile shaders ############################################################
+###############################################################################
+set(frag_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/frag.spv)
+set(vert_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/vert.spv)
+set(raytracing_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/raytracing.spv)
+
+set(raytracing_shader_rgen_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rgen.spv)
+set(raytracing_shader_rchit_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rchit.spv)
+set(raytracing_shader_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rmiss.spv)
+set(raytracing_shader_shadow_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_shadow.rmiss.spv)
+
+if ( MSVC )
+    set(glslang_executable_path ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/StandAlone/Debug/glslang.exe)
+else ( MSVC )
+    set(glslang_executable_path ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/StandAlone/glslang)
+endif ( MSVC )
+
+add_custom_command(
+  OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
+  COMMAND ${glslang_executable_path} -V "shaders/shader.frag" -o "${frag_shader_output}"
+  COMMAND ${glslang_executable_path} -V "shaders/shader.vert" -o "${vert_shader_output}"
+  COMMAND ${glslang_executable_path} -V "shaders/raytracing.rgen" -o "${raytracing_shader_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rgen" -o "${raytracing_shader_rgen_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rchit" -o "${raytracing_shader_rchit_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rmiss" -o "${raytracing_shader_rmiss_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_shadow.rmiss" -o "${raytracing_shader_shadow_rmiss_output}"
+  DEPENDS shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+  COMMENT "Compiling shader files"
+)
+
+# # Print all variables
+# get_cmake_property(_variableNames VARIABLES)
+# list (SORT _variableNames)
+# foreach (_variableName ${_variableNames})
+#     message(STATUS "${_variableName}=${${_variableName}}")
+# endforeach()
+
+set(3d_models_output  ${CMAKE_BINARY_DIR}/bin/3d-models)
+cmake_path(GET 3d_models_output PARENT_PATH 3d_models_output_parent)
+file(COPY "3d-models" DESTINATION ${3d_models_output_parent})
+
+# add_custom_command(
+#   OUTPUT ${3d_models_output}
+#   COMMAND ${CMAKE_COMMAND} -E copy "3d-models/" ${3d_models_output}
+#   DEPENDS 3d-models
+#   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+#   COMMENT "Copying 3D models to output directory"
+# )
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+###############################################################################
+## IMGUI  #####################################################################
+###############################################################################
+# Set where the ImGui files are stored
+set(IMGUI_PATH  "3rdparty/imgui")
+file(GLOB IMGUI_SOURCES
+    ${IMGUI_PATH}/imgui.h
+    ${IMGUI_PATH}/imgui.cpp
+    ${IMGUI_PATH}/imconfig.h
+    ${IMGUI_PATH}/imgui_demo.cpp
+    ${IMGUI_PATH}/imgui_draw.cpp
+    ${IMGUI_PATH}/imgui_internal.h
+    ${IMGUI_PATH}/imstb_rectpack.h
+    ${IMGUI_PATH}/imstb_textedit.h
+    ${IMGUI_PATH}/imstb_truetype.h
+    ${IMGUI_PATH}/imgui_tables.cpp
+    ${IMGUI_PATH}/imgui_widgets.cpp
+
+    # bindings
+    ${IMGUI_PATH}/backends/imgui_impl_glfw.h
+    ${IMGUI_PATH}/backends/imgui_impl_glfw.cpp
+    ${IMGUI_PATH}/backends/imgui_impl_vulkan.h
+    ${IMGUI_PATH}/backends/imgui_impl_vulkan.cpp
+)
+add_library("imgui" STATIC ${IMGUI_SOURCES})
+
+target_include_directories("imgui" PUBLIC ${IMGUI_PATH})
+target_link_libraries("imgui" PRIVATE glfw)
+
+###############################################################################
+## target definitions #########################################################
+###############################################################################
+
+# add the data to the target, so it becomes visible in some IDE
+add_executable(${target_name} ${sources}
+    ${IMGUI_SOURCES}
+    ${frag_shader_output}
+    ${vert_shader_output}
+    ${raytracing_shader_rgen_output}
+    ${raytracing_shader_rchit_output}
+    ${raytracing_shader_rmiss_output}
+    ${raytracing_shader_shadow_rmiss_output}
+)
+
+# just for vulkan_experiments add some compiler flags
+# TODO: Make this OS dependant
+# target_compile_options(vulkan_experiments PUBLIC -Wall -Wfloat-conversion)
+
+###############################################################################
+## dependencies ###############################################################
+###############################################################################
+# source code
+# target_include_directories(vulkan_experiments PUBLIC src/)
+
+# Vulkan
+find_package(Vulkan REQUIRED)
+include_directories(${Vulkan_INCLUDE_DIR})
+target_include_directories(${target_name} PRIVATE Vulkan_INCLUDE_DIRS)
+
+target_link_libraries(${target_name} PUBLIC
+    # here you can add any library dependencies
+	"glfw"
+  "tinyobjloader"
+	${Vulkan_LIBRARY}
+  "imgui"
+)
+
+
