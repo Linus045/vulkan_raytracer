@@ -1,3 +1,4 @@
+
 #include "src/deletion_queue.hpp"
 #include <cstdint>
 #include <cstdio>
@@ -231,6 +232,15 @@ private:
   void initInput(std::shared_ptr<ltracer::Window> window) {
     glfwSetKeyCallback(window->getGLFWWindow(),
                        &HelloTriangleApplication::handleInputCallback);
+
+    glfwSetMouseButtonCallback(
+        window->getGLFWWindow(),
+        &HelloTriangleApplication::handleMouseInputCallback);
+  }
+
+  static void handleMouseInputCallback(GLFWwindow *window, int button,
+                                       int action, int mods) {
+    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
   }
 
   static void handleInputCallback(GLFWwindow *window, int key, int scancode,
@@ -266,6 +276,9 @@ private:
         ref.camera->limitPitch();
       } else if (key == GLFW_KEY_Q || key == GLFW_KEY_ESCAPE) {
         glfwSetWindowShouldClose(ref.window->getGLFWWindow(), true);
+      } else {
+        ImGui_ImplGlfw_KeyCallback(ref.window->getGLFWWindow(), key, scancode,
+                                   action, mods);
       }
 
       // TODO: Add mouse rotation via a virtual trackball e.g.
