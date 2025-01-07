@@ -1,11 +1,14 @@
 #pragma once
 
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/ext.hpp"
-
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "imgui.h"
+
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext.hpp"
 
 #include "src/camera.hpp"
 #include "src/types.hpp"

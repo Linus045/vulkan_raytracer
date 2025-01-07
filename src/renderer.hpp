@@ -6,14 +6,20 @@
 #include <stdexcept>
 #include <vector>
 
-#include "glm/ext/matrix_float4x4.hpp"
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
+
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext/matrix_float4x4.hpp"
 
 #include "src/camera.hpp"
 #include "src/deletion_queue.hpp"
 #include "src/raytracing.hpp"
 #include "src/types.hpp"
+
 #include "src/ui.hpp"
 #include "src/window.hpp"
 #include "src/worldobject.hpp"
