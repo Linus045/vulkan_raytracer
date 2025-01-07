@@ -307,6 +307,11 @@ private:
                                     extent, swapChainSupport);
       app.renderer->createImageViews(app.logicalDevice);
       app.renderer->createFramebuffers(app.logicalDevice, app.window);
+
+    ltracer::QueueFamilyIndices indices =
+        ltracer::findQueueFamilies(app.physicalDevice, app.window->getVkSurface());
+
+      app.renderer->recreateRaytracingImageAndImageView(indices);
       app.camera->updateScreenSize(extent.width, extent.height);
     }
   }
@@ -670,9 +675,15 @@ private:
                                     swapChainSupport);
           renderer->createImageViews(logicalDevice);
           renderer->createFramebuffers(logicalDevice, window);
+
+          ltracer::QueueFamilyIndices indices =
+              ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+          renderer->recreateRaytracingImageAndImageView(indices);
+
           camera->updateScreenSize(extent.width, extent.height);
         }
       }
+      renderer->swapChainOutdated = false;
     }
     vkDeviceWaitIdle(logicalDevice);
   }

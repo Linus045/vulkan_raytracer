@@ -57,7 +57,7 @@ public:
     } else {
       // Disable resizing the window for now
       glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
-      glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+      glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
       glfwWindow = glfwCreateWindow(initialWidth, initialHeight, "Vulkan",
                                     nullptr, nullptr);
@@ -233,8 +233,8 @@ public:
 private:
   const bool FULLSCREEN_ENABLED = false;
 
-  uint32_t initialWidth = 800;
-  uint32_t initialHeight = 600;
+  uint32_t initialWidth = 1920;
+  uint32_t initialHeight = 1080;
 
   // window
   GLFWwindow *glfwWindow = nullptr;

@@ -58,8 +58,7 @@ public:
   }
 
   void cleanupRenderer() {
-    vkFreeMemory(logicalDevice, rayTraceImageDeviceMemoryHandle, nullptr);
-    vkDestroyImageView(logicalDevice, rayTraceImageViewHandle, nullptr);
+    ltracer::rt::freeRaytraceImageAndImageView(logicalDevice, raytracingInfo.rayTraceImageHandle, raytracingInfo.rayTraceImageViewHandle);
     cleanupFramebufferAndImageViews();
   }
 
@@ -98,25 +97,25 @@ public:
 
     initImgui(vulkanInstance, queueFamilyIndices);
 
-    // TODO: recreate raytraceImage when resizing
-    createRaytracingImage(physicalDevice, logicalDevice,
+    ltracer::rt::createRaytracingImage(physicalDevice, logicalDevice,
                           window->getSwapChainImageFormat(),
-                          window->getSwapChainExtent(), queueFamilyIndices);
+                          window->getSwapChainExtent(), queueFamilyIndices, raytracingInfo.rayTraceImageHandle);
 
-    createRaytracingImageView(logicalDevice, window->getSwapChainImageFormat());
+    ltracer::rt::createRaytracingImageView(logicalDevice, window->getSwapChainImageFormat(), raytracingInfo.rayTraceImageHandle, raytracingInfo.rayTraceImageViewHandle);
 
     raytracingInfo.queueFamilyIndices = queueFamilyIndices;
-    raytracingInfo.rayTraceImageHandle = rayTraceImageHandle;
-    raytracingInfo.rayTraceImageViewHandle = rayTraceImageViewHandle;
 
-    ltracer::initRayTracing(physicalDevice, logicalDevice, deletionQueue,
-                            window, window->getSwapChain(), swapChainImageViews,
-                            window->getSwapChainImageFormat(),
-                            window->getSwapChainExtent(), raytracingInfo);
+    ltracer::rt::initRayTracing(physicalDevice, logicalDevice, deletionQueue,
+                            window,swapChainImageViews, raytracingInfo);
     auto &cameraTransform = camera->transform;
     // ltracer::updateUniformStructure(
     //     cameraTransform.position, cameraTransform.getRight(),
     //     cameraTransform.getUp(), cameraTransform.getForward());
+  }
+
+  void recreateRaytracingImageAndImageView(const ltracer::QueueFamilyIndices &queueFamilyIndices)
+  {
+    ltracer::rt::recreateRaytracingImageBuffer(logicalDevice, physicalDevice, window, queueFamilyIndices, raytracingInfo);
   }
 
   std::vector<VkImageView> &getSwapChainImageViews() {
@@ -163,119 +162,6 @@ public:
     }
   }
 
-  void createRaytracingImage(VkPhysicalDevice physicalDevice,
-                             VkDevice logicalDevice, VkFormat swapChainFormat,
-                             VkExtent2D currentExtent,
-                             ltracer::QueueFamilyIndices queueFamilyIndices) {
-    VkImageCreateInfo rayTraceImageCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = NULL,
-        .flags = 0,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = swapChainFormat,
-        .extent =
-            {
-                .width = currentExtent.width,
-                .height = currentExtent.height,
-                .depth = 1,
-            },
-        .mipLevels = 1,
-        .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                 VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &queueFamilyIndices.graphicsFamily.value(),
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    VkResult result = vkCreateImage(logicalDevice, &rayTraceImageCreateInfo,
-                                    NULL, &rayTraceImageHandle);
-
-    if (result != VK_SUCCESS) {
-      throw new std::runtime_error("initRayTraci - vkCreateImage");
-    }
-
-    deletionQueue->push_function([=, this]() {
-      vkDestroyImage(logicalDevice, rayTraceImageHandle, NULL);
-    });
-
-    VkMemoryRequirements rayTraceImageMemoryRequirements;
-    vkGetImageMemoryRequirements(logicalDevice, rayTraceImageHandle,
-                                 &rayTraceImageMemoryRequirements);
-
-    VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice,
-                                        &physicalDeviceMemoryProperties);
-
-    uint32_t rayTraceImageMemoryTypeIndex = -1;
-    for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount;
-         x++) {
-      if ((rayTraceImageMemoryRequirements.memoryTypeBits & (1 << x)) &&
-          (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags &
-           VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) ==
-              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT) {
-
-        rayTraceImageMemoryTypeIndex = x;
-        break;
-      }
-    }
-
-    VkMemoryAllocateInfo rayTraceImageMemoryAllocateInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .pNext = &memoryAllocateFlagsInfo,
-        .allocationSize = rayTraceImageMemoryRequirements.size,
-        .memoryTypeIndex = rayTraceImageMemoryTypeIndex};
-
-    result = vkAllocateMemory(logicalDevice, &rayTraceImageMemoryAllocateInfo,
-                              NULL, &rayTraceImageDeviceMemoryHandle);
-    if (result != VK_SUCCESS) {
-      throw new std::runtime_error("initRayTraci - vkAllocateMemory");
-    }
-
-    result = vkBindImageMemory(logicalDevice, rayTraceImageHandle,
-                               rayTraceImageDeviceMemoryHandle, 0);
-    if (result != VK_SUCCESS) {
-      throw new std::runtime_error("initRayTraci - vkBindImageMemory");
-    }
-  }
-
-  void createRaytracingImageView(VkDevice logicalDevice,
-                                 VkFormat swapChainFormat) {
-    VkImageViewCreateInfo rayTraceImageViewCreateInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-        .pNext = NULL,
-        .flags = 0,
-        .image = rayTraceImageHandle,
-        .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = swapChainFormat,
-        .components =
-            {
-                .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-                .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-            },
-        .subresourceRange =
-            {
-                .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-                .baseMipLevel = 0,
-                .levelCount = 1,
-                .baseArrayLayer = 0,
-                .layerCount = 1,
-            },
-    };
-
-    VkResult result =
-        vkCreateImageView(logicalDevice, &rayTraceImageViewCreateInfo, NULL,
-                          &rayTraceImageViewHandle);
-
-    if (result != VK_SUCCESS) {
-      throw new std::runtime_error("initRayTraci - vkCreateImageView");
-    }
-  }
 
   void createFramebuffers(VkDevice logicalDevice,
                           std::shared_ptr<Window> window) {
@@ -403,7 +289,6 @@ public:
 
   /// Draws the frame and updates the surface
   void drawFrame(std::shared_ptr<Camera> camera, float delta) {
-    ltracer::raytraceImage(logicalDevice, camera, rayTraceImageHandle);
 
     vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE,
                     UINT64_MAX);
@@ -430,6 +315,7 @@ public:
     // worldObjects[0].translate(0, 0, 0.8 * delta);
     // worldObjects[1].translate(0.8 * delta, 0, 0);
 
+    ltracer::rt::updateRaytraceBuffer(logicalDevice, camera, raytracingInfo.rayTraceImageHandle);
     updateUniformBuffer(currentFrame);
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
@@ -514,9 +400,6 @@ private:
   std::vector<VkFramebuffer> swapChainFramebuffers;
   std::vector<VkImageView> swapChainImageViews;
   std::vector<VkImage> swapChainImages;
-
-  VkImage rayTraceImageHandle = VK_NULL_HANDLE;
-  VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
 
   std::vector<VkFence> inFlightFences;
   std::vector<VkSemaphore> imageAvailableSemaphores;
@@ -877,7 +760,7 @@ private:
 
     auto swapChainExtent = window->getSwapChainExtent();
 
-    ltracer::recordRaytracingCommandBuffer(
+    ltracer::rt::recordRaytracingCommandBuffer(
         physicalDevice, logicalDevice, commandBuffer, raytracingInfo, window);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -960,7 +843,7 @@ private:
 
     VkCopyImageInfo2 copyImageInfo = {};
     copyImageInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2;
-    copyImageInfo.srcImage = rayTraceImageHandle;
+    copyImageInfo.srcImage = raytracingInfo.rayTraceImageHandle;
     copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
     copyImageInfo.dstImage = swapChainImages[imageIndex];

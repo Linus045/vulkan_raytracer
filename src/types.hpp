@@ -133,6 +133,7 @@ createBuffer(VkPhysicalDevice physicalDevice, VkDevice logicalDevice,
   vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
 }
 
+// TODO: probably add some form of caching
 inline ltracer::QueueFamilyIndices
 findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR vulkanSurface) {
   ltracer::QueueFamilyIndices indices;
