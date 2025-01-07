@@ -10,7 +10,8 @@
 #include "src/deletion_queue.hpp"
 #include <vulkan/vulkan_core.h>
 
-namespace ltracer {
+namespace ltracer
+{
 
 static VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
@@ -19,196 +20,214 @@ static VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
     .deviceMask = 0,
 };
 
-struct QueueFamilyIndices {
-  std::optional<uint32_t> graphicsFamily;
-  std::optional<uint32_t> presentFamily;
-  std::optional<uint32_t> transferFamily;
+struct QueueFamilyIndices
+{
+	std::optional<uint32_t> graphicsFamily;
+	std::optional<uint32_t> presentFamily;
+	std::optional<uint32_t> transferFamily;
 
-  bool isComplete() {
-    return graphicsFamily.has_value() && presentFamily.has_value() &&
-           transferFamily.has_value();
-  }
+	bool isComplete()
+	{
+		return graphicsFamily.has_value() && presentFamily.has_value()
+		       && transferFamily.has_value();
+	}
 };
 
-struct SwapChainSupportDetails {
-  VkSurfaceCapabilitiesKHR capabilities;
-  std::vector<VkSurfaceFormatKHR> formats;
-  std::vector<VkPresentModeKHR> presentModes;
+struct SwapChainSupportDetails
+{
+	VkSurfaceCapabilitiesKHR capabilities;
+	std::vector<VkSurfaceFormatKHR> formats;
+	std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct UniformBufferObject {
-  alignas(16) glm::mat4 modelMatrix;
-  alignas(16) std::vector<glm::vec3> modelNormals;
+struct UniformBufferObject
+{
+	alignas(16) glm::mat4 modelMatrix;
+	alignas(16) std::vector<glm::vec3> modelNormals;
 };
 
-struct SharedInfo {
-  alignas(16) glm::mat4 view;
-  alignas(16) glm::mat4 proj;
+struct SharedInfo
+{
+	alignas(16) glm::mat4 view;
+	alignas(16) glm::mat4 proj;
 };
 
-struct RaytracingInfo {
-  VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;
-  VkPipelineLayout pipelineLayoutHandle = VK_NULL_HANDLE;
-  std::vector<VkDescriptorSet> descriptorSetHandleList =
-      std::vector<VkDescriptorSet>(2, VK_NULL_HANDLE);
+struct RaytracingInfo
+{
+	VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;
+	VkPipelineLayout pipelineLayoutHandle = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> descriptorSetHandleList
+	    = std::vector<VkDescriptorSet>(2, VK_NULL_HANDLE);
 
-  VkStridedDeviceAddressRegionKHR rchitShaderBindingTable = {};
-  VkStridedDeviceAddressRegionKHR rgenShaderBindingTable = {};
-  VkStridedDeviceAddressRegionKHR rmissShaderBindingTable = {};
-  VkStridedDeviceAddressRegionKHR callableShaderBindingTable = {};
-  VkImage rayTraceImageHandle = VK_NULL_HANDLE;
-  VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
-  ltracer::QueueFamilyIndices queueFamilyIndices = {};
+	VkStridedDeviceAddressRegionKHR rchitShaderBindingTable = {};
+	VkStridedDeviceAddressRegionKHR rgenShaderBindingTable = {};
+	VkStridedDeviceAddressRegionKHR rmissShaderBindingTable = {};
+	VkStridedDeviceAddressRegionKHR callableShaderBindingTable = {};
+	VkImage rayTraceImageHandle = VK_NULL_HANDLE;
+	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
+	ltracer::QueueFamilyIndices queueFamilyIndices = {};
 
-  VkCommandBuffer commandBufferBuildTopAndBottomLevel = VK_NULL_HANDLE;
-  // VkCommandBuffer commandBufferBuildAccelerationStructure = VK_NULL_HANDLE;
+	VkCommandBuffer commandBufferBuildTopAndBottomLevel = VK_NULL_HANDLE;
+	// VkCommandBuffer commandBufferBuildAccelerationStructure = VK_NULL_HANDLE;
 };
 
-struct UniformStructure {
-  float cameraPosition[4];
-  float cameraRight[4];
-  float cameraUp[4];
-  float cameraForward[4];
+struct UniformStructure
+{
+	float cameraPosition[4];
+	float cameraRight[4];
+	float cameraUp[4];
+	float cameraForward[4];
 
-  uint32_t frameCount;
+	uint32_t frameCount;
 };
 
 inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
                                uint32_t typeFilter,
-                               VkMemoryPropertyFlags properties) {
-  VkPhysicalDeviceMemoryProperties memoryProperties;
-  vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+                               VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memoryProperties;
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
-  for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++) {
-    bool typeMatches = typeFilter & (1 << i);
-    bool propertiesMatch = (memoryProperties.memoryTypes[i].propertyFlags &
-                            properties) == properties;
-    if (typeMatches && propertiesMatch) {
-      return i;
-    }
-  }
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
+	{
+		bool typeMatches = typeFilter & (1 << i);
+		bool propertiesMatch
+		    = (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties;
+		if (typeMatches && propertiesMatch)
+		{
+			return i;
+		}
+	}
 
-  throw std::runtime_error("failed to find suitable memory type!");
+	throw std::runtime_error("failed to find suitable memory type!");
 }
 
-inline void
-createBuffer(VkPhysicalDevice physicalDevice, VkDevice logicalDevice,
-             std::shared_ptr<DeletionQueue> deletionQueue, VkDeviceSize size,
-             VkBufferUsageFlags usage, VkMemoryPropertyFlags properties,
-             VkMemoryAllocateFlagsInfo &additionalMemoryAllocateFlagsInfo,
-             VkBuffer &buffer, VkDeviceMemory &bufferMemory,
-             std::vector<uint32_t> queueFamilyIndices) {
-  VkBufferCreateInfo bufferInfo{};
-  bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  bufferInfo.size = size;
-  bufferInfo.usage = usage;
-  bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-  bufferInfo.queueFamilyIndexCount = queueFamilyIndices.size();
-  bufferInfo.pQueueFamilyIndices = queueFamilyIndices.data();
+inline void createBuffer(VkPhysicalDevice physicalDevice,
+                         VkDevice logicalDevice,
+                         std::shared_ptr<DeletionQueue> deletionQueue,
+                         VkDeviceSize size,
+                         VkBufferUsageFlags usage,
+                         VkMemoryPropertyFlags properties,
+                         VkMemoryAllocateFlagsInfo& additionalMemoryAllocateFlagsInfo,
+                         VkBuffer& buffer,
+                         VkDeviceMemory& bufferMemory,
+                         std::vector<uint32_t> queueFamilyIndices)
+{
+	VkBufferCreateInfo bufferInfo{};
+	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+	bufferInfo.size = size;
+	bufferInfo.usage = usage;
+	bufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+	bufferInfo.queueFamilyIndexCount = queueFamilyIndices.size();
+	bufferInfo.pQueueFamilyIndices = queueFamilyIndices.data();
 
-  if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to create vertex buffer");
-  }
+	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to create vertex buffer");
+	}
 
-  deletionQueue->push_function(
-      [=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
+	deletionQueue->push_function([=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
 
-  VkMemoryRequirements memoryRequirements;
-  vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
+	VkMemoryRequirements memoryRequirements;
+	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
 
-  VkMemoryAllocateInfo allocInfo{};
-  allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-  allocInfo.allocationSize = memoryRequirements.size;
-  allocInfo.pNext = &additionalMemoryAllocateFlagsInfo,
-  allocInfo.memoryTypeIndex = findMemoryType(
-      physicalDevice, memoryRequirements.memoryTypeBits, properties);
-  if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) !=
-      VK_SUCCESS) {
-    throw std::runtime_error("failed to allocate vertex buffer memory");
-  }
+	VkMemoryAllocateInfo allocInfo{};
+	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+	allocInfo.allocationSize = memoryRequirements.size;
+	allocInfo.pNext = &additionalMemoryAllocateFlagsInfo,
+	allocInfo.memoryTypeIndex
+	    = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, properties);
+	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
+	{
+		throw std::runtime_error("failed to allocate vertex buffer memory");
+	}
 
-  deletionQueue->push_function(
-      [=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
-  vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+	deletionQueue->push_function([=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
+	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
 }
 
 // TODO: probably add some form of caching
-inline ltracer::QueueFamilyIndices
-findQueueFamilies(VkPhysicalDevice physicalDevice, VkSurfaceKHR vulkanSurface) {
-  ltracer::QueueFamilyIndices indices;
+inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice,
+                                                     VkSurfaceKHR vulkanSurface)
+{
+	ltracer::QueueFamilyIndices indices;
 
-  uint32_t queueFamilyCount = 0;
-  vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount,
-                                           nullptr);
+	uint32_t queueFamilyCount = 0;
+	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
 
-  std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
-  vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount,
-                                           queueFamilies.data());
+	std::vector<VkQueueFamilyProperties> queueFamilies(queueFamilyCount);
+	vkGetPhysicalDeviceQueueFamilyProperties(
+	    physicalDevice, &queueFamilyCount, queueFamilies.data());
 
-  int i = 0;
-  // std::cout << "------------------------------------\n";
-  for (const auto &queueFamily : queueFamilies) {
+	int i = 0;
+	// std::cout << "------------------------------------\n";
+	for (const auto& queueFamily : queueFamilies)
+	{
 
-    // std::cout << "Queue number: " +
-    // std::to_string(queueFamily.queueCount)
-    //           << std::endl;
-    // std::cout << "Queue flags: " +
-    // string_VkQueueFlags(queueFamily.queueFlags)
-    //           << std::endl;
+		// std::cout << "Queue number: " +
+		// std::to_string(queueFamily.queueCount)
+		//           << std::endl;
+		// std::cout << "Queue flags: " +
+		// string_VkQueueFlags(queueFamily.queueFlags)
+		//           << std::endl;
 
-    bool hasGraphicsBit = queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
-    if (hasGraphicsBit) {
-      indices.graphicsFamily = i;
-    }
+		bool hasGraphicsBit = queueFamily.queueFlags & VK_QUEUE_GRAPHICS_BIT;
+		if (hasGraphicsBit)
+		{
+			indices.graphicsFamily = i;
+		}
 
-    bool hasTransferBit = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
-    if (!hasGraphicsBit && hasTransferBit) {
-      indices.transferFamily = i;
-    }
+		bool hasTransferBit = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
+		if (!hasGraphicsBit && hasTransferBit)
+		{
+			indices.transferFamily = i;
+		}
 
-    VkBool32 presentCapabilitiesSupported = false;
-    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, i, vulkanSurface,
-                                         &presentCapabilitiesSupported);
+		VkBool32 presentCapabilitiesSupported = false;
+		vkGetPhysicalDeviceSurfaceSupportKHR(
+		    physicalDevice, i, vulkanSurface, &presentCapabilitiesSupported);
 
-    if (presentCapabilitiesSupported) {
-      indices.presentFamily = i;
-    }
+		if (presentCapabilitiesSupported)
+		{
+			indices.presentFamily = i;
+		}
 
-    if (indices.isComplete())
-      // break;
+		if (indices.isComplete())
+			// break;
 
-      i++;
-  }
-  // std::cout << "------------------------------------\n";
+			i++;
+	}
+	// std::cout << "------------------------------------\n";
 
-  // std::cout << "indices.graphicsFamily: " <<
-  // indices.graphicsFamily.value()
-  //           << std::endl;
-  // std::cout << "indices.transferFamily: " <<
-  // indices.transferFamily.value()
-  //           << std::endl;
-  // std::cout << "indices.presentFamily: " << indices.presentFamily.value()
-  //           << std::endl;
+	// std::cout << "indices.graphicsFamily: " <<
+	// indices.graphicsFamily.value()
+	//           << std::endl;
+	// std::cout << "indices.transferFamily: " <<
+	// indices.transferFamily.value()
+	//           << std::endl;
+	// std::cout << "indices.presentFamily: " << indices.presentFamily.value()
+	//           << std::endl;
 
-  return indices;
+	return indices;
 }
 
 /// TODO: Move this to a more appropriate place
-static std::vector<char> readFile(const std::string &filename) {
-  std::ifstream file(filename, std::ios::ate | std::ios::binary);
-  if (!file.is_open()) {
-    throw std::runtime_error("failed to open file: " + filename);
-  }
+static std::vector<char> readFile(const std::string& filename)
+{
+	std::ifstream file(filename, std::ios::ate | std::ios::binary);
+	if (!file.is_open())
+	{
+		throw std::runtime_error("failed to open file: " + filename);
+	}
 
-  size_t filesize = static_cast<size_t>(file.tellg());
-  std::vector<char> buffer(filesize);
-  file.seekg(0);
-  file.read(buffer.data(), filesize);
+	size_t filesize = static_cast<size_t>(file.tellg());
+	std::vector<char> buffer(filesize);
+	file.seekg(0);
+	file.read(buffer.data(), filesize);
 
-  file.close();
+	file.close();
 
-  return buffer;
+	return buffer;
 }
 
 } // namespace ltracer

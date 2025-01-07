@@ -6,41 +6,54 @@
 #include "src/model.hpp"
 #include "src/transform.hpp"
 
-namespace ltracer {
+namespace ltracer
+{
 
-class WorldObject : public MeshObject {
-public:
-  Transform transform;
+class WorldObject : public MeshObject
+{
+  public:
+	Transform transform;
 
-  WorldObject(const std::vector<Vertex> &vertices,
-              const std::vector<unsigned int> indices,
-              glm::vec3 position = glm::vec3{0, 0, 0})
-      : MeshObject(vertices, indices) {
-    transform.position = position;
-  }
+	WorldObject(const std::vector<Vertex>& vertices,
+	            const std::vector<unsigned int> indices,
+	            glm::vec3 position = glm::vec3{0, 0, 0})
+	    : MeshObject(vertices, indices)
+	{
+		transform.position = position;
+	}
 
-  // TODO: make this a more generic rotation function
-  void updateRotation(float time) {
-    transform.rotation =
-        glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f),
-                    glm::vec3(0.0f, 1.0f, 0.0f));
-  }
+	// TODO: make this a more generic rotation function
+	void updateRotation(float time)
+	{
+		transform.rotation
+		    = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+	}
 
-  void translate(glm::vec3 translation) { transform.position += translation; }
+	void translate(glm::vec3 translation)
+	{
+		transform.position += translation;
+	}
 
-  void translate(float x, float y, float z) { translate(glm::vec3(x, y, z)); }
+	void translate(float x, float y, float z)
+	{
+		translate(glm::vec3(x, y, z));
+	}
 
-  void setPosition(glm::vec3 position) { transform.position = position; }
+	void setPosition(glm::vec3 position)
+	{
+		transform.position = position;
+	}
 
-  glm::mat4 getModelMatrix() const {
-    glm::mat4 modelMatrix = glm::identity<glm::mat4>();
-    modelMatrix = glm::scale(modelMatrix, transform.scale);
-    modelMatrix = glm::toMat4(transform.rotation) * modelMatrix;
-    modelMatrix = glm::translate(modelMatrix, transform.position);
-    return modelMatrix;
-  }
+	glm::mat4 getModelMatrix() const
+	{
+		glm::mat4 modelMatrix = glm::identity<glm::mat4>();
+		modelMatrix = glm::scale(modelMatrix, transform.scale);
+		modelMatrix = glm::toMat4(transform.rotation) * modelMatrix;
+		modelMatrix = glm::translate(modelMatrix, transform.position);
+		return modelMatrix;
+	}
 
-private:
+  private:
 };
 
 } // namespace ltracer
