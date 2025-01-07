@@ -101,7 +101,7 @@ public:
 
     ltracer::ui::initImgui(vulkanInstance, logicalDevice, physicalDevice,
                            window, queueFamilyIndices, renderPass,
-                           deletionQueue);
+                           graphicsQueue, deletionQueue);
 
     ltracer::rt::createRaytracingImage(
         physicalDevice, logicalDevice, window->getSwapChainImageFormat(),
@@ -197,10 +197,12 @@ public:
     }
   }
 
-  void renderImguiFrame(const ltracer::ui::UIData &uiData) {
+  void renderImguiFrame(const VkCommandBuffer commandBuffer,
+                        const ltracer::ui::UIData &uiData) {
     ltracer::ui::beginFrame();
     ltracer::ui::renderMainPanel(uiData);
     ltracer::ui::endFrame();
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
   }
 
   void updateUniformBuffer(uint32_t currentImage) {
@@ -876,9 +878,7 @@ private:
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    renderImguiFrame(uiData);
-
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
+    renderImguiFrame(commandBuffer, uiData);
 
     vkCmdEndRenderPass(commandBuffer);
 

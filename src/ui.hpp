@@ -30,13 +30,12 @@ struct UIStatus {
 
 static UIStatus uiStatus;
 static VkDescriptorPool imguiPool;
-static VkQueue graphicsQueue;
 
 inline void initImgui(VkInstance vulkanInstance, VkDevice logicalDevice,
                       VkPhysicalDevice physicalDevice,
                       std::shared_ptr<Window> window,
                       QueueFamilyIndices &queueFamilyIndices,
-                      VkRenderPass renderPass,
+                      VkRenderPass renderPass, VkQueue graphicsQueue,
                       std::shared_ptr<DeletionQueue> deletionQueue) {
 
   // oversized but whatever
@@ -74,9 +73,6 @@ inline void initImgui(VkInstance vulkanInstance, VkDevice logicalDevice,
   ImGui_ImplGlfw_InitForVulkan(window->getGLFWWindow(), false);
 
   ImGui_ImplVulkan_InitInfo init_info = {};
-
-  vkGetDeviceQueue(logicalDevice, queueFamilyIndices.graphicsFamily.value(), 0,
-                   &graphicsQueue);
 
   init_info.Instance = vulkanInstance;
   init_info.PhysicalDevice = physicalDevice;
