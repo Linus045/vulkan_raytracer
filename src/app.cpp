@@ -1,5 +1,6 @@
 
 #include "src/deletion_queue.hpp"
+#include "src/ui.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -40,14 +41,14 @@
 
 class HelloTriangleApplication {
 
-  void createRenderer() {
+  void createRenderer(const ltracer::ui::UIData &uiData) {
     ltracer::SwapChainSupportDetails swapChainSupport =
         querySwapChainSupport(physicalDevice);
     int width, height;
     window->getFramebufferSize(&width, &height);
     renderer = std::make_shared<ltracer::Renderer>(
         physicalDevice, logicalDevice, mainDeletionQueue, window, graphicsQueue,
-        presentQueue, transferQueue);
+        presentQueue, transferQueue, uiData);
 
     window->createSwapChain(physicalDevice, logicalDevice,
                             VkExtent2D{static_cast<unsigned int>(width),
@@ -64,12 +65,16 @@ public:
 
     camera = std::make_shared<ltracer::Camera>();
 
+    const ltracer::ui::UIData uiData = {
+        .camera = camera,
+    };
+
     createWindow();
 
     initInput(window);
     initVulkan();
 
-    createRenderer();
+    createRenderer(uiData);
 
     mainLoop();
 
@@ -308,8 +313,8 @@ private:
       app.renderer->createImageViews(app.logicalDevice);
       app.renderer->createFramebuffers(app.logicalDevice, app.window);
 
-    ltracer::QueueFamilyIndices indices =
-        ltracer::findQueueFamilies(app.physicalDevice, app.window->getVkSurface());
+      ltracer::QueueFamilyIndices indices = ltracer::findQueueFamilies(
+          app.physicalDevice, app.window->getVkSurface());
 
       app.renderer->recreateRaytracingImageAndImageView(indices);
       app.camera->updateScreenSize(extent.width, extent.height);
@@ -676,8 +681,8 @@ private:
           renderer->createImageViews(logicalDevice);
           renderer->createFramebuffers(logicalDevice, window);
 
-          ltracer::QueueFamilyIndices indices =
-              ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+          ltracer::QueueFamilyIndices indices = ltracer::findQueueFamilies(
+              physicalDevice, window->getVkSurface());
           renderer->recreateRaytracingImageAndImageView(indices);
 
           camera->updateScreenSize(extent.width, extent.height);

@@ -1,0 +1,146 @@
+#pragma once
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext.hpp"
+
+#include "backends/imgui_impl_glfw.h"
+#include "backends/imgui_impl_vulkan.h"
+#include "imgui.h"
+
+#include "src/camera.hpp"
+#include "src/types.hpp"
+#include "src/window.hpp"
+
+namespace ltracer {
+
+namespace ui {
+
+// TODO: consider storing the raw data values instead of pointers/references and
+// updating the struct regularly
+struct UIData {
+  const std::shared_ptr<Camera> camera;
+};
+
+struct UIStatus {
+  bool mainPanelOpen = true;
+};
+
+static UIStatus uiStatus;
+static VkDescriptorPool imguiPool;
+static VkQueue graphicsQueue;
+
+inline void initImgui(VkInstance vulkanInstance, VkDevice logicalDevice,
+                      VkPhysicalDevice physicalDevice,
+                      std::shared_ptr<Window> window,
+                      QueueFamilyIndices &queueFamilyIndices,
+                      VkRenderPass renderPass,
+                      std::shared_ptr<DeletionQueue> deletionQueue) {
+
+  // oversized but whatever
+  VkDescriptorPoolSize pool_sizes[] = {
+      {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+      {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+      {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+      {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+      {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+      {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
+
+  VkDescriptorPoolCreateInfo pool_info = {};
+  pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+  pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+  pool_info.maxSets = 1000;
+  pool_info.poolSizeCount = std::size(pool_sizes);
+  pool_info.pPoolSizes = pool_sizes;
+
+  if (vkCreateDescriptorPool(logicalDevice, &pool_info, nullptr, &imguiPool) !=
+      VK_SUCCESS) {
+    throw std::runtime_error("init_imgui - vkCreateDescriptorPool");
+  }
+
+  deletionQueue->push_function(
+      [=]() { vkDestroyDescriptorPool(logicalDevice, imguiPool, NULL); });
+
+  // initialize the core structures of imgui
+  ImGui::CreateContext();
+
+  ImGui_ImplGlfw_InitForVulkan(window->getGLFWWindow(), false);
+
+  ImGui_ImplVulkan_InitInfo init_info = {};
+
+  vkGetDeviceQueue(logicalDevice, queueFamilyIndices.graphicsFamily.value(), 0,
+                   &graphicsQueue);
+
+  init_info.Instance = vulkanInstance;
+  init_info.PhysicalDevice = physicalDevice;
+  init_info.Device = logicalDevice;
+
+  init_info.Queue = graphicsQueue;
+  init_info.DescriptorPool = imguiPool;
+  init_info.MinImageCount = 3;
+  init_info.ImageCount = 3;
+  init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+  init_info.RenderPass = renderPass;
+
+  ImGui_ImplVulkan_Init(&init_info);
+
+  // Disable saving the settings to imgui.ini file
+  ImGui::GetIO().ConfigDebugIniSettings = false;
+  ImGui::GetIO().IniFilename = NULL;
+
+  // execute a gpu command to upload imgui font textures
+  ImGui_ImplVulkan_CreateFontsTexture();
+
+  // add the destroy the imgui created structures
+  deletionQueue->push_function([]() { ImGui_ImplVulkan_Shutdown(); });
+}
+
+inline void renderCameraProperties(const UIData &uiData) {
+  if (ImGui::CollapsingHeader("Camera")) {
+    auto cameraPosition = glm::to_string(uiData.camera->transform.position);
+    ImGui::Text("Position: %s", cameraPosition.c_str());
+
+    auto cameraLookDirection =
+        glm::to_string(uiData.camera->transform.getForward());
+    ImGui::Text("Look Direction: %s", cameraLookDirection.c_str());
+  }
+}
+
+inline void renderMainPanel(const UIData &uiData) {
+
+  // ImGui::ShowDemoWindow();
+
+  const ImGuiViewport *main_viewport = ImGui::GetMainViewport();
+  ImGui::SetNextWindowPos(
+      ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 100),
+      ImGuiCond_FirstUseEver);
+  ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
+
+  ImGuiWindowFlags window_flags = 0;
+  if (!ImGui::Begin("Status", &uiStatus.mainPanelOpen, window_flags)) {
+    // Early out if the window is collapsed, as an optimization.
+    ImGui::End();
+    return;
+  }
+
+  ltracer::ui::renderCameraProperties(uiData);
+  ImGui::End();
+}
+
+inline void beginFrame() {
+  ImGui_ImplVulkan_NewFrame();
+  ImGui_ImplGlfw_NewFrame();
+  ImGui::NewFrame();
+}
+
+inline void endFrame() {
+  ImGui::EndFrame();
+  ImGui::Render();
+}
+
+} // namespace ui
+} // namespace ltracer

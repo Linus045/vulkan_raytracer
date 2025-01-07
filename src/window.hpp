@@ -233,8 +233,8 @@ public:
 private:
   const bool FULLSCREEN_ENABLED = false;
 
-  uint32_t initialWidth = 1920;
-  uint32_t initialHeight = 1080;
+  uint32_t initialWidth = 800;
+  uint32_t initialHeight = 600;
 
   // window
   GLFWwindow *glfwWindow = nullptr;

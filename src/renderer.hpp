@@ -6,20 +6,15 @@
 #include <stdexcept>
 #include <vector>
 
+#include "glm/ext/matrix_float4x4.hpp"
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
-
-#include "imgui.h"
-
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_vulkan.h"
-
-#include "glm/ext/matrix_float4x4.hpp"
 
 #include "src/camera.hpp"
 #include "src/deletion_queue.hpp"
 #include "src/raytracing.hpp"
 #include "src/types.hpp"
+#include "src/ui.hpp"
 #include "src/window.hpp"
 #include "src/worldobject.hpp"
 
@@ -32,11 +27,12 @@ public:
   Renderer(VkPhysicalDevice physicalDevice, VkDevice logicalDevice,
            std::shared_ptr<ltracer::DeletionQueue> deletionQueue,
            std::shared_ptr<ltracer::Window> window, VkQueue graphicsQueue,
-           VkQueue presentQueue, VkQueue transferQueue)
+           VkQueue presentQueue, VkQueue transferQueue,
+           const ltracer::ui::UIData &uiData)
       : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
         deletionQueue(deletionQueue), window(window),
         graphicsQueue(graphicsQueue), presentQueue(presentQueue),
-        transferQueue(transferQueue) //
+        transferQueue(transferQueue), uiData(uiData) //
   {
     //
   }
@@ -58,7 +54,9 @@ public:
   }
 
   void cleanupRenderer() {
-    ltracer::rt::freeRaytraceImageAndImageView(logicalDevice, raytracingInfo.rayTraceImageHandle, raytracingInfo.rayTraceImageViewHandle);
+    ltracer::rt::freeRaytraceImageAndImageView(
+        logicalDevice, raytracingInfo.rayTraceImageHandle,
+        raytracingInfo.rayTraceImageViewHandle);
     cleanupFramebufferAndImageViews();
   }
 
@@ -95,27 +93,35 @@ public:
     ltracer::QueueFamilyIndices queueFamilyIndices =
         ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
 
-    initImgui(vulkanInstance, queueFamilyIndices);
+    ltracer::ui::initImgui(vulkanInstance, logicalDevice, physicalDevice,
+                           window, queueFamilyIndices, renderPass,
+                           deletionQueue);
 
-    ltracer::rt::createRaytracingImage(physicalDevice, logicalDevice,
-                          window->getSwapChainImageFormat(),
-                          window->getSwapChainExtent(), queueFamilyIndices, raytracingInfo.rayTraceImageHandle);
+    ltracer::rt::createRaytracingImage(
+        physicalDevice, logicalDevice, window->getSwapChainImageFormat(),
+        window->getSwapChainExtent(), queueFamilyIndices,
+        raytracingInfo.rayTraceImageHandle);
 
-    ltracer::rt::createRaytracingImageView(logicalDevice, window->getSwapChainImageFormat(), raytracingInfo.rayTraceImageHandle, raytracingInfo.rayTraceImageViewHandle);
+    ltracer::rt::createRaytracingImageView(
+        logicalDevice, window->getSwapChainImageFormat(),
+        raytracingInfo.rayTraceImageHandle,
+        raytracingInfo.rayTraceImageViewHandle);
 
     raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
     ltracer::rt::initRayTracing(physicalDevice, logicalDevice, deletionQueue,
-                            window,swapChainImageViews, raytracingInfo);
+                                window, swapChainImageViews, raytracingInfo);
     auto &cameraTransform = camera->transform;
     // ltracer::updateUniformStructure(
     //     cameraTransform.position, cameraTransform.getRight(),
     //     cameraTransform.getUp(), cameraTransform.getForward());
   }
 
-  void recreateRaytracingImageAndImageView(const ltracer::QueueFamilyIndices &queueFamilyIndices)
-  {
-    ltracer::rt::recreateRaytracingImageBuffer(logicalDevice, physicalDevice, window, queueFamilyIndices, raytracingInfo);
+  void recreateRaytracingImageAndImageView(
+      const ltracer::QueueFamilyIndices &queueFamilyIndices) {
+    ltracer::rt::recreateRaytracingImageBuffer(logicalDevice, physicalDevice,
+                                               window, queueFamilyIndices,
+                                               raytracingInfo);
   }
 
   std::vector<VkImageView> &getSwapChainImageViews() {
@@ -162,7 +168,6 @@ public:
     }
   }
 
-
   void createFramebuffers(VkDevice logicalDevice,
                           std::shared_ptr<Window> window) {
     swapChainFramebuffers.resize(swapChainImageViews.size());
@@ -186,93 +191,10 @@ public:
     }
   }
 
-  void initImgui(VkInstance vulkanInstance,
-                 QueueFamilyIndices queueFamilyIndices) {
-    // VkQueue graphicsQueueAAAA,
-    // VkRenderPass renderPass,
-    // VkCommandBuffer cmd
-
-    // 1: create descriptor pool for IMGUI
-    //  the size of the pool is very oversize, but it's copied from imgui demo
-    //  itself.
-    VkDescriptorPoolSize pool_sizes[] = {
-        {VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
-        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
-        {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
-        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
-        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
-        {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}};
-
-    VkDescriptorPoolCreateInfo pool_info = {};
-    pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-    pool_info.maxSets = 1000;
-    pool_info.poolSizeCount = std::size(pool_sizes);
-    pool_info.pPoolSizes = pool_sizes;
-
-    if (vkCreateDescriptorPool(logicalDevice, &pool_info, nullptr,
-                               &imguiPool) != VK_SUCCESS) {
-      throw std::runtime_error("init_imgui - vkCreateDescriptorPool");
-    }
-
-    deletionQueue->push_function([=, this]() {
-      vkDestroyDescriptorPool(logicalDevice, imguiPool, NULL);
-    });
-
-    // 2: initialize imgui library
-
-    // this initializes the core structures of imgui
-    ImGui::CreateContext();
-
-    // this initializes imgui for SDL
-    ImGui_ImplGlfw_InitForVulkan(window->getGLFWWindow(), false);
-
-    // this initializes imgui for Vulkan
-    ImGui_ImplVulkan_InitInfo init_info = {};
-
-    VkQueue graphicsQueueAAAA;
-    vkGetDeviceQueue(logicalDevice, queueFamilyIndices.graphicsFamily.value(),
-                     0, &graphicsQueueAAAA);
-
-    init_info.Instance = vulkanInstance;
-    init_info.PhysicalDevice = physicalDevice;
-    init_info.Device = logicalDevice;
-
-    init_info.Queue = graphicsQueueAAAA;
-    init_info.DescriptorPool = imguiPool;
-    init_info.MinImageCount = 3;
-    init_info.ImageCount = 3;
-    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
-    init_info.RenderPass = renderPass;
-
-    ImGui_ImplVulkan_Init(&init_info);
-
-    // execute a gpu command to upload imgui font textures
-    ImGui_ImplVulkan_CreateFontsTexture();
-
-    // add the destroy the imgui created structures
-    deletionQueue->push_function([=, this]() { ImGui_ImplVulkan_Shutdown(); });
-  }
-
-  void renderImguiFrame() {
-    // ################## IMGUI
-    // imgui new frame
-    ImGui_ImplVulkan_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    // imgui commands
-    ImGui::ShowDemoWindow();
-    // ################## IMGUI
-
-    ImGui::EndFrame();
-
-    ImGui::Render();
+  void renderImguiFrame(const ltracer::ui::UIData &uiData) {
+    ltracer::ui::beginFrame();
+    ltracer::ui::renderMainPanel(uiData);
+    ltracer::ui::endFrame();
   }
 
   void updateUniformBuffer(uint32_t currentImage) {
@@ -315,7 +237,8 @@ public:
     // worldObjects[0].translate(0, 0, 0.8 * delta);
     // worldObjects[1].translate(0.8 * delta, 0, 0);
 
-    ltracer::rt::updateRaytraceBuffer(logicalDevice, camera, raytracingInfo.rayTraceImageHandle);
+    ltracer::rt::updateRaytraceBuffer(logicalDevice, camera,
+                                      raytracingInfo.rayTraceImageHandle);
     updateUniformBuffer(currentFrame);
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
@@ -385,6 +308,8 @@ private:
   glm::mat4 viewMatrix;
   glm::mat4 projectionMatrix;
 
+  const ui::UIData &uiData;
+
   // physical device handle
   VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
@@ -407,8 +332,6 @@ private:
 
   VkCommandPool commandPool = VK_NULL_HANDLE;
   std::vector<VkCommandBuffer> commandBuffers;
-
-  VkDescriptorPool imguiPool;
 
   // VkCommandPool commandPoolTransfer = VK_NULL_HANDLE;
   // VkDescriptorPool descriptorPool;
@@ -947,47 +870,7 @@ private:
     scissor.extent = swapChainExtent;
     vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
 
-    // std::vector<VkBuffer> indexBuffers(meshObjects.size());
-
-    // std::vector<VkDeviceSize> offsets((*worldObjects).size(), 0);
-
-    // vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-    //                   graphicsPipeline);
-
-    // int objectIdx = 0;
-    // for (ltracer::MeshObject &obj : *worldObjects) {
-    //   vkCmdBindDescriptorSets(commandBuffer,
-    //   VK_PIPELINE_BIND_POINT_GRAPHICS,
-    //                           pipelineLayout, 0, 1,
-    //                           &descriptorSetsGlobal[currentFrame], 0,
-    //                           nullptr);
-    //   // std::cout << "Binding descriptor per frame per model: "
-    //   //           << "currentFrame: " << currentFrame
-    //   //           << " objectIdx:" << objectIdx << " buffer address:"
-    //   //           <<
-    //   descriptorSetPerFramePerModel[currentFrame][objectIdx]
-    //   //           << '\n';
-    //   vkCmdBindDescriptorSets(
-    //       commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout,
-    //       1, 1, &descriptorSetPerFramePerModel[currentFrame][objectIdx],
-    //       0, nullptr);
-
-    //   vkCmdBindVertexBuffers(commandBuffer, 0, 1, &obj.vertexBuffer,
-    //                          offsets.data());
-
-    //   vkCmdBindIndexBuffer(commandBuffer, obj.indexBuffer, 0,
-    //                        VK_INDEX_TYPE_UINT32);
-
-    //   vkCmdDrawIndexed(commandBuffer,
-    //   static_cast<uint32_t>(obj.indices.size()),
-    //                    1, 0, 0, 0);
-
-    //   objectIdx++;
-    // }
-
-    // TODO: IMGUI STUFF
-
-    renderImguiFrame();
+    renderImguiFrame(uiData);
 
     ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 
