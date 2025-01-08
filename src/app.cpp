@@ -54,6 +54,7 @@ class HelloTriangleApplication
 		                                               graphicsQueue,
 		                                               presentQueue,
 		                                               transferQueue,
+		                                               raytracingSupported,
 		                                               uiData);
 
 		window->createSwapChain(
@@ -75,6 +76,8 @@ class HelloTriangleApplication
 
 		const ltracer::ui::UIData uiData = {
 		    .camera = camera,
+		    .raytracingSupported = raytracingSupported,
+		    .physicalDeviceProperties = physicalDeviceProperties,
 		};
 
 		createWindow();
@@ -114,9 +117,11 @@ class HelloTriangleApplication
 	std::shared_ptr<ltracer::DeletionQueue> mainDeletionQueue
 	    = std::make_shared<ltracer::DeletionQueue>();
 
+	bool raytracingSupported = false;
 	bool vulkan_initialized = false;
 	// vulkan instance
 	VkInstance vulkanInstance;
+	VkPhysicalDeviceProperties physicalDeviceProperties;
 
 	std::shared_ptr<ltracer::Window> window;
 	std::shared_ptr<ltracer::Renderer> renderer;
@@ -130,9 +135,9 @@ class HelloTriangleApplication
 	// Logical device to interact with
 	VkDevice logicalDevice;
 
-	VkQueue graphicsQueue;
-	VkQueue presentQueue;
-	VkQueue transferQueue;
+	VkQueue graphicsQueue = VK_NULL_HANDLE;
+	VkQueue presentQueue = VK_NULL_HANDLE;
+	VkQueue transferQueue = VK_NULL_HANDLE;
 
 #ifdef NDEBUG
 	const bool enableValidationLayer = false;
@@ -144,10 +149,10 @@ class HelloTriangleApplication
 	    "VK_LAYER_KHRONOS_validation",
 	};
 
-	const std::vector<const char*> deviceExtensions = {
-	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-
+	// used to select a GPU that supports ray tracing
+	const std::vector<const char*> deviceExtensionsForRaytracing = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 
 	    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
@@ -161,6 +166,12 @@ class HelloTriangleApplication
 	    // VK_KHR_MAINTENANCE3_EXTENSION_NAME,
 	    VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
 	    // VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
+	};
+
+	// if no device can be found that supports ray tracing, search for a device to display to the
+	// screen (to show messages, errors etc.)
+	const std::vector<const char*> deviceExtensionsForDisplay = {
+	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 	};
 
@@ -360,20 +371,47 @@ class HelloTriangleApplication
 		}
 	}
 
+	void printSelectedGPU()
+	{
+		std::cout << "Using device: " << physicalDeviceProperties.deviceName << std::endl;
+	}
+
 	void initVulkan()
 	{
 		createInstanceForVulkan();
 		if (enableValidationLayer) setupDebugMessenger();
 		window->createVulkanSurface(vulkanInstance);
 
-		pickPhysicalDevice();
+		bool deviceFound = false;
+		const std::vector<const char*>* deviceExtensions = NULL;
+		if (pickPhysicalDevice(deviceExtensionsForRaytracing))
+		{
+			deviceFound = true;
+			raytracingSupported = true;
+			deviceExtensions = &deviceExtensionsForRaytracing;
+		}
+		else if (pickPhysicalDevice(deviceExtensionsForDisplay))
+		{
+			deviceFound = true;
+			raytracingSupported = false;
+			deviceExtensions = &deviceExtensionsForDisplay;
+		}
 
-		createLogicalDevice();
+		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+
+		if (deviceFound)
+			printSelectedGPU();
+		else
+			throw std::runtime_error("failed to find a suitable GPU!");
+
+		assert(deviceExtensions != NULL);
+		createLogicalDevice(*deviceExtensions, raytracingSupported);
 
 		vulkan_initialized = true;
 	}
 
-	void createLogicalDevice()
+	void createLogicalDevice(const std::vector<const char*> requiredDeviceExtensions,
+	                         const bool raytracingSupported)
 	{
 		// grab the required queue families
 		ltracer::QueueFamilyIndices indices
@@ -382,11 +420,14 @@ class HelloTriangleApplication
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
 		// filter the unique families, some families can use the same queue
-		std::set<uint32_t> uniqueQueueFamilies = {
-		    indices.graphicsFamily.value(),
-		    indices.presentFamily.value(),
-		    indices.transferFamily.value(),
-		};
+		std::set<uint32_t> uniqueQueueFamilies = {};
+
+		if (indices.graphicsFamily.has_value())
+			uniqueQueueFamilies.insert(indices.graphicsFamily.value());
+		if (indices.presentFamily.has_value())
+			uniqueQueueFamilies.insert(indices.presentFamily.value());
+		if (indices.transferFamily.has_value())
+			uniqueQueueFamilies.insert(indices.transferFamily.value());
 
 		// add the unique families into a list
 		for (auto const queueFamily : uniqueQueueFamilies)
@@ -404,65 +445,71 @@ class HelloTriangleApplication
 
 		// =========================================================================
 		// Physical Device Features
+		VkDeviceCreateInfo createInfo{};
+		createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+		createInfo.enabledExtensionCount = static_cast<uint32_t>(requiredDeviceExtensions.size());
+		createInfo.ppEnabledExtensionNames = requiredDeviceExtensions.data();
+		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
+		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
-		VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures = {
-		    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-		    .pNext = NULL,
-		    .bufferDeviceAddress = VK_TRUE,
-		    .bufferDeviceAddressCaptureReplay = VK_FALSE,
-		    .bufferDeviceAddressMultiDevice = VK_FALSE,
-		};
+		VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures{};
+		VkPhysicalDeviceAccelerationStructureFeaturesKHR
+		    physicalDeviceAccelerationStructureFeatures{};
+		VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures{};
+		VkPhysicalDeviceFeatures deviceFeatures{};
 
-		VkPhysicalDeviceAccelerationStructureFeaturesKHR physicalDeviceAccelerationStructureFeatures
-		    = {
-		        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
-		        .pNext = &physicalDeviceBufferDeviceAddressFeatures,
-		        .accelerationStructure = VK_TRUE,
-		        .accelerationStructureCaptureReplay = VK_FALSE,
-		        .accelerationStructureIndirectBuild = VK_FALSE,
-		        .accelerationStructureHostCommands = VK_FALSE,
-		        .descriptorBindingAccelerationStructureUpdateAfterBind = VK_FALSE,
-		    };
-
-		VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures = {
-		    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
-		    .pNext = &physicalDeviceAccelerationStructureFeatures,
-		    .rayTracingPipeline = VK_TRUE,
-		    .rayTracingPipelineShaderGroupHandleCaptureReplay = VK_FALSE,
-		    .rayTracingPipelineShaderGroupHandleCaptureReplayMixed = VK_FALSE,
-		    .rayTracingPipelineTraceRaysIndirect = VK_FALSE,
-		    .rayTraversalPrimitiveCulling = VK_FALSE,
-		};
-
-		VkPhysicalDeviceSynchronization2Features synchronizationFeatures2 = {};
+		VkPhysicalDeviceSynchronization2Features synchronizationFeatures2{};
 		synchronizationFeatures2.sType
 		    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
 		synchronizationFeatures2.synchronization2 = true;
-		synchronizationFeatures2.pNext = &physicalDeviceRayTracingPipelineFeatures;
 
-		// NOTE: is hardcoded into createLogicalDevice
-		// VkPhysicalDeviceFeatures deviceFeatures{
-		//    .geometryShader = VK_TRUE,
-		// };
+		if (raytracingSupported)
+		{
+			physicalDeviceBufferDeviceAddressFeatures.sType
+			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
+			physicalDeviceBufferDeviceAddressFeatures.pNext = NULL;
+			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
+			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddressCaptureReplay = VK_FALSE;
+			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
 
-		// attach the queueFamilies and device specific extensions (usually not
-		// needed since its now all handled globally) to the device
-		VkDeviceCreateInfo createInfo{
-		    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-		    .pNext = &synchronizationFeatures2,
-		    .queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size()),
-		    .pQueueCreateInfos = queueCreateInfos.data(),
-		};
+			physicalDeviceAccelerationStructureFeatures.sType
+			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
+			physicalDeviceAccelerationStructureFeatures.pNext
+			    = &physicalDeviceBufferDeviceAddressFeatures;
+			physicalDeviceAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
+			physicalDeviceAccelerationStructureFeatures.accelerationStructureCaptureReplay
+			    = VK_FALSE;
+			physicalDeviceAccelerationStructureFeatures.accelerationStructureIndirectBuild
+			    = VK_FALSE;
+			physicalDeviceAccelerationStructureFeatures.accelerationStructureHostCommands
+			    = VK_FALSE;
+			physicalDeviceAccelerationStructureFeatures
+			    .descriptorBindingAccelerationStructureUpdateAfterBind
+			    = VK_FALSE;
 
-		VkPhysicalDeviceFeatures deviceFeatures{
-		    // Needs to be enabled for Raytracing
-		    .geometryShader = VK_TRUE,
-		};
+			physicalDeviceRayTracingPipelineFeatures.sType
+			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
+			physicalDeviceRayTracingPipelineFeatures.pNext
+			    = &physicalDeviceAccelerationStructureFeatures;
+			physicalDeviceRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
+			physicalDeviceRayTracingPipelineFeatures
+			    .rayTracingPipelineShaderGroupHandleCaptureReplay
+			    = VK_FALSE;
+			physicalDeviceRayTracingPipelineFeatures
+			    .rayTracingPipelineShaderGroupHandleCaptureReplayMixed
+			    = VK_FALSE;
+			physicalDeviceRayTracingPipelineFeatures.rayTracingPipelineTraceRaysIndirect = VK_FALSE;
+			physicalDeviceRayTracingPipelineFeatures.rayTraversalPrimitiveCulling = VK_FALSE;
+
+			// link chain of pNext pointers
+			synchronizationFeatures2.pNext = &physicalDeviceRayTracingPipelineFeatures;
+
+			// Needs to be enabled for Raytracing
+			deviceFeatures.geometryShader = VK_TRUE;
+			createInfo.pEnabledFeatures = &deviceFeatures;
+		}
 
 		createInfo.pNext = &synchronizationFeatures2;
-		createInfo.pEnabledFeatures = &deviceFeatures;
-		createInfo.enabledExtensionCount = static_cast<uint32_t>(deviceExtensions.size());
-		createInfo.ppEnabledExtensionNames = deviceExtensions.data();
 
 		if (enableValidationLayer)
 		{
@@ -473,8 +520,6 @@ class HelloTriangleApplication
 		{
 			createInfo.enabledLayerCount = 0;
 		}
-		// todo setup raytracing stuff??
-		// createInfo.pNext =
 
 		// create the logical device
 		if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS)
@@ -483,15 +528,21 @@ class HelloTriangleApplication
 		}
 
 		// get the handle to the graphics queue
-		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
-		debug_print("Graphics queue index: %p\n", graphicsQueue);
-		vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
-		debug_print("Present queue index: %p\n", presentQueue);
-		vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
-		debug_print("Transfer queue index: %p\n", transferQueue);
+		if (indices.graphicsFamily.has_value())
+			vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
+		debug_print("Graphics queue: %p\n", graphicsQueue);
+
+		if (indices.presentFamily.has_value())
+			vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
+		debug_print("Present queue: %p\n", presentQueue);
+
+		if (indices.transferFamily.has_value())
+			vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
+		debug_print("Transfer queue: %p\n", transferQueue);
 	}
 
-	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice)
+	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice,
+	                                 const std::vector<const char*> requiredDeviceExtensions)
 	{
 		uint32_t extensionCount;
 		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
@@ -502,8 +553,6 @@ class HelloTriangleApplication
 
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
-		std::set<std::string> requiredExtensions(deviceExtensions.begin(), deviceExtensions.end());
 
 		std::cout << "----------------------------\n";
 		std::cout << "Device: " << properties.deviceName << "\n";
@@ -517,6 +566,8 @@ class HelloTriangleApplication
 		}
 		std::cout << std::endl;
 
+		std::set<std::string> requiredExtensions(requiredDeviceExtensions.begin(),
+		                                         requiredDeviceExtensions.end());
 		for (const auto& extension : availableExtensions)
 		{
 			requiredExtensions.erase(extension.extensionName);
@@ -537,7 +588,7 @@ class HelloTriangleApplication
 		return false;
 	}
 
-	void pickPhysicalDevice()
+	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions)
 	{
 		uint32_t deviceCount = 0;
 		vkEnumeratePhysicalDevices(vulkanInstance, &deviceCount, nullptr);
@@ -563,21 +614,15 @@ class HelloTriangleApplication
 			//   continue;
 			// }
 
-			if (isDeviceSuitable(device))
+			if (isDeviceSuitable(device, requiredDeviceExtensions))
 			{
 				physicalDevice = device;
 				break;
 			}
 		}
 
-		if (physicalDevice == VK_NULL_HANDLE)
-		{
-			throw std::runtime_error("failed to find a suitable GPU!");
-		}
-		VkPhysicalDeviceProperties properties;
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
-
-		std::cout << "Using device: " << properties.deviceName << std::endl;
+		bool deviceFound = physicalDevice != VK_NULL_HANDLE;
+		return deviceFound;
 	}
 
 	ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice)
@@ -612,12 +657,14 @@ class HelloTriangleApplication
 		return details;
 	}
 
-	bool isDeviceSuitable(VkPhysicalDevice physicalDevice)
+	bool isDeviceSuitable(VkPhysicalDevice physicalDevice,
+	                      const std::vector<const char*> requiredDeviceExtensions)
 	{
 		ltracer::QueueFamilyIndices indices
 		    = ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
 
-		bool extensionsSupported = checkDeviceExtensionSupport(physicalDevice);
+		bool extensionsSupported
+		    = checkDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions);
 
 		bool swapChainAdequate = false;
 		if (extensionsSupported)
@@ -755,17 +802,8 @@ class HelloTriangleApplication
 		// TODO: When abstracting stuff, implement it as a deletion queue
 
 		vkDeviceWaitIdle(logicalDevice);
-		vkQueueWaitIdle(graphicsQueue); // Ensure all submitted work has completed
-		                                // before freeing command buffers
-		vkQueueWaitIdle(presentQueue);  // Ensure all submitted work has completed
-		                                // before freeing command buffers
-		vkQueueWaitIdle(transferQueue); // Ensure all submitted work has completed
-		                                // before freeing command buffers
-
-		// ltracer::cleanupRayTracer(logicalDevice, renderer->getRaytracingInfo());
 
 		renderer->cleanupRenderer();
-		// renderer->cleanupFramebufferAndImageViews();
 
 		window->cleanupSwapChain(logicalDevice);
 		mainDeletionQueue->flush();

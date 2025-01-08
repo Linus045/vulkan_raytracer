@@ -1,5 +1,8 @@
 #pragma once
 
+#include <array>
+#include <string>
+
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_vulkan.h"
 #include "imgui.h"
@@ -14,6 +17,8 @@
 #include "src/types.hpp"
 #include "src/window.hpp"
 
+#include <vulkan/vk_enum_string_helper.h>
+
 namespace ltracer
 {
 
@@ -25,6 +30,8 @@ namespace ui
 struct UIData
 {
 	const std::shared_ptr<Camera> camera;
+	const bool& raytracingSupported;
+	const VkPhysicalDeviceProperties& physicalDeviceProperties;
 };
 
 struct UIStatus
@@ -124,6 +131,52 @@ inline void renderCameraProperties(const UIData& uiData)
 	}
 }
 
+// inline std::string getPipelineUUIDAsString(const UIData& uiData)
+// {
+// 	auto pipelineCacheUUID = std::string();
+// 	std::for_each(std::begin(uiData.physicalDeviceProperties.pipelineCacheUUID),
+// 	              std::end(uiData.physicalDeviceProperties.pipelineCacheUUID),
+// 	              [&pipelineCacheUUID](const uint8_t n)
+// 	              { pipelineCacheUUID.append(std::format("{:x}", n)); });
+// 	return pipelineCacheUUID;
+// }
+
+inline void renderGPUProperties(const UIData& uiData)
+{
+	if (ImGui::CollapsingHeader("PhysicalDevice - GPU - Properties"))
+	{
+		ImGui::Text("Hardware ray tracing supported: %s",
+		            uiData.raytracingSupported ? "Yes" : "No");
+		ImGui::Text("Api version: %d", uiData.physicalDeviceProperties.apiVersion);
+		ImGui::Text("Driver version: %d", uiData.physicalDeviceProperties.driverVersion);
+		ImGui::Text("Vendor ID: %d", uiData.physicalDeviceProperties.vendorID);
+		ImGui::Text("Device ID: %d", uiData.physicalDeviceProperties.deviceID);
+		ImGui::Text("Device Type: %s",
+		            string_VkPhysicalDeviceType(uiData.physicalDeviceProperties.deviceType));
+		ImGui::Text("Device name: %s", uiData.physicalDeviceProperties.deviceName);
+
+		// not yet sure if these properties are useful
+		// auto pipelineCacheUUID = getPipelineUUIDAsString(uiData);
+		// ImGui::Text("Pipeline cache UUID: %s", pipelineCacheUUID.c_str());
+
+		// contains limits of the device, might be useful for debugging
+		// ImGui::Text("Limits: %s", uiData.physicalDeviceProperties.limits);
+
+		// sparse properties
+		// ImGui::Text("Sparse properties: %s",
+		// uiData.physicalDeviceProperties.sparseProperties);
+	}
+}
+
+inline void renderErrors(const UIData& uiData)
+{
+	ImGui::SeparatorText("ERRORS:");
+	if (!uiData.raytracingSupported)
+	{
+		ImGui::Text("Hardware ray tracing not supported!");
+	}
+}
+
 inline void renderMainPanel(const UIData& uiData)
 {
 	// ImGui::ShowDemoWindow();
@@ -131,7 +184,7 @@ inline void renderMainPanel(const UIData& uiData)
 	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 100),
 	                        ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(700, 200), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
 	if (!ImGui::Begin("Status", &uiStatus.mainPanelOpen, window_flags))
@@ -141,10 +194,15 @@ inline void renderMainPanel(const UIData& uiData)
 		return;
 	}
 
+	ImGui::SeparatorText("Control:");
 	ImGui::Text("Press Q to quit");
 	ImGui::Text("W/A/S/D to move");
 	ImGui::Text("Arrow keys to rotate");
-	ltracer::ui::renderCameraProperties(uiData);
+
+	ImGui::SeparatorText("Data:");
+	renderGPUProperties(uiData);
+	renderCameraProperties(uiData);
+	renderErrors(uiData);
 	ImGui::End();
 }
 

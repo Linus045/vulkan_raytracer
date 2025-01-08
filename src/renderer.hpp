@@ -39,10 +39,12 @@ class Renderer
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
 	         VkQueue transferQueue,
+	         const bool raytracingSupported,
 	         const ltracer::ui::UIData& uiData)
 	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
 	      deletionQueue(deletionQueue), window(window), graphicsQueue(graphicsQueue),
-	      presentQueue(presentQueue), transferQueue(transferQueue), uiData(uiData) //
+	      presentQueue(presentQueue), transferQueue(transferQueue), uiData(uiData),
+	      raytracingSupported(raytracingSupported) //
 	{
 	}
 
@@ -67,9 +69,13 @@ class Renderer
 
 	void cleanupRenderer()
 	{
-		ltracer::rt::freeRaytraceImageAndImageView(logicalDevice,
-		                                           raytracingInfo.rayTraceImageHandle,
-		                                           raytracingInfo.rayTraceImageViewHandle);
+		if (raytracingSupported)
+		{
+			ltracer::rt::freeRaytraceImageAndImageView(logicalDevice,
+			                                           raytracingInfo.rayTraceImageHandle,
+			                                           raytracingInfo.rayTraceImageViewHandle);
+		}
+
 		cleanupFramebufferAndImageViews();
 	}
 
@@ -117,26 +123,30 @@ class Renderer
 		                       graphicsQueue,
 		                       deletionQueue);
 
-		ltracer::rt::createRaytracingImage(physicalDevice,
-		                                   logicalDevice,
-		                                   window->getSwapChainImageFormat(),
-		                                   window->getSwapChainExtent(),
-		                                   queueFamilyIndices,
-		                                   raytracingInfo.rayTraceImageHandle);
+		if (raytracingSupported)
+		{
+			ltracer::rt::createRaytracingImage(physicalDevice,
+			                                   logicalDevice,
+			                                   window->getSwapChainImageFormat(),
+			                                   window->getSwapChainExtent(),
+			                                   queueFamilyIndices,
+			                                   raytracingInfo.rayTraceImageHandle);
 
-		ltracer::rt::createRaytracingImageView(logicalDevice,
-		                                       window->getSwapChainImageFormat(),
-		                                       raytracingInfo.rayTraceImageHandle,
-		                                       raytracingInfo.rayTraceImageViewHandle);
+			ltracer::rt::createRaytracingImageView(logicalDevice,
+			                                       window->getSwapChainImageFormat(),
+			                                       raytracingInfo.rayTraceImageHandle,
+			                                       raytracingInfo.rayTraceImageViewHandle);
 
-		raytracingInfo.queueFamilyIndices = queueFamilyIndices;
+			raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
-		ltracer::rt::initRayTracing(physicalDevice,
-		                            logicalDevice,
-		                            deletionQueue,
-		                            window,
-		                            swapChainImageViews,
-		                            raytracingInfo);
+			ltracer::rt::initRayTracing(physicalDevice,
+			                            logicalDevice,
+			                            deletionQueue,
+			                            window,
+			                            swapChainImageViews,
+			                            raytracingInfo);
+		}
+
 		auto& cameraTransform = camera->transform;
 		// ltracer::updateUniformStructure(
 		//     cameraTransform.position, cameraTransform.getRight(),
@@ -145,8 +155,11 @@ class Renderer
 
 	void recreateRaytracingImageAndImageView(const ltracer::QueueFamilyIndices& queueFamilyIndices)
 	{
-		ltracer::rt::recreateRaytracingImageBuffer(
-		    logicalDevice, physicalDevice, window, queueFamilyIndices, raytracingInfo);
+		if (raytracingSupported)
+		{
+			ltracer::rt::recreateRaytracingImageBuffer(
+			    logicalDevice, physicalDevice, window, queueFamilyIndices, raytracingInfo);
+		}
 	}
 
 	std::vector<VkImageView>& getSwapChainImageViews()
@@ -279,8 +292,11 @@ class Renderer
 		// worldObjects[0].translate(0, 0, 0.8 * delta);
 		// worldObjects[1].translate(0.8 * delta, 0, 0);
 
-		ltracer::rt::updateRaytraceBuffer(
-		    logicalDevice, camera, raytracingInfo.rayTraceImageHandle);
+		if (raytracingSupported)
+		{
+			ltracer::rt::updateRaytraceBuffer(
+			    logicalDevice, camera, raytracingInfo.rayTraceImageHandle);
+		}
 		updateUniformBuffer(currentFrame);
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
 
@@ -361,6 +377,7 @@ class Renderer
 
 	// physical device handle
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
+	const bool raytracingSupported = false;
 
 	// Logical device to interact with
 	VkDevice logicalDevice;
@@ -750,155 +767,193 @@ class Renderer
 			throw std::runtime_error("failed to begin recording command buffer");
 		}
 
+		// Ensure the output image is in the right layout for clearing (transfer source layout)
+		VkImageMemoryBarrier2 barrierClearSwapChainImage = {};
+		barrierClearSwapChainImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+		barrierClearSwapChainImage.srcAccessMask = 0; // No prior access
+		barrierClearSwapChainImage.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+		barrierClearSwapChainImage.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+		barrierClearSwapChainImage.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+		barrierClearSwapChainImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrierClearSwapChainImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrierClearSwapChainImage.image = swapChainImages[imageIndex];
+		barrierClearSwapChainImage.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		barrierClearSwapChainImage.subresourceRange.baseMipLevel = 0;
+		barrierClearSwapChainImage.subresourceRange.levelCount = 1;
+		barrierClearSwapChainImage.subresourceRange.baseArrayLayer = 0;
+		barrierClearSwapChainImage.subresourceRange.layerCount = 1;
+		barrierClearSwapChainImage.srcStageMask = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
+		barrierClearSwapChainImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+		VkDependencyInfo dependencyClearSwapChainImage = {};
+		dependencyClearSwapChainImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+		dependencyClearSwapChainImage.dependencyFlags = 0;
+		dependencyClearSwapChainImage.imageMemoryBarrierCount = 1;
+		dependencyClearSwapChainImage.pImageMemoryBarriers = &barrierClearSwapChainImage;
+
+		vkCmdPipelineBarrier2(commandBuffer, &dependencyClearSwapChainImage);
+
+		VkClearColorValue clearColor = {{0.6f, 0.1f, 0.1f, 1.0f}};
+		vkCmdClearColorImage(commandBuffer,
+		                     swapChainImages[imageIndex],
+		                     VK_IMAGE_LAYOUT_GENERAL,
+		                     &clearColor,
+		                     1,
+		                     &barrierClearSwapChainImage.subresourceRange);
+
+		if (raytracingSupported)
+		{
+			ltracer::rt::recordRaytracingCommandBuffer(
+			    physicalDevice, logicalDevice, commandBuffer, raytracingInfo, window);
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			VkImageMemoryBarrier2 barrierSwapChainImage = {};
+			barrierSwapChainImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrierSwapChainImage.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; // No prior access
+			barrierSwapChainImage.dstAccessMask = 0;
+			barrierSwapChainImage.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			barrierSwapChainImage.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrierSwapChainImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrierSwapChainImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrierSwapChainImage.image = swapChainImages[imageIndex];
+			barrierSwapChainImage.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrierSwapChainImage.subresourceRange.baseMipLevel = 0;
+			barrierSwapChainImage.subresourceRange.levelCount = 1;
+			barrierSwapChainImage.subresourceRange.baseArrayLayer = 0;
+			barrierSwapChainImage.subresourceRange.layerCount = 1;
+			barrierSwapChainImage.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrierSwapChainImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+			VkDependencyInfo dependencyInfoSwapChainImage = {};
+			dependencyInfoSwapChainImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			dependencyInfoSwapChainImage.dependencyFlags = 0;
+			dependencyInfoSwapChainImage.imageMemoryBarrierCount = 1;
+			dependencyInfoSwapChainImage.pImageMemoryBarriers = &barrierSwapChainImage;
+
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoSwapChainImage);
+
+			//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			// VkImageMemoryBarrier2 barrierRaytraceImage = {};
+			// barrierRaytraceImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			// barrierRaytraceImage.srcAccessMask =
+			//     VK_ACCESS_TRANSFER_READ_BIT; // No prior access
+			// barrierRaytraceImage.dstAccessMask = 0;
+			// barrierRaytraceImage.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+			// barrierRaytraceImage.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+			// barrierRaytraceImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			// barrierRaytraceImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			// barrierRaytraceImage.image = rayTraceImageHandle;
+			// barrierRaytraceImage.subresourceRange.aspectMask =
+			//     VK_IMAGE_ASPECT_COLOR_BIT;
+			// barrierRaytraceImage.subresourceRange.baseMipLevel = 0;
+			// barrierRaytraceImage.subresourceRange.levelCount = 1;
+			// barrierRaytraceImage.subresourceRange.baseArrayLayer = 0;
+			// barrierRaytraceImage.subresourceRange.layerCount = 1;
+			// barrierRaytraceImage.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			// barrierRaytraceImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+			// VkDependencyInfo dependencyInfoRaytraceImage = {};
+			// dependencyInfoRaytraceImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			// dependencyInfoRaytraceImage.dependencyFlags = 0;
+			// dependencyInfoRaytraceImage.imageMemoryBarrierCount = 1;
+			// dependencyInfoRaytraceImage.pImageMemoryBarriers = &barrierRaytraceImage;
+
+			// vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImage);
+			//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			VkImageCopy2 region = {};
+			region.sType = VK_STRUCTURE_TYPE_IMAGE_COPY_2;
+			region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.srcSubresource.mipLevel = 0;
+			region.srcSubresource.baseArrayLayer = 0;
+			region.srcSubresource.layerCount = 1;
+			region.srcOffset = {0, 0, 0}; // Source start
+
+			region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			region.dstSubresource.mipLevel = 0;
+			region.dstSubresource.baseArrayLayer = 0;
+			region.dstSubresource.layerCount = 1;
+			region.dstOffset = {0, 0, 0}; // Destination start
+			region.extent = {
+			    static_cast<uint32_t>(window->getSwapChainExtent().width),
+			    static_cast<uint32_t>(window->getSwapChainExtent().height),
+			    1,
+			};
+
+			VkCopyImageInfo2 copyImageInfo = {};
+			copyImageInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2;
+			copyImageInfo.srcImage = raytracingInfo.rayTraceImageHandle;
+			copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+			copyImageInfo.dstImage = swapChainImages[imageIndex];
+			copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			copyImageInfo.pNext = NULL;
+			copyImageInfo.regionCount = 1;
+			copyImageInfo.pRegions = &region;
+
+			vkCmdCopyImage2(commandBuffer, &copyImageInfo);
+			//////////////////////////////////////////////////////////////////////////////////////////////////////
+
+			VkImageMemoryBarrier2 barrierRaytraceImageRevert = {};
+			barrierRaytraceImageRevert.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrierRaytraceImageRevert.srcAccessMask = 0; // No prior access
+			barrierRaytraceImageRevert.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+			barrierRaytraceImageRevert.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+			barrierRaytraceImageRevert.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+			barrierRaytraceImageRevert.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrierRaytraceImageRevert.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrierRaytraceImageRevert.image = raytracingInfo.rayTraceImageHandle;
+			barrierRaytraceImageRevert.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrierRaytraceImageRevert.subresourceRange.baseMipLevel = 0;
+			barrierRaytraceImageRevert.subresourceRange.levelCount = 1;
+			barrierRaytraceImageRevert.subresourceRange.baseArrayLayer = 0;
+			barrierRaytraceImageRevert.subresourceRange.layerCount = 1;
+			barrierRaytraceImageRevert.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrierRaytraceImageRevert.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+			VkDependencyInfo dependencyInfoRaytraceImageRevert = {};
+			dependencyInfoRaytraceImageRevert.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			dependencyInfoRaytraceImageRevert.dependencyFlags = 0;
+			dependencyInfoRaytraceImageRevert.imageMemoryBarrierCount = 1;
+			dependencyInfoRaytraceImageRevert.pImageMemoryBarriers = &barrierRaytraceImageRevert;
+
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImageRevert);
+
+			VkImageMemoryBarrier2 barrierSwapChainImagePresent = {};
+			barrierSwapChainImagePresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+			barrierSwapChainImagePresent.srcAccessMask
+			    = VK_ACCESS_TRANSFER_WRITE_BIT; // No prior access
+			barrierSwapChainImagePresent.dstAccessMask = 0;
+			barrierSwapChainImagePresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+			barrierSwapChainImagePresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+			barrierSwapChainImagePresent.srcQueueFamilyIndex
+			    = queueFamilyIndices.presentFamily.value();
+			barrierSwapChainImagePresent.dstQueueFamilyIndex
+			    = queueFamilyIndices.presentFamily.value();
+			barrierSwapChainImagePresent.image = swapChainImages[imageIndex];
+			barrierSwapChainImagePresent.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+			barrierSwapChainImagePresent.subresourceRange.baseMipLevel = 0;
+			barrierSwapChainImagePresent.subresourceRange.levelCount = 1;
+			barrierSwapChainImagePresent.subresourceRange.baseArrayLayer = 0;
+			barrierSwapChainImagePresent.subresourceRange.layerCount = 1;
+			barrierSwapChainImagePresent.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+			barrierSwapChainImagePresent.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+
+			VkDependencyInfo dependencyInfoSwapChainImagePresent = {};
+			dependencyInfoSwapChainImagePresent.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+			dependencyInfoSwapChainImagePresent.dependencyFlags = 0;
+			dependencyInfoSwapChainImagePresent.imageMemoryBarrierCount = 1;
+			dependencyInfoSwapChainImagePresent.pImageMemoryBarriers
+			    = &barrierSwapChainImagePresent;
+
+			vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoSwapChainImagePresent);
+		}
+		//////////////////////////////////////////////////////////////////////////////////////////////////////
+
 		auto swapChainExtent = window->getSwapChainExtent();
-
-		ltracer::rt::recordRaytracingCommandBuffer(
-		    physicalDevice, logicalDevice, commandBuffer, raytracingInfo, window);
-
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		VkImageMemoryBarrier2 barrierSwapChainImage = {};
-		barrierSwapChainImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		barrierSwapChainImage.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT; // No prior access
-		barrierSwapChainImage.dstAccessMask = 0;
-		barrierSwapChainImage.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		barrierSwapChainImage.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrierSwapChainImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrierSwapChainImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrierSwapChainImage.image = swapChainImages[imageIndex];
-		barrierSwapChainImage.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrierSwapChainImage.subresourceRange.baseMipLevel = 0;
-		barrierSwapChainImage.subresourceRange.levelCount = 1;
-		barrierSwapChainImage.subresourceRange.baseArrayLayer = 0;
-		barrierSwapChainImage.subresourceRange.layerCount = 1;
-		barrierSwapChainImage.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		barrierSwapChainImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-		VkDependencyInfo dependencyInfoSwapChainImage = {};
-		dependencyInfoSwapChainImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfoSwapChainImage.dependencyFlags = 0;
-		dependencyInfoSwapChainImage.imageMemoryBarrierCount = 1;
-		dependencyInfoSwapChainImage.pImageMemoryBarriers = &barrierSwapChainImage;
-
-		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoSwapChainImage);
-
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		// VkImageMemoryBarrier2 barrierRaytraceImage = {};
-		// barrierRaytraceImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		// barrierRaytraceImage.srcAccessMask =
-		//     VK_ACCESS_TRANSFER_READ_BIT; // No prior access
-		// barrierRaytraceImage.dstAccessMask = 0;
-		// barrierRaytraceImage.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		// barrierRaytraceImage.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		// barrierRaytraceImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		// barrierRaytraceImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		// barrierRaytraceImage.image = rayTraceImageHandle;
-		// barrierRaytraceImage.subresourceRange.aspectMask =
-		//     VK_IMAGE_ASPECT_COLOR_BIT;
-		// barrierRaytraceImage.subresourceRange.baseMipLevel = 0;
-		// barrierRaytraceImage.subresourceRange.levelCount = 1;
-		// barrierRaytraceImage.subresourceRange.baseArrayLayer = 0;
-		// barrierRaytraceImage.subresourceRange.layerCount = 1;
-		// barrierRaytraceImage.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		// barrierRaytraceImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-		// VkDependencyInfo dependencyInfoRaytraceImage = {};
-		// dependencyInfoRaytraceImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		// dependencyInfoRaytraceImage.dependencyFlags = 0;
-		// dependencyInfoRaytraceImage.imageMemoryBarrierCount = 1;
-		// dependencyInfoRaytraceImage.pImageMemoryBarriers = &barrierRaytraceImage;
-
-		// vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImage);
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		VkImageCopy2 region = {};
-		region.sType = VK_STRUCTURE_TYPE_IMAGE_COPY_2;
-		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.srcSubresource.mipLevel = 0;
-		region.srcSubresource.baseArrayLayer = 0;
-		region.srcSubresource.layerCount = 1;
-		region.srcOffset = {0, 0, 0}; // Source start
-
-		region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.dstSubresource.mipLevel = 0;
-		region.dstSubresource.baseArrayLayer = 0;
-		region.dstSubresource.layerCount = 1;
-		region.dstOffset = {0, 0, 0}; // Destination start
-		region.extent = {
-		    static_cast<uint32_t>(window->getSwapChainExtent().width),
-		    static_cast<uint32_t>(window->getSwapChainExtent().height),
-		    1,
-		};
-
-		VkCopyImageInfo2 copyImageInfo = {};
-		copyImageInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2;
-		copyImageInfo.srcImage = raytracingInfo.rayTraceImageHandle;
-		copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-
-		copyImageInfo.dstImage = swapChainImages[imageIndex];
-		copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		copyImageInfo.pNext = NULL;
-		copyImageInfo.regionCount = 1;
-		copyImageInfo.pRegions = &region;
-
-		vkCmdCopyImage2(commandBuffer, &copyImageInfo);
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-
-		VkImageMemoryBarrier2 barrierRaytraceImageRevert = {};
-		barrierRaytraceImageRevert.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		barrierRaytraceImageRevert.srcAccessMask = 0; // No prior access
-		barrierRaytraceImageRevert.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-		barrierRaytraceImageRevert.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrierRaytraceImageRevert.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-		barrierRaytraceImageRevert.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrierRaytraceImageRevert.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-		barrierRaytraceImageRevert.image = raytracingInfo.rayTraceImageHandle;
-		barrierRaytraceImageRevert.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrierRaytraceImageRevert.subresourceRange.baseMipLevel = 0;
-		barrierRaytraceImageRevert.subresourceRange.levelCount = 1;
-		barrierRaytraceImageRevert.subresourceRange.baseArrayLayer = 0;
-		barrierRaytraceImageRevert.subresourceRange.layerCount = 1;
-		barrierRaytraceImageRevert.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		barrierRaytraceImageRevert.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-		VkDependencyInfo dependencyInfoRaytraceImageRevert = {};
-		dependencyInfoRaytraceImageRevert.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfoRaytraceImageRevert.dependencyFlags = 0;
-		dependencyInfoRaytraceImageRevert.imageMemoryBarrierCount = 1;
-		dependencyInfoRaytraceImageRevert.pImageMemoryBarriers = &barrierRaytraceImageRevert;
-
-		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImageRevert);
-
-		VkImageMemoryBarrier2 barrierSwapChainImagePresent = {};
-		barrierSwapChainImagePresent.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-		barrierSwapChainImagePresent.srcAccessMask
-		    = VK_ACCESS_TRANSFER_WRITE_BIT; // No prior access
-		barrierSwapChainImagePresent.dstAccessMask = 0;
-		barrierSwapChainImagePresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrierSwapChainImagePresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		barrierSwapChainImagePresent.srcQueueFamilyIndex = queueFamilyIndices.presentFamily.value();
-		barrierSwapChainImagePresent.dstQueueFamilyIndex = queueFamilyIndices.presentFamily.value();
-		barrierSwapChainImagePresent.image = swapChainImages[imageIndex];
-		barrierSwapChainImagePresent.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		barrierSwapChainImagePresent.subresourceRange.baseMipLevel = 0;
-		barrierSwapChainImagePresent.subresourceRange.levelCount = 1;
-		barrierSwapChainImagePresent.subresourceRange.baseArrayLayer = 0;
-		barrierSwapChainImagePresent.subresourceRange.layerCount = 1;
-		barrierSwapChainImagePresent.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-		barrierSwapChainImagePresent.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-		VkDependencyInfo dependencyInfoSwapChainImagePresent = {};
-		dependencyInfoSwapChainImagePresent.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-		dependencyInfoSwapChainImagePresent.dependencyFlags = 0;
-		dependencyInfoSwapChainImagePresent.imageMemoryBarrierCount = 1;
-		dependencyInfoSwapChainImagePresent.pImageMemoryBarriers = &barrierSwapChainImagePresent;
-
-		vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoSwapChainImagePresent);
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-
 		// TODO: don't clear image
-		VkClearValue clearColor = {{{0.6f, 0.1f, 0.1f, 1.0f}}};
 
 		VkRenderPassBeginInfo renderPassInfo{};
 		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -906,8 +961,8 @@ class Renderer
 		renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 		renderPassInfo.renderArea.offset = {0, 0};
 		renderPassInfo.renderArea.extent = swapChainExtent;
-		renderPassInfo.clearValueCount = 1; // 1;
-		renderPassInfo.pClearValues = &clearColor;
+		renderPassInfo.clearValueCount = 0; // 1;
+		renderPassInfo.pClearValues = NULL;
 
 		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 

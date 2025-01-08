@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <fstream>
+#include <iostream>
 #include <memory>
 #include <optional>
 #include <stdexcept>
@@ -22,9 +23,9 @@ static VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
 
 struct QueueFamilyIndices
 {
-	std::optional<uint32_t> graphicsFamily;
-	std::optional<uint32_t> presentFamily;
-	std::optional<uint32_t> transferFamily;
+	std::optional<uint32_t> graphicsFamily = std::nullopt;
+	std::optional<uint32_t> presentFamily = std::nullopt;
+	std::optional<uint32_t> transferFamily = std::nullopt;
 
 	bool isComplete()
 	{
@@ -192,21 +193,15 @@ inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDe
 			indices.presentFamily = i;
 		}
 
-		if (indices.isComplete())
-			// break;
+		if (indices.isComplete()) break;
 
-			i++;
+		i++;
 	}
 	// std::cout << "------------------------------------\n";
 
-	// std::cout << "indices.graphicsFamily: " <<
-	// indices.graphicsFamily.value()
-	//           << std::endl;
-	// std::cout << "indices.transferFamily: " <<
-	// indices.transferFamily.value()
-	//           << std::endl;
-	// std::cout << "indices.presentFamily: " << indices.presentFamily.value()
-	//           << std::endl;
+	// std::cout << "indices.graphicsFamily: " << indices.graphicsFamily.value() << std::endl;
+	// std::cout << "indices.transferFamily: " << indices.transferFamily.value() << std::endl;
+	// std::cout << "indices.presentFamily: " << indices.presentFamily.value() << std::endl;
 
 	return indices;
 }
