@@ -303,21 +303,19 @@ class HelloTriangleApplication
 			}
 			else if (key == GLFW_KEY_LEFT)
 			{
-				ref.camera->rotate(ref.camera->globalUp, 10.0f);
+				ref.camera->rotateYawY(10.0f);
 			}
 			else if (key == GLFW_KEY_RIGHT)
 			{
-				ref.camera->rotate(ref.camera->globalUp, -10.0f);
+				ref.camera->rotateYawY(-10.0f);
 			}
 			else if (key == GLFW_KEY_UP)
 			{
-				ref.camera->rotate(ref.camera->transform.getRight(), 10.0f);
-				ref.camera->limitPitch();
+				ref.camera->rotatePitchX(10.0f);
 			}
 			else if (key == GLFW_KEY_DOWN)
 			{
-				ref.camera->rotate(ref.camera->transform.getRight(), -10.0f);
-				ref.camera->limitPitch();
+				ref.camera->rotatePitchX(-10.0f);
 			}
 			else if (key == GLFW_KEY_Q || key == GLFW_KEY_ESCAPE)
 			{

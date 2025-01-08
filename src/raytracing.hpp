@@ -29,6 +29,7 @@ namespace ltracer
 namespace rt
 {
 
+// TODO: move these into some struct or class for better organization
 static UniformStructure uniformStructure;
 
 static VkDeviceMemory vertexDeviceMemoryHandle = VK_NULL_HANDLE;

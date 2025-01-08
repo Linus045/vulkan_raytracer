@@ -112,6 +112,15 @@ inline void renderCameraProperties(const UIData& uiData)
 
 		auto cameraLookDirection = glm::to_string(uiData.camera->transform.getForward());
 		ImGui::Text("Look Direction: %s", cameraLookDirection.c_str());
+		ImGui::Text("Camera yaw (degrees): %f", glm::degrees(uiData.camera->getYawRadians()));
+		ImGui::Text("Camera pitch (degrees): %f", glm::degrees(uiData.camera->getPitchRadians()));
+
+		auto cameraRotationRadians
+		    = glm::to_string(glm::eulerAngles(uiData.camera->transform.rotation));
+		auto cameraRotationDegrees
+		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera->transform.rotation)));
+		ImGui::Text("Camera rotation (radians)(pitch,yaw,roll): %s", cameraRotationRadians.c_str());
+		ImGui::Text("Camera rotation (degrees)(pitch,yaw,roll): %s", cameraRotationDegrees.c_str());
 	}
 }
 
@@ -122,7 +131,7 @@ inline void renderMainPanel(const UIData& uiData)
 	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 100),
 	                        ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(400, 200), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(700, 200), ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
 	if (!ImGui::Begin("Status", &uiStatus.mainPanelOpen, window_flags))
@@ -132,6 +141,9 @@ inline void renderMainPanel(const UIData& uiData)
 		return;
 	}
 
+	ImGui::Text("Press Q to quit");
+	ImGui::Text("W/A/S/D to move");
+	ImGui::Text("Arrow keys to rotate");
 	ltracer::ui::renderCameraProperties(uiData);
 	ImGui::End();
 }

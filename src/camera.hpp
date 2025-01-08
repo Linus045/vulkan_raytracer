@@ -1,5 +1,6 @@
 #pragma once
 
+#include "glm/matrix.hpp"
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
@@ -36,6 +37,8 @@ class Camera
 		glm::vec3 up = globalUp;
 		transform.rotation
 		    = glm::quatLookAt(glm::normalize(glm::vec3(2, 3.5, 7) - transform.position), up);
+		pitchRadians = glm::pitch(transform.rotation);
+		yawRadians = glm::yaw(transform.rotation);
 
 		updateViewMatrix();
 	}
@@ -75,15 +78,7 @@ class Camera
 		translate(glm::vec3(x, y, z));
 	}
 
-	// TODO: figure out what the difference is ?!
-	void rotateBROKEN(const glm::vec3& axis, const float rotation)
-	{
-		transform.rotation = glm::rotate(transform.rotation, rotation, axis);
-		updateViewMatrix();
-		cameraMoved = true;
-	}
-
-	void rotate(const glm::vec3& axis, const float angleDegree)
+	void rotateAxisAngle(const glm::vec3& axis, const float angleDegree)
 	{
 		// Calculate the new alignment
 		glm::quat q = glm::angleAxis(glm::radians(angleDegree), glm::normalize(axis));
@@ -92,16 +87,40 @@ class Camera
 		cameraMoved = true;
 	}
 
-	void limitPitch()
+	void rotateYawY(const float angleDegree)
 	{
-		glm::vec3 eulerAngles
-		    = glm::eulerAngles(transform.rotation); // Returns a vec3 (pitch, yaw, roll)
-		eulerAngles.x = glm::clamp(
-		    eulerAngles.x, -glm::radians(pitchLimit_degree), glm::radians(pitchLimit_degree));
-		transform.rotation = glm::quat(eulerAngles);
+		yawRadians += glm::radians(angleDegree);
+
+		if (yawRadians > glm::pi<float>())
+		{
+			yawRadians -= glm::two_pi<float>();
+		}
+		else if (yawRadians < -glm::pi<float>())
+		{
+			yawRadians += glm::two_pi<float>();
+		}
+
+		transform.rotation = glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0)));
 
 		updateViewMatrix();
 		cameraMoved = true;
+	}
+
+	void rotatePitchX(const float angleDegree)
+	{
+		pitchRadians += glm::radians(angleDegree);
+		limitPitch();
+
+		transform.rotation = glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0)));
+
+		updateViewMatrix();
+		cameraMoved = true;
+	}
+
+	void limitPitch()
+	{
+		pitchRadians = glm::clamp(
+		    pitchRadians, -glm::radians(pitchLimit_degree), glm::radians(pitchLimit_degree));
 	}
 
 	bool isCameraMoved() const
@@ -112,6 +131,16 @@ class Camera
 	void resetCameraMoved()
 	{
 		cameraMoved = false;
+	}
+
+	float getPitchRadians() const
+	{
+		return pitchRadians;
+	}
+
+	float getYawRadians() const
+	{
+		return yawRadians;
 	}
 
 	const glm::vec3 globalUp = {0, 1, 0};
@@ -131,6 +160,9 @@ class Camera
 
 	float fovy_degree = 70.0f; // degree
 
+	float pitchRadians = 0.0f;
+	float yawRadians = 0.0f;
+
 	void updateProjectionMatrix()
 	{
 		assert(screen_width != 0);
@@ -148,8 +180,13 @@ class Camera
 
 	void updateViewMatrix()
 	{
-		glm::vec3 center = transform.position + transform.getForward() * 10.0f;
-		viewMatrix = glm::lookAt(transform.position, center, transform.getUp());
+		auto cameraUp = globalUp;
+		auto cameraRight = glm::vec3(1, 0, 0);
+		glm::mat4 cameraRotation = glm::mat4();
+		cameraRotation = glm::rotate(cameraRotation, yawRadians, cameraUp);
+		cameraRotation = glm::rotate(cameraRotation, pitchRadians, cameraRight);
+
+		viewMatrix = glm::inverse(cameraRotation);
 	}
 };
 
