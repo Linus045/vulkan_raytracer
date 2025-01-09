@@ -1,6 +1,4 @@
-
 #include "src/deletion_queue.hpp"
-#include "src/tetrahedron.hpp"
 #include "src/ui.hpp"
 #include <cstdint>
 #include <cstdio>
@@ -24,13 +22,11 @@
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
 #define GLM_ENABLE_EXPERIMENTAL
-#include "glm/ext/vector_float3.hpp"
 
 #include "src/camera.hpp"
 #include "src/logger.hpp"
 #include "src/renderer.hpp"
 #include "src/window.hpp"
-#include "src/aabb.hpp"
 
 #include "tiny_obj_loader.h"
 
@@ -150,6 +146,8 @@ class HelloTriangleApplication
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 
+	    VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
+
 	    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
 	    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
@@ -173,13 +171,6 @@ class HelloTriangleApplication
 
 	// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects
 	//     = std::make_shared<std::vector<ltracer::WorldObject>>();
-
-	ltracer::Triangle t
-	    = ltracer::Triangle(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
-
-	std::vector<ltracer::AABB> aabbBoxes{
-	    ltracer::AABB::fromTriangle(t),
-	};
 
 	bool checkValidationLayerSupport()
 	{
@@ -496,8 +487,15 @@ class HelloTriangleApplication
 			physicalDeviceRayTracingPipelineFeatures.rayTracingPipelineTraceRaysIndirect = VK_FALSE;
 			physicalDeviceRayTracingPipelineFeatures.rayTraversalPrimitiveCulling = VK_FALSE;
 
+			VkPhysicalDeviceDescriptorIndexingFeatures deviceDescriptorFeature = {};
+			deviceDescriptorFeature.sType
+			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
+			// allow null in descriptor set
+			deviceDescriptorFeature.descriptorBindingPartiallyBound = true;
+			deviceDescriptorFeature.pNext = &physicalDeviceRayTracingPipelineFeatures;
+
 			// link chain of pNext pointers
-			synchronizationFeatures2.pNext = &physicalDeviceRayTracingPipelineFeatures;
+			synchronizationFeatures2.pNext = &deviceDescriptorFeature;
 
 			// Needs to be enabled for Raytracing
 			deviceFeatures.geometryShader = VK_TRUE;
@@ -681,11 +679,10 @@ class HelloTriangleApplication
 
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity =
-		    // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-		    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-		    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-		    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
+		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
 		                         | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
 		                         | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -848,16 +845,26 @@ class HelloTriangleApplication
 		createInfo.enabledExtensionCount = static_cast<uint32_t>(glfwExtensions.size());
 		createInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
+		VkValidationFeatureEnableEXT validationFeatureEnable[]
+		    = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+		VkValidationFeaturesEXT features{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+
 		// debugMessengerCreation initialization is put outside of if statement to
 		// make sure its valid until the vkCreateInstance call below
 		VkDebugUtilsMessengerCreateInfoEXT debugMessengerCreation;
 		if (enableValidationLayer)
 		{
+			populateDebugMessengerCreateInfo(debugMessengerCreation);
+
+			features.disabledValidationFeatureCount = 0;
+			features.enabledValidationFeatureCount = 1;
+			features.pDisabledValidationFeatures = nullptr;
+			features.pEnabledValidationFeatures = validationFeatureEnable;
+			features.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreation;
+
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
 			createInfo.ppEnabledLayerNames = validationLayers.data();
-
-			populateDebugMessengerCreateInfo(debugMessengerCreation);
-			createInfo.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreation;
+			createInfo.pNext = &features;
 		}
 		else
 		{

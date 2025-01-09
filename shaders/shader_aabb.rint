@@ -1,0 +1,42 @@
+#version 460
+#extension GL_EXT_ray_tracing : require
+#extension GL_EXT_debug_printf : enable
+
+// layout(binding = 2, set = 1) buffer AABBBuffer {
+//     vec3 minBounds[];
+//     vec3 maxBounds[];
+// };
+
+void main() {
+	reportIntersectionEXT(1.0, 0);
+
+    // // Retrieve the AABB index based on the gl_PrimitiveID.
+    // uint index = gl_PrimitiveID;
+    // vec3 min = minBounds[index];
+    // vec3 max = maxBounds[index];
+
+    // // Ray origin and direction.
+    // vec3 origin = gl_RayOriginEXT;
+    // vec3 direction = gl_RayDirectionEXT;
+
+    // // Inverse direction to avoid division in the shader.
+    // vec3 invDir = 1.0 / direction;
+
+    // // Calculate intersection with AABB slabs.
+    // vec3 tmin = (min - origin) * invDir;
+    // vec3 tmax = (max - origin) * invDir;
+
+    // // Reorder to ensure tmin is the min for each axis.
+    // vec3 t1 = min(tmin, tmax);
+    // vec3 t2 = max(tmin, tmax);
+
+    // // Get the largest tmin and the smallest tmax.
+    // float tNear = max(max(t1.x, t1.y), t1.z);
+    // float tFar = min(min(t2.x, t2.y), t2.z);
+
+    // // Check if ray intersects the AABB.
+    // if (tNear < tFar && tFar > 0.0) {
+    //     // Report the intersection with the tNear value.
+    //     reportIntersectionEXT(tNear, 0);
+    // }
+}

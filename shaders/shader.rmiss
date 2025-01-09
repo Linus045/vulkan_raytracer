@@ -15,9 +15,5 @@ layout(location = 0) rayPayloadInEXT Payload {
 payload;
 
 void main() { 
-	// TODO: REMOVE THIS LINE - it's just for testing
-	// payload.directColor = vec3(0.6);
-
-
 	payload.rayActive = 0;
 }

@@ -62,6 +62,7 @@ struct UniformStructure
 	uint32_t frameCount;
 };
 
+// TODO: split this up a bit into more sensible structs
 struct RaytracingInfo
 {
 	VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;
@@ -73,6 +74,7 @@ struct RaytracingInfo
 	VkStridedDeviceAddressRegionKHR rgenShaderBindingTable = {};
 	VkStridedDeviceAddressRegionKHR rmissShaderBindingTable = {};
 	VkStridedDeviceAddressRegionKHR callableShaderBindingTable = {};
+	VkStridedDeviceAddressRegionKHR intersectionShaderBindingTable = {};
 
 	VkDeviceMemory rayTraceImageDeviceMemoryHandle = VK_NULL_HANDLE;
 	VkImage rayTraceImageHandle = VK_NULL_HANDLE;
@@ -94,6 +96,17 @@ struct RaytracingInfo
 	VkShaderModule rayMissShaderModuleHandle = VK_NULL_HANDLE;
 	VkShaderModule rayGenerateShaderModuleHandle = VK_NULL_HANDLE;
 	VkShaderModule rayClosestHitShaderModuleHandle = VK_NULL_HANDLE;
+	VkShaderModule rayAABBIntersectionModuleHandle = VK_NULL_HANDLE;
+
+	uint32_t shaderGroupCount = 0;
+
+	uint32_t hitGroupOffset = 0;
+	uint32_t rayGenGroupOffset = 0;
+	uint32_t missGroupOffset = 0;
+
+	uint32_t hitGroupSize = 0;
+	uint32_t rayGenGroupSize = 0;
+	uint32_t missGroupSize = 0;
 };
 
 inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,

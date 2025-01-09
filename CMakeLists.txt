@@ -73,6 +73,7 @@ set(raytracing_shader_rgen_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rgen.sp
 set(raytracing_shader_rchit_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rchit.spv)
 set(raytracing_shader_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rmiss.spv)
 set(raytracing_shader_shadow_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_shadow.rmiss.spv)
+set(raytracing_aabb_intersection_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_aabb.rint.spv)
 
 if ( MSVC )
     set(glslang_executable_path ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/StandAlone/Debug/glslang.exe)
@@ -82,14 +83,15 @@ endif ( MSVC )
 
 add_custom_command(
   OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
-  COMMAND ${glslang_executable_path} -V "shaders/shader.frag" -o "${frag_shader_output}"
-  COMMAND ${glslang_executable_path} -V "shaders/shader.vert" -o "${vert_shader_output}"
-  COMMAND ${glslang_executable_path} -V "shaders/raytracing.rgen" -o "${raytracing_shader_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.frag" -o "${frag_shader_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.vert" -o "${vert_shader_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/raytracing.rgen" -o "${raytracing_shader_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rgen" -o "${raytracing_shader_rgen_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rchit" -o "${raytracing_shader_rchit_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rmiss" -o "${raytracing_shader_rmiss_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_shadow.rmiss" -o "${raytracing_shader_shadow_rmiss_output}"
-  DEPENDS shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_aabb.rint" -o "${raytracing_aabb_intersection_output}"
+  DEPENDS shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss shaders/shader_aabb.rint
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Compiling shader files"
 )
