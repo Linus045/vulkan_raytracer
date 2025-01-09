@@ -73,8 +73,11 @@ struct RaytracingInfo
 	VkStridedDeviceAddressRegionKHR rgenShaderBindingTable = {};
 	VkStridedDeviceAddressRegionKHR rmissShaderBindingTable = {};
 	VkStridedDeviceAddressRegionKHR callableShaderBindingTable = {};
+
+	VkDeviceMemory rayTraceImageDeviceMemoryHandle = VK_NULL_HANDLE;
 	VkImage rayTraceImageHandle = VK_NULL_HANDLE;
 	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
+
 	ltracer::QueueFamilyIndices queueFamilyIndices = {};
 
 	UniformStructure uniformStructure;

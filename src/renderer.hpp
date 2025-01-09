@@ -70,9 +70,11 @@ class Renderer
 	{
 		if (raytracingSupported)
 		{
-			ltracer::rt::freeRaytraceImageAndImageView(logicalDevice,
-			                                           raytracingInfo.rayTraceImageHandle,
-			                                           raytracingInfo.rayTraceImageViewHandle);
+			ltracer::rt::freeRaytraceImageAndImageView(
+			    logicalDevice,
+			    raytracingInfo.rayTraceImageHandle,
+			    raytracingInfo.rayTraceImageViewHandle,
+			    raytracingInfo.rayTraceImageDeviceMemoryHandle);
 		}
 
 		cleanupFramebufferAndImageViews();
@@ -128,7 +130,7 @@ class Renderer
 			                                   window->getSwapChainImageFormat(),
 			                                   window->getSwapChainExtent(),
 			                                   queueFamilyIndices,
-			                                   raytracingInfo.rayTraceImageHandle);
+			                                   raytracingInfo);
 
 			ltracer::rt::createRaytracingImageView(logicalDevice,
 			                                       window->getSwapChainImageFormat(),
