@@ -2,6 +2,7 @@
 
 #include <array>
 #include "glm/ext/vector_float3.hpp"
+#include "src/worldobject.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
 #include <vector>
@@ -53,14 +54,16 @@ struct Vertex
 	}
 };
 
-class MeshObject
+class MeshObject : public WorldObject
 {
   public:
-	MeshObject(const std::vector<Vertex>& vertices, const std::vector<unsigned int> indices)
-	    : vertices(vertices), indices(indices) {};
+	MeshObject(const glm::vec3& position,
+	           const std::vector<Vertex>& vertices,
+	           const std::vector<unsigned int>& indices)
+	    : WorldObject(position), vertices(vertices), indices(indices) {};
 
 	MeshObject(MeshObject&&) = default;
-	MeshObject(const MeshObject&) = default;
+	MeshObject(const MeshObject&) = delete;
 	MeshObject& operator=(MeshObject&&) = delete;
 	MeshObject& operator=(const MeshObject&) = delete;
 	~MeshObject() = default;

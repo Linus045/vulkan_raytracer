@@ -17,17 +17,24 @@
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
+#include "src/blas.hpp"
 #include "src/camera.hpp"
 #include "src/deletion_queue.hpp"
-#include "tiny_obj_loader.h"
-
+#include "src/shader_module.hpp"
 #include "src/types.hpp"
 #include "src/window.hpp"
+#include "src/device_procedures.hpp"
+
+#include "tiny_obj_loader.h"
 
 namespace ltracer
 {
 namespace rt
 {
+
+static std::vector<VkDeviceAddress> accelerationStructureInstanceAddresses;
+static VkBuffer accelerationStructureInstancesBufferHandle = VK_NULL_HANDLE;
+static VkDeviceMemory accelerationStructuresInstancesDeviceMemoryHandle = VK_NULL_HANDLE;
 
 // TODO: move these into some struct or class for better organization
 static UniformStructure uniformStructure;
@@ -41,11 +48,6 @@ static VkFence topLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
 static VkBuffer topLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
 static VkAccelerationStructureKHR topLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 static VkBuffer topLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
-static VkBuffer bottomLevelGeometryInstanceBufferHandle = VK_NULL_HANDLE;
-static VkFence bottomLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
-static VkBuffer bottomLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
-static VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
-static VkBuffer bottomLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
 static VkBuffer indexBufferHandle = VK_NULL_HANDLE;
 static VkBuffer vertexBufferHandle = VK_NULL_HANDLE;
 static VkShaderModule rayMissShadowShaderModuleHandle = VK_NULL_HANDLE;
@@ -59,9 +61,6 @@ static VkDeviceMemory rayTraceImageDeviceMemoryHandle = VK_NULL_HANDLE;
 static VkCommandPool commandPoolHandle = VK_NULL_HANDLE;
 static VkDeviceMemory uniformDeviceMemoryHandle = VK_NULL_HANDLE;
 static VkDeviceMemory indexDeviceMemoryHandle = VK_NULL_HANDLE;
-static VkDeviceMemory bottomLevelAccelerationStructureDeviceMemoryHandle = VK_NULL_HANDLE;
-static VkDeviceMemory bottomLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
-static VkDeviceMemory bottomLevelGeometryInstanceDeviceMemoryHandle = VK_NULL_HANDLE;
 static VkDeviceMemory topLevelAccelerationStructureDeviceMemoryHandle = VK_NULL_HANDLE;
 static VkDeviceMemory topLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
 static VkDeviceMemory materialIndexDeviceMemoryHandle = VK_NULL_HANDLE;
@@ -69,18 +68,6 @@ static VkDeviceMemory materialDeviceMemoryHandle = VK_NULL_HANDLE;
 static VkDeviceMemory shaderBindingTableDeviceMemoryHandle = VK_NULL_HANDLE;
 static void* hostUniformMemoryBuffer;
 static VkQueue queueHandle = VK_NULL_HANDLE;
-
-// Device Pointer Functions
-static PFN_vkCmdTraceRaysKHR pvkCmdTraceRaysKHR = NULL;
-static PFN_vkGetBufferDeviceAddressKHR pvkGetBufferDeviceAddressKHR = NULL;
-static PFN_vkCreateRayTracingPipelinesKHR pvkCreateRayTracingPipelinesKHR = NULL;
-static PFN_vkGetAccelerationStructureBuildSizesKHR pvkGetAccelerationStructureBuildSizesKHR = NULL;
-static PFN_vkCreateAccelerationStructureKHR pvkCreateAccelerationStructureKHR = NULL;
-static PFN_vkGetAccelerationStructureDeviceAddressKHR pvkGetAccelerationStructureDeviceAddressKHR
-    = NULL;
-static PFN_vkCmdBuildAccelerationStructuresKHR pvkCmdBuildAccelerationStructuresKHR = NULL;
-static PFN_vkDestroyAccelerationStructureKHR pvkDestroyAccelerationStructureKHR = NULL;
-static PFN_vkGetRayTracingShaderGroupHandlesKHR pvkGetRayTracingShaderGroupHandlesKHR = NULL;
 
 inline void
 updateUniformStructure(glm::vec3 position, glm::vec3 right, glm::vec3 up, glm::vec3 forward)
@@ -143,40 +130,6 @@ inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatur
 	return physicalDeviceRayTracingPipelineFeatures;
 }
 
-inline void grabDeviceProcAddr(VkDevice logicalDevice)
-{
-	pvkGetBufferDeviceAddressKHR = (PFN_vkGetBufferDeviceAddressKHR)vkGetDeviceProcAddr(
-	    logicalDevice, "vkGetBufferDeviceAddressKHR");
-
-	pvkCreateRayTracingPipelinesKHR = (PFN_vkCreateRayTracingPipelinesKHR)vkGetDeviceProcAddr(
-	    logicalDevice, "vkCreateRayTracingPipelinesKHR");
-
-	pvkGetAccelerationStructureBuildSizesKHR
-	    = (PFN_vkGetAccelerationStructureBuildSizesKHR)vkGetDeviceProcAddr(
-	        logicalDevice, "vkGetAccelerationStructureBuildSizesKHR");
-
-	pvkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)vkGetDeviceProcAddr(
-	    logicalDevice, "vkCreateAccelerationStructureKHR");
-
-	pvkDestroyAccelerationStructureKHR = (PFN_vkDestroyAccelerationStructureKHR)vkGetDeviceProcAddr(
-	    logicalDevice, "vkDestroyAccelerationStructureKHR");
-
-	pvkGetAccelerationStructureDeviceAddressKHR
-	    = (PFN_vkGetAccelerationStructureDeviceAddressKHR)vkGetDeviceProcAddr(
-	        logicalDevice, "vkGetAccelerationStructureDeviceAddressKHR");
-
-	pvkCmdBuildAccelerationStructuresKHR
-	    = (PFN_vkCmdBuildAccelerationStructuresKHR)vkGetDeviceProcAddr(
-	        logicalDevice, "vkCmdBuildAccelerationStructuresKHR");
-
-	pvkGetRayTracingShaderGroupHandlesKHR
-	    = (PFN_vkGetRayTracingShaderGroupHandlesKHR)vkGetDeviceProcAddr(
-	        logicalDevice, "vkGetRayTracingShaderGroupHandlesKHR");
-
-	pvkCmdTraceRaysKHR
-	    = (PFN_vkCmdTraceRaysKHR)vkGetDeviceProcAddr(logicalDevice, "vkCmdTraceRaysKHR");
-}
-
 inline void buildRaytracingAccelerationStructures(VkDevice logicalDevice,
                                                   RaytracingInfo raytracingInfo,
                                                   VkCommandBuffer commandBuffer)
@@ -235,7 +188,7 @@ inline void buildRaytracingAccelerationStructures(VkDevice logicalDevice,
 }
 
 inline void createCommandPool(VkDevice logicalDevice,
-                              std::shared_ptr<DeletionQueue> deletionQueue,
+                              DeletionQueue& deletionQueue,
                               RaytracingInfo& raytracingInfo)
 {
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {
@@ -253,7 +206,7 @@ inline void createCommandPool(VkDevice logicalDevice,
 		throw new std::runtime_error("initRayTracing - vkCreateCommandPool failed");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]() { vkDestroyCommandPool(logicalDevice, commandPoolHandle, nullptr); });
 }
 
@@ -279,7 +232,7 @@ inline void requestRaytracingProperties(
 }
 
 inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
-                                                      std::shared_ptr<DeletionQueue> deletionQueue,
+                                                      DeletionQueue& deletionQueue,
                                                       RaytracingInfo& raytracingInfo)
 {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {
@@ -299,7 +252,7 @@ inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 		throw new std::runtime_error("initRayTracing - vkAllocateCommandBuffers failed");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]()
 	    {
 		    vkFreeCommandBuffers(logicalDevice,
@@ -309,8 +262,7 @@ inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 	    });
 }
 
-inline void createDescriptorPool(std::shared_ptr<DeletionQueue> deletionQueue,
-                                 VkDevice logicalDevice)
+inline void createDescriptorPool(DeletionQueue& deletionQueue, VkDevice logicalDevice)
 {
 	std::vector<VkDescriptorPoolSize> descriptorPoolSizeList = {
 	    {.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, .descriptorCount = 1},
@@ -336,12 +288,11 @@ inline void createDescriptorPool(std::shared_ptr<DeletionQueue> deletionQueue,
 		throw new std::runtime_error("initRayTracing - vkCreateDescriptorPool");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]() { vkDestroyDescriptorPool(logicalDevice, descriptorPoolHandle, NULL); });
 }
 
-inline void createDescriptorSetLayout(std::shared_ptr<DeletionQueue> deletionQueue,
-                                      VkDevice logicalDevice)
+inline void createDescriptorSetLayout(DeletionQueue& deletionQueue, VkDevice logicalDevice)
 {
 	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindingList
 	    = {{
@@ -395,12 +346,11 @@ inline void createDescriptorSetLayout(std::shared_ptr<DeletionQueue> deletionQue
 		throw new std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]() { vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayoutHandle, NULL); });
 }
 
-inline void createMaterialDescriptorSetLayout(std::shared_ptr<DeletionQueue> deletionQueue,
-                                              VkDevice logicalDevice)
+inline void createMaterialDescriptorSetLayout(DeletionQueue& deletionQueue, VkDevice logicalDevice)
 {
 	std::vector<VkDescriptorSetLayoutBinding> materialDescriptorSetLayoutBindingList
 	    = {{.binding = 0,
@@ -431,7 +381,7 @@ inline void createMaterialDescriptorSetLayout(std::shared_ptr<DeletionQueue> del
 		throw new std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]()
 	    { vkDestroyDescriptorSetLayout(logicalDevice, materialDescriptorSetLayoutHandle, NULL); });
 }
@@ -458,7 +408,7 @@ allocateDescriptorSetLayouts(std::vector<VkDescriptorSetLayout>& descriptorSetLa
 	}
 }
 
-inline void createPipelineLayout(std::shared_ptr<DeletionQueue> deletionQueue,
+inline void createPipelineLayout(DeletionQueue& deletionQueue,
                                  RaytracingInfo& raytracingInfo,
                                  std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList,
                                  VkDevice logicalDevice)
@@ -480,138 +430,40 @@ inline void createPipelineLayout(std::shared_ptr<DeletionQueue> deletionQueue,
 		throw new std::runtime_error("initRayTracing - vkCreatePipelineLayout");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]()
 	    { vkDestroyPipelineLayout(logicalDevice, raytracingInfo.pipelineLayoutHandle, NULL); });
 }
 
-inline void loadShaderModules(std::shared_ptr<DeletionQueue> deletionQueue, VkDevice logicalDevice)
+inline void loadShaderModules(DeletionQueue& deletionQueue, VkDevice logicalDevice)
 {
-	std::ifstream rayClosestHitFile("shaders/shader.rchit.spv", std::ios::binary | std::ios::ate);
-	std::streamsize rayClosestHitFileSize = rayClosestHitFile.tellg();
-	rayClosestHitFile.seekg(0, std::ios::beg);
-	std::vector<uint32_t> rayClosestHitShaderSource(rayClosestHitFileSize / sizeof(uint32_t));
 
-	rayClosestHitFile.read(reinterpret_cast<char*>(rayClosestHitShaderSource.data()),
-	                       rayClosestHitFileSize);
-
-	rayClosestHitFile.close();
-
-	VkShaderModuleCreateInfo rayClosestHitShaderModuleCreateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	       .pNext = NULL,
-	       .flags = 0,
-	       .codeSize = (uint32_t)rayClosestHitShaderSource.size() * sizeof(uint32_t),
-	       .pCode = rayClosestHitShaderSource.data()};
-
-	VkResult result = vkCreateShaderModule(logicalDevice,
-	                                       &rayClosestHitShaderModuleCreateInfo,
-	                                       NULL,
-	                                       &rayClosestHitShaderModuleHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateShaderModule");
-	}
-
-	deletionQueue->push_function(
-	    [=]() { vkDestroyShaderModule(logicalDevice, rayClosestHitShaderModuleHandle, NULL); });
+	// =========================================================================
+	// Ray Closest Hit Shader Module
+	ltracer::shader::createShaderModule(
+	    "shaders/shader.rchit.spv", logicalDevice, deletionQueue, rayClosestHitShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Generate Shader Module
-
-	std::ifstream rayGenerateFile("shaders/shader.rgen.spv", std::ios::binary | std::ios::ate);
-	std::streamsize rayGenerateFileSize = rayGenerateFile.tellg();
-	rayGenerateFile.seekg(0, std::ios::beg);
-	std::vector<uint32_t> rayGenerateShaderSource(rayGenerateFileSize / sizeof(uint32_t));
-
-	rayGenerateFile.read(reinterpret_cast<char*>(rayGenerateShaderSource.data()),
-	                     rayGenerateFileSize);
-
-	rayGenerateFile.close();
-
-	VkShaderModuleCreateInfo rayGenerateShaderModuleCreateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	       .pNext = NULL,
-	       .flags = 0,
-	       .codeSize = (uint32_t)rayGenerateShaderSource.size() * sizeof(uint32_t),
-	       .pCode = rayGenerateShaderSource.data()};
-
-	result = vkCreateShaderModule(
-	    logicalDevice, &rayGenerateShaderModuleCreateInfo, NULL, &rayGenerateShaderModuleHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateShaderModule");
-	}
-
-	deletionQueue->push_function(
-	    [=]() { vkDestroyShaderModule(logicalDevice, rayGenerateShaderModuleHandle, NULL); });
+	ltracer::shader::createShaderModule(
+	    "shaders/shader.rgen.spv", logicalDevice, deletionQueue, rayGenerateShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Miss Shader Module
 
-	std::ifstream rayMissFile("shaders/shader.rmiss.spv", std::ios::binary | std::ios::ate);
-	std::streamsize rayMissFileSize = rayMissFile.tellg();
-	rayMissFile.seekg(0, std::ios::beg);
-	std::vector<uint32_t> rayMissShaderSource(rayMissFileSize / sizeof(uint32_t));
-
-	rayMissFile.read(reinterpret_cast<char*>(rayMissShaderSource.data()), rayMissFileSize);
-
-	rayMissFile.close();
-
-	VkShaderModuleCreateInfo rayMissShaderModuleCreateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	       .pNext = NULL,
-	       .flags = 0,
-	       .codeSize = (uint32_t)rayMissShaderSource.size() * sizeof(uint32_t),
-	       .pCode = rayMissShaderSource.data()};
-
-	result = vkCreateShaderModule(
-	    logicalDevice, &rayMissShaderModuleCreateInfo, NULL, &rayMissShaderModuleHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateShaderModule");
-	}
-	deletionQueue->push_function(
-	    [=]() { vkDestroyShaderModule(logicalDevice, rayMissShaderModuleHandle, NULL); });
+	ltracer::shader::createShaderModule(
+	    "shaders/shader.rmiss.spv", logicalDevice, deletionQueue, rayMissShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Miss Shader Module (Shadow)
 
-	std::ifstream rayMissShadowFile("shaders/shader_shadow.rmiss.spv",
-	                                std::ios::binary | std::ios::ate);
-	std::streamsize rayMissShadowFileSize = rayMissShadowFile.tellg();
-	rayMissShadowFile.seekg(0, std::ios::beg);
-	std::vector<uint32_t> rayMissShadowShaderSource(rayMissShadowFileSize / sizeof(uint32_t));
-
-	rayMissShadowFile.read(reinterpret_cast<char*>(rayMissShadowShaderSource.data()),
-	                       rayMissShadowFileSize);
-
-	rayMissShadowFile.close();
-
-	VkShaderModuleCreateInfo rayMissShadowShaderModuleCreateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	       .pNext = NULL,
-	       .flags = 0,
-	       .codeSize = (uint32_t)rayMissShadowShaderSource.size() * sizeof(uint32_t),
-	       .pCode = rayMissShadowShaderSource.data()};
-
-	result = vkCreateShaderModule(logicalDevice,
-	                              &rayMissShadowShaderModuleCreateInfo,
-	                              NULL,
-	                              &rayMissShadowShaderModuleHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateShaderModule");
-	}
-	deletionQueue->push_function(
-	    [=]() { vkDestroyShaderModule(logicalDevice, rayMissShadowShaderModuleHandle, NULL); });
+	ltracer::shader::createShaderModule("shaders/shader_shadow.rmiss.spv",
+	                                    logicalDevice,
+	                                    deletionQueue,
+	                                    rayMissShadowShaderModuleHandle);
 }
 
-inline void createRaytracingPipeline(std::shared_ptr<DeletionQueue> deletionQueue,
+inline void createRaytracingPipeline(DeletionQueue& deletionQueue,
                                      RaytracingInfo& raytracingInfo,
                                      VkDevice logicalDevice)
 {
@@ -696,20 +548,21 @@ inline void createRaytracingPipeline(std::shared_ptr<DeletionQueue> deletionQueu
 	    .basePipelineIndex = 0,
 	};
 
-	VkResult result = pvkCreateRayTracingPipelinesKHR(logicalDevice,
-	                                                  VK_NULL_HANDLE,
-	                                                  VK_NULL_HANDLE,
-	                                                  1,
-	                                                  &rayTracingPipelineCreateInfo,
-	                                                  NULL,
-	                                                  &raytracingInfo.rayTracingPipelineHandle);
+	VkResult result = ltracer::procedures::pvkCreateRayTracingPipelinesKHR(
+	    logicalDevice,
+	    VK_NULL_HANDLE,
+	    VK_NULL_HANDLE,
+	    1,
+	    &rayTracingPipelineCreateInfo,
+	    NULL,
+	    &raytracingInfo.rayTracingPipelineHandle);
 
 	if (result != VK_SUCCESS)
 	{
 		throw new std::runtime_error("initRayTracing - vkCreateRayTracingPipelinesKHR");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]() { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
 }
 
@@ -762,322 +615,121 @@ inline void loadOBJScene(std::string scenePath,
 	}
 }
 
-inline VkDeviceAddress
-createAndBuildBottomLevelAccelerationStructure(std::shared_ptr<DeletionQueue> deletionQueue,
-                                               VkDeviceAddress indexBufferDeviceAddress,
-                                               VkDevice logicalDevice,
-                                               VkPhysicalDevice physicalDevice,
-                                               uint32_t primitiveCount,
-                                               uint32_t verticesCount,
-                                               VkDeviceAddress vertexBufferDeviceAddress,
-                                               RaytracingInfo& raytracingInfo)
-{
-	// create Bottom Level Acceleration Structure
-	VkAccelerationStructureGeometryDataKHR bottomLevelAccelerationStructureGeometryData = {
-	    .triangles = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-	                  .pNext = NULL,
-	                  .vertexFormat = VK_FORMAT_R32G32B32_SFLOAT,
-	                  .vertexData = {.deviceAddress = vertexBufferDeviceAddress},
-	                  .vertexStride = sizeof(float) * 3,
-	                  .maxVertex = verticesCount,
-	                  .indexType = VK_INDEX_TYPE_UINT32,
-	                  .indexData = {.deviceAddress = indexBufferDeviceAddress},
-	                  .transformData = {.deviceAddress = 0}}};
-
-	VkAccelerationStructureGeometryKHR bottomLevelAccelerationStructureGeometry = {
-	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-	    .pNext = NULL,
-	    .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
-	    .geometry = bottomLevelAccelerationStructureGeometryData,
-	    .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
-	};
-
-	VkAccelerationStructureBuildGeometryInfoKHR bottomLevelAccelerationStructureBuildGeometryInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
-	       .pNext = NULL,
-	       .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
-	       .flags = 0,
-	       .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
-	       .srcAccelerationStructure = VK_NULL_HANDLE,
-	       .dstAccelerationStructure = VK_NULL_HANDLE,
-	       .geometryCount = 1,
-	       .pGeometries = &bottomLevelAccelerationStructureGeometry,
-	       .ppGeometries = NULL,
-	       .scratchData = {.deviceAddress = 0}};
-
-	VkAccelerationStructureBuildSizesInfoKHR bottomLevelAccelerationStructureBuildSizesInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
-	       .pNext = NULL,
-	       .accelerationStructureSize = 0,
-	       .updateScratchSize = 0,
-	       .buildScratchSize = 0};
-
-	std::vector<uint32_t> bottomLevelMaxPrimitiveCountList = {primitiveCount};
-
-	pvkGetAccelerationStructureBuildSizesKHR(logicalDevice,
-	                                         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-	                                         &bottomLevelAccelerationStructureBuildGeometryInfo,
-	                                         bottomLevelMaxPrimitiveCountList.data(),
-	                                         &bottomLevelAccelerationStructureBuildSizesInfo);
-
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             bottomLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
-	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
-	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-	             memoryAllocateFlagsInfo,
-	             bottomLevelAccelerationStructureBufferHandle,
-	             bottomLevelGeometryInstanceDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
-
-	VkAccelerationStructureCreateInfoKHR bottomLevelAccelerationStructureCreateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
-	       .pNext = NULL,
-	       .createFlags = 0,
-	       .buffer = bottomLevelAccelerationStructureBufferHandle,
-	       .offset = 0,
-	       .size = bottomLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
-	       .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
-	       .deviceAddress = 0};
-
-	VkResult result = pvkCreateAccelerationStructureKHR(logicalDevice,
-	                                                    &bottomLevelAccelerationStructureCreateInfo,
-	                                                    NULL,
-	                                                    &bottomLevelAccelerationStructureHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateAccelerationStructureKHR");
-	}
-
-	deletionQueue->push_function(
-	    [=]()
-	    {
-		    pvkDestroyAccelerationStructureKHR(
-		        logicalDevice, bottomLevelAccelerationStructureHandle, NULL);
-	    });
-
-	// Build Bottom Level Acceleration Structure
-	VkAccelerationStructureDeviceAddressInfoKHR bottomLevelAccelerationStructureDeviceAddressInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-	       .pNext = NULL,
-	       .accelerationStructure = bottomLevelAccelerationStructureHandle};
-
-	VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress
-	    = pvkGetAccelerationStructureDeviceAddressKHR(
-	        logicalDevice, &bottomLevelAccelerationStructureDeviceAddressInfo);
-
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             bottomLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
-	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-	             memoryAllocateFlagsInfo,
-	             bottomLevelAccelerationStructureScratchBufferHandle,
-	             bottomLevelAccelerationStructureDeviceScratchMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
-
-	VkBufferDeviceAddressInfo bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo
-	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-	       .pNext = NULL,
-	       .buffer = bottomLevelAccelerationStructureScratchBufferHandle};
-
-	VkDeviceAddress bottomLevelAccelerationStructureScratchBufferDeviceAddress
-	    = pvkGetBufferDeviceAddressKHR(
-	        logicalDevice, &bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo);
-
-	bottomLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
-	    = bottomLevelAccelerationStructureHandle;
-
-	bottomLevelAccelerationStructureBuildGeometryInfo.scratchData
-	    = {.deviceAddress = bottomLevelAccelerationStructureScratchBufferDeviceAddress};
-
-	VkAccelerationStructureBuildRangeInfoKHR bottomLevelAccelerationStructureBuildRangeInfo
-	    = {.primitiveCount = primitiveCount,
-	       .primitiveOffset = 0,
-	       .firstVertex = 0,
-	       .transformOffset = 0};
-
-	const VkAccelerationStructureBuildRangeInfoKHR* bottomLevelAccelerationStructureBuildRangeInfos
-	    = &bottomLevelAccelerationStructureBuildRangeInfo;
-
-	VkCommandBufferBeginInfo bottomLevelCommandBufferBeginInfo = {
-	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-	    .pNext = NULL,
-	    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-	    .pInheritanceInfo = NULL,
-	};
-
-	result = vkBeginCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	                              &bottomLevelCommandBufferBeginInfo);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
-	}
-
-	pvkCmdBuildAccelerationStructuresKHR(raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	                                     1,
-	                                     &bottomLevelAccelerationStructureBuildGeometryInfo,
-	                                     &bottomLevelAccelerationStructureBuildRangeInfos);
-
-	result = vkEndCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkEndCommandBuffer");
-	}
-
-	VkSubmitInfo bottomLevelAccelerationStructureBuildSubmitInfo
-	    = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	       .pNext = NULL,
-	       .waitSemaphoreCount = 0,
-	       .pWaitSemaphores = NULL,
-	       .pWaitDstStageMask = NULL,
-	       .commandBufferCount = 1,
-	       .pCommandBuffers = &raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	       .signalSemaphoreCount = 0,
-	       .pSignalSemaphores = NULL};
-
-	VkFenceCreateInfo bottomLevelAccelerationStructureBuildFenceCreateInfo = {
-	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-	    .pNext = NULL,
-	    .flags = 0,
-	};
-
-	result = vkCreateFence(logicalDevice,
-	                       &bottomLevelAccelerationStructureBuildFenceCreateInfo,
-	                       NULL,
-	                       &bottomLevelAccelerationStructureBuildFenceHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateFence");
-	}
-
-	deletionQueue->push_function(
-	    [=]()
-	    { vkDestroyFence(logicalDevice, bottomLevelAccelerationStructureBuildFenceHandle, NULL); });
-
-	result = vkQueueSubmit(queueHandle,
-	                       1,
-	                       &bottomLevelAccelerationStructureBuildSubmitInfo,
-	                       bottomLevelAccelerationStructureBuildFenceHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkQueueSubmit");
-	}
-
-	result = vkWaitForFences(
-	    logicalDevice, 1, &bottomLevelAccelerationStructureBuildFenceHandle, true, UINT32_MAX);
-
-	if (result != VK_SUCCESS && result != VK_TIMEOUT)
-	{
-		throw new std::runtime_error("initRayTracing - vkWaitForFences");
-	}
-
-	return bottomLevelAccelerationStructureDeviceAddress;
-}
-
 inline void createAndBuildTopLevelAccelerationStructure(
-    VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress,
-    std::shared_ptr<DeletionQueue> deletionQueue,
+    std::vector<VkDeviceAddress>& bottomLevelAccelerationStructureDeviceAddresses,
+    DeletionQueue& deletionQueue,
     VkDevice logicalDevice,
     VkPhysicalDevice physicalDevice,
     RaytracingInfo& raytracingInfo)
 {
-	// Create Top Level Acceleration Structure
-	VkAccelerationStructureInstanceKHR bottomLevelAccelerationStructureInstance = {
-	    .transform = {.matrix = {{1.0, 0.0, 0.0, 0.0}, {0.0, 1.0, 0.0, 0.0}, {0.0, 0.0, 1.0, 0.0}}},
-	    .instanceCustomIndex = 0,
-	    .mask = 0xFF,
-	    .instanceShaderBindingTableRecordOffset = 0,
-	    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-	    .accelerationStructureReference = bottomLevelAccelerationStructureDeviceAddress};
+
+	// VkBufferDeviceAddressInfo bottomLevelGeometryInstanceDeviceAddressInfo;
+
+	accelerationStructureInstanceAddresses.clear();
+	// TODO: fix this indexing: bottomLevelAccelerationStructureDeviceAddresses[0]
+	for (size_t i = 0; i < bottomLevelAccelerationStructureDeviceAddresses.size(); i++)
+	{
+		VkDeviceAddress bottomLevelGeometryInstanceDeviceAddress;
+		ltracer::rt::createBottomLevelGeometryInstance(
+		    physicalDevice,
+		    logicalDevice,
+		    deletionQueue,
+		    raytracingInfo,
+		    bottomLevelAccelerationStructureDeviceAddresses[i],
+		    bottomLevelGeometryInstanceDeviceAddress);
+
+		accelerationStructureInstanceAddresses.push_back(bottomLevelGeometryInstanceDeviceAddress);
+	}
 
 	createBuffer(physicalDevice,
 	             logicalDevice,
 	             deletionQueue,
-	             sizeof(VkAccelerationStructureInstanceKHR),
+	             sizeof(VkDeviceAddress) * accelerationStructureInstanceAddresses.size(),
 	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
-	             bottomLevelGeometryInstanceBufferHandle,
-	             bottomLevelGeometryInstanceDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             accelerationStructureInstancesBufferHandle,
+	             accelerationStructuresInstancesDeviceMemoryHandle,
+	             {raytracingInfo.queueFamilyIndices.graphicsFamily.value()});
 
-	void* hostbottomLevelGeometryInstanceMemoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              bottomLevelGeometryInstanceDeviceMemoryHandle,
-	                              0,
-	                              sizeof(VkAccelerationStructureInstanceKHR),
-	                              0,
-	                              &hostbottomLevelGeometryInstanceMemoryBuffer);
+	void* hostAccelerationStructureInstancesMemoryBuffer;
+	VkResult result
+	    = vkMapMemory(logicalDevice,
+	                  accelerationStructuresInstancesDeviceMemoryHandle,
+	                  0,
+	                  sizeof(VkDeviceAddress) * accelerationStructureInstanceAddresses.size(),
+	                  0,
+	                  &hostAccelerationStructureInstancesMemoryBuffer);
 
-	memcpy(hostbottomLevelGeometryInstanceMemoryBuffer,
-	       &bottomLevelAccelerationStructureInstance,
-	       sizeof(VkAccelerationStructureInstanceKHR));
+	memcpy(hostAccelerationStructureInstancesMemoryBuffer,
+	       accelerationStructureInstanceAddresses.data(),
+	       sizeof(VkDeviceAddress) * accelerationStructureInstanceAddresses.size());
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkMapMemory");
+		throw new std::runtime_error("createAndBuildTopLevelAccelerationStructure - vkMapMemory");
 	}
 
-	vkUnmapMemory(logicalDevice, bottomLevelGeometryInstanceDeviceMemoryHandle);
+	vkUnmapMemory(logicalDevice, accelerationStructuresInstancesDeviceMemoryHandle);
 
-	VkBufferDeviceAddressInfo bottomLevelGeometryInstanceDeviceAddressInfo
-	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+	VkBufferDeviceAddressInfoKHR accelerationStructureDeviceAddressesInfo
+	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO_KHR,
 	       .pNext = NULL,
-	       .buffer = bottomLevelGeometryInstanceBufferHandle};
+	       .buffer = accelerationStructureInstancesBufferHandle};
 
-	VkDeviceAddress bottomLevelGeometryInstanceDeviceAddress = pvkGetBufferDeviceAddressKHR(
-	    logicalDevice, &bottomLevelGeometryInstanceDeviceAddressInfo);
+	VkDeviceAddress accelerationStructureInstancesDeviceAddress
+	    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	        logicalDevice, &accelerationStructureDeviceAddressesInfo);
 
-	VkAccelerationStructureGeometryDataKHR topLevelAccelerationStructureGeometryData = {
-	    .instances = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-	                  .pNext = NULL,
-	                  .arrayOfPointers = VK_FALSE,
-	                  .data = {.deviceAddress = bottomLevelGeometryInstanceDeviceAddress}}};
+	VkAccelerationStructureGeometryDataKHR topLevelAccelerationStructureGeometryData = {};
+	topLevelAccelerationStructureGeometryData.instances = {
+		.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+		.pNext = NULL,
+		.arrayOfPointers = VK_TRUE,
+		.data = {
+			.deviceAddress = accelerationStructureInstancesDeviceAddress,
+		},
+	};
 
-	VkAccelerationStructureGeometryKHR topLevelAccelerationStructureGeometry
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
-	       .pNext = NULL,
-	       .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
-	       .geometry = topLevelAccelerationStructureGeometryData,
-	       .flags = VK_GEOMETRY_OPAQUE_BIT_KHR};
+	VkAccelerationStructureGeometryKHR topLevelAccelerationStructureGeometry = {
+	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+	    .pNext = NULL,
+	    .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+	    .geometry = topLevelAccelerationStructureGeometryData,
+	    .flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
+	};
 
-	VkAccelerationStructureBuildGeometryInfoKHR topLevelAccelerationStructureBuildGeometryInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
-	       .pNext = NULL,
-	       .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
-	       .flags = 0,
-	       .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
-	       .srcAccelerationStructure = VK_NULL_HANDLE,
-	       .dstAccelerationStructure = VK_NULL_HANDLE,
-	       .geometryCount = 1,
-	       .pGeometries = &topLevelAccelerationStructureGeometry,
-	       .ppGeometries = NULL,
-	       .scratchData = {.deviceAddress = 0}};
+	VkAccelerationStructureBuildGeometryInfoKHR topLevelAccelerationStructureBuildGeometryInfo = {
+	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+	    .pNext = NULL,
+	    .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+	    .flags = 0,
+	    .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
+	    .srcAccelerationStructure = VK_NULL_HANDLE,
+	    .dstAccelerationStructure = VK_NULL_HANDLE,
+	    .geometryCount = static_cast<uint32_t>(accelerationStructureInstanceAddresses.size()),
+	    .pGeometries = &topLevelAccelerationStructureGeometry,
+	    .ppGeometries = NULL,
+	    .scratchData = {.deviceAddress = 0},
+	};
 
-	VkAccelerationStructureBuildSizesInfoKHR topLevelAccelerationStructureBuildSizesInfo
-	    = {.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
-	       .pNext = NULL,
-	       .accelerationStructureSize = 0,
-	       .updateScratchSize = 0,
-	       .buildScratchSize = 0};
+	VkAccelerationStructureBuildSizesInfoKHR topLevelAccelerationStructureBuildSizesInfo = {
+	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
+	    .pNext = NULL,
+	    .accelerationStructureSize = 0,
+	    .updateScratchSize = 0,
+	    .buildScratchSize = 0,
+	};
 
 	std::vector<uint32_t> topLevelMaxPrimitiveCountList = {1};
 
-	pvkGetAccelerationStructureBuildSizesKHR(logicalDevice,
-	                                         VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-	                                         &topLevelAccelerationStructureBuildGeometryInfo,
-	                                         topLevelMaxPrimitiveCountList.data(),
-	                                         &topLevelAccelerationStructureBuildSizesInfo);
+	ltracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
+	    logicalDevice,
+	    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+	    &topLevelAccelerationStructureBuildGeometryInfo,
+	    topLevelMaxPrimitiveCountList.data(),
+	    &topLevelAccelerationStructureBuildSizesInfo);
 
 	createBuffer(physicalDevice,
 	             logicalDevice,
@@ -1101,20 +753,21 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	       .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
 	       .deviceAddress = 0};
 
-	result = pvkCreateAccelerationStructureKHR(logicalDevice,
-	                                           &topLevelAccelerationStructureCreateInfo,
-	                                           NULL,
-	                                           &topLevelAccelerationStructureHandle);
+	result = ltracer::procedures::pvkCreateAccelerationStructureKHR(
+	    logicalDevice,
+	    &topLevelAccelerationStructureCreateInfo,
+	    NULL,
+	    &topLevelAccelerationStructureHandle);
 
 	if (result != VK_SUCCESS)
 	{
 		throw new std::runtime_error("initRayTracing - vkCreateAccelerationStructureKHR");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]()
 	    {
-		    pvkDestroyAccelerationStructureKHR(
+		    ltracer::procedures::pvkDestroyAccelerationStructureKHR(
 		        logicalDevice, topLevelAccelerationStructureHandle, NULL);
 	    });
 
@@ -1126,7 +779,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	       .accelerationStructure = topLevelAccelerationStructureHandle};
 
 	VkDeviceAddress topLevelAccelerationStructureDeviceAddress
-	    = pvkGetAccelerationStructureDeviceAddressKHR(
+	    = ltracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
 	        logicalDevice, &topLevelAccelerationStructureDeviceAddressInfo);
 
 	createBuffer(physicalDevice,
@@ -1146,7 +799,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	       .buffer = topLevelAccelerationStructureScratchBufferHandle};
 
 	VkDeviceAddress topLevelAccelerationStructureScratchBufferDeviceAddress
-	    = pvkGetBufferDeviceAddressKHR(
+	    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
 	        logicalDevice, &topLevelAccelerationStructureScratchBufferDeviceAddressInfo);
 
 	topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
@@ -1175,10 +828,11 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
 	}
 
-	pvkCmdBuildAccelerationStructuresKHR(raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	                                     1,
-	                                     &topLevelAccelerationStructureBuildGeometryInfo,
-	                                     &topLevelAccelerationStructureBuildRangeInfos);
+	ltracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
+	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    1,
+	    &topLevelAccelerationStructureBuildGeometryInfo,
+	    &topLevelAccelerationStructureBuildRangeInfos);
 
 	result = vkEndCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel);
 
@@ -1211,7 +865,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		throw new std::runtime_error("initRayTracing - vkCreateFence");
 	}
 
-	deletionQueue->push_function(
+	deletionQueue.push_function(
 	    [=]()
 	    { vkDestroyFence(logicalDevice, topLevelAccelerationStructureBuildFenceHandle, NULL); });
 
@@ -1317,7 +971,7 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 // TODO: Split into multiple functions for each step
 inline void initRayTracing(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
-                           std::shared_ptr<DeletionQueue> deletionQueue,
+                           DeletionQueue& deletionQueue,
                            std::shared_ptr<ltracer::Window> window,
                            std::vector<VkImageView>& swapChainImageViews,
                            RaytracingInfo& raytracingInfo)
@@ -1350,7 +1004,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Device Pointer Functions
-	grabDeviceProcAddr(logicalDevice);
+	ltracer::procedures::grabDeviceProcAddr(logicalDevice);
 
 	// =========================================================================
 	// Command Pool
@@ -1388,7 +1042,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Allocate Descriptor Sets
-
 	std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList
 	    = {descriptorSetLayoutHandle, materialDescriptorSetLayoutHandle};
 
@@ -1454,8 +1107,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	       .pNext = NULL,
 	       .buffer = vertexBufferHandle};
 
-	VkDeviceAddress vertexBufferDeviceAddress
-	    = pvkGetBufferDeviceAddressKHR(logicalDevice, &vertexBufferDeviceAddressInfo);
+	VkDeviceAddress vertexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	    logicalDevice, &vertexBufferDeviceAddressInfo);
 
 	// =========================================================================
 	// Index Buffer
@@ -1495,27 +1148,34 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	       .pNext = NULL,
 	       .buffer = indexBufferHandle};
 
-	VkDeviceAddress indexBufferDeviceAddress
-	    = pvkGetBufferDeviceAddressKHR(logicalDevice, &indexBufferDeviceAddressInfo);
+	VkDeviceAddress indexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	    logicalDevice, &indexBufferDeviceAddressInfo);
 
 	// =========================================================================
 	// Bottom Level Acceleration Structure
-	VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress
-	    = createAndBuildBottomLevelAccelerationStructure(deletionQueue,
-	                                                     indexBufferDeviceAddress,
-	                                                     logicalDevice,
-	                                                     physicalDevice,
-	                                                     primitiveCount,
-	                                                     vertices.size(),
-	                                                     vertexBufferDeviceAddress,
-	                                                     raytracingInfo);
+	std::vector<VkDeviceAddress> bottomLevelAccelerationStructureDeviceAddresses;
+	auto triangleBLAS
+	    = createAndBuildBottomLevelAccelerationStructureTriangle(deletionQueue,
+	                                                             indexBufferDeviceAddress,
+	                                                             logicalDevice,
+	                                                             physicalDevice,
+	                                                             primitiveCount,
+	                                                             vertices.size(),
+	                                                             vertexBufferDeviceAddress,
+	                                                             raytracingInfo,
+	                                                             queueHandle);
+	bottomLevelAccelerationStructureDeviceAddresses.push_back(triangleBLAS);
+
+	// auto aabbBLAS = createAndBuildBottomLevelAccelerationStructureAABB(
+	//     deletionQueue, logicalDevice, physicalDevice, raytracingInfo);
+	// bottomLevelAccelerationStructureDeviceAddresses.push_back(aabbBLAS);
 
 	// vkResetCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
 	// 0);
 
 	// =========================================================================
 	// Top Level Acceleration Structure
-	createAndBuildTopLevelAccelerationStructure(bottomLevelAccelerationStructureDeviceAddress,
+	createAndBuildTopLevelAccelerationStructure(bottomLevelAccelerationStructureDeviceAddresses,
 	                                            deletionQueue,
 	                                            logicalDevice,
 	                                            physicalDevice,
@@ -1702,12 +1362,13 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
 	char* shaderHandleBuffer = new char[shaderBindingTableSize];
-	result = pvkGetRayTracingShaderGroupHandlesKHR(logicalDevice,
-	                                               raytracingInfo.rayTracingPipelineHandle,
-	                                               0,
-	                                               4,
-	                                               shaderBindingTableSize,
-	                                               shaderHandleBuffer);
+	result = ltracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(
+	    logicalDevice,
+	    raytracingInfo.rayTracingPipelineHandle,
+	    0,
+	    4,
+	    shaderBindingTableSize,
+	    shaderHandleBuffer);
 
 	if (result != VK_SUCCESS)
 	{
@@ -1747,7 +1408,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	       .buffer = shaderBindingTableBufferHandle};
 
 	VkDeviceAddress shaderBindingTableBufferDeviceAddress
-	    = pvkGetBufferDeviceAddressKHR(logicalDevice, &shaderBindingTableBufferDeviceAddressInfo);
+	    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	        logicalDevice, &shaderBindingTableBufferDeviceAddressInfo);
 
 	VkDeviceSize hitGroupOffset = 0u * progSize;
 	VkDeviceSize rayGenOffset = 1u * progSize;
@@ -1829,14 +1491,14 @@ inline void recordRaytracingCommandBuffer(VkPhysicalDevice physicalDevice,
 	                        NULL);
 
 	auto currentExtent = window->getSwapChainExtent();
-	pvkCmdTraceRaysKHR(commandBuffer,
-	                   &raytracingInfo.rgenShaderBindingTable,
-	                   &raytracingInfo.rmissShaderBindingTable,
-	                   &raytracingInfo.rchitShaderBindingTable,
-	                   &raytracingInfo.callableShaderBindingTable,
-	                   currentExtent.width,
-	                   currentExtent.height,
-	                   1);
+	ltracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
+	                                        &raytracingInfo.rgenShaderBindingTable,
+	                                        &raytracingInfo.rmissShaderBindingTable,
+	                                        &raytracingInfo.rchitShaderBindingTable,
+	                                        &raytracingInfo.callableShaderBindingTable,
+	                                        currentExtent.width,
+	                                        currentExtent.height,
+	                                        1);
 
 	VkImageMemoryBarrier2 barrierRaytraceImage = {};
 	barrierRaytraceImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;

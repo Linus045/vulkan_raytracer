@@ -1,12 +1,12 @@
 
 #include "src/deletion_queue.hpp"
+#include "src/tetrahedron.hpp"
 #include "src/ui.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <exception>
-#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <ostream>
@@ -28,12 +28,10 @@
 
 #include "src/camera.hpp"
 #include "src/logger.hpp"
-#include "src/model.hpp"
 #include "src/renderer.hpp"
 #include "src/window.hpp"
-#include "src/worldobject.hpp"
+#include "src/aabb.hpp"
 
-#include "OBJ_Loader.h"
 #include "tiny_obj_loader.h"
 
 #define TERM_COLOR_RED "\033[31m"
@@ -63,8 +61,7 @@ class HelloTriangleApplication
 		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
 		    swapChainSupport);
 
-		renderer->initRenderer(
-		    vulkanInstance, worldObjects, camera, width, height, swapChainSupport);
+		renderer->initRenderer(vulkanInstance, camera, width, height, swapChainSupport);
 	}
 
   public:
@@ -114,8 +111,7 @@ class HelloTriangleApplication
 	HelloTriangleApplication& operator=(const HelloTriangleApplication&) = delete;
 
   private:
-	std::shared_ptr<ltracer::DeletionQueue> mainDeletionQueue
-	    = std::make_shared<ltracer::DeletionQueue>();
+	ltracer::DeletionQueue mainDeletionQueue;
 
 	bool raytracingSupported = false;
 	bool vulkan_initialized = false;
@@ -175,16 +171,15 @@ class HelloTriangleApplication
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 	};
 
-	VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties{
-	    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR};
+	// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects
+	//     = std::make_shared<std::vector<ltracer::WorldObject>>();
 
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeature{
-	    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR};
-	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtPipelineFeature{
-	    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR};
+	ltracer::Triangle t
+	    = ltracer::Triangle(glm::vec3(0, 0, 0), glm::vec3(1, 0, 0), glm::vec3(0, 1, 0));
 
-	std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects
-	    = std::make_shared<std::vector<ltracer::WorldObject>>();
+	std::vector<ltracer::AABB> aabbBoxes{
+	    ltracer::AABB::fromTriangle(t),
+	};
 
 	bool checkValidationLayerSupport()
 	{
@@ -212,58 +207,58 @@ class HelloTriangleApplication
 		return true;
 	}
 
-	void loadModels()
-	{
-		std::filesystem::path floor = "3d-models/floor.obj";
-		loadModel(floor, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec3{0, 0, -1.0f});
+	// void loadModels()
+	// {
+	// 	std::filesystem::path floor = "3d-models/floor.obj";
+	// 	loadModel(floor, glm::vec3{1.0f, 0.0f, 0.0f}, glm::vec3{0, 0, -1.0f});
 
-		// std::filesystem::path cubePath = "../3d-models/cube.obj";
-		// auto cube = loadModel(cubePath);
-		// logMat4("modelMatrix:", cube.getModelMatrix());
+	// 	// std::filesystem::path cubePath = "../3d-models/cube.obj";
+	// 	// auto cube = loadModel(cubePath);
+	// 	// logMat4("modelMatrix:", cube.getModelMatrix());
 
-		std::filesystem::path arrowPath = "3d-models/up_arrow.obj";
-		auto arrow = loadModel(arrowPath);
+	// 	std::filesystem::path arrowPath = "3d-models/up_arrow.obj";
+	// 	auto arrow = loadModel(arrowPath);
 
-		std::cout << "Loaded " << (*worldObjects).size() << " models\n";
-	}
+	// 	// std::cout << "Loaded " << (*meshObjects).size() << " models\n";
+	// }
 
-	ltracer::WorldObject& loadModel(std::filesystem::path modelPath,
-	                                glm::vec3 color = glm::vec3{1.0f, 1.0f, 1.0f},
-	                                glm::vec3 position = glm::vec3(0, 0, 0))
-	{
-		objl::Loader modelLoader;
-		bool loadout = modelLoader.LoadFile(modelPath.string());
+	// ltracer::WorldObject& loadModel(std::filesystem::path modelPath,
+	//                                 glm::vec3 color = glm::vec3{1.0f, 1.0f, 1.0f},
+	//                                 glm::vec3 position = glm::vec3(0, 0, 0))
+	// {
+	// 	objl::Loader modelLoader;
+	// 	bool loadout = modelLoader.LoadFile(modelPath.string());
 
-		if (loadout)
-		{
-			std::vector<ltracer::Vertex> vertices;
-			vertices.reserve(modelLoader.LoadedMeshes[0].Vertices.size());
-			std::vector<unsigned int> indices;
-			indices.reserve(modelLoader.LoadedMeshes[0].Indices.size());
+	// 	if (loadout)
+	// 	{
+	// 		std::vector<ltracer::Vertex> vertices;
+	// 		vertices.reserve(modelLoader.LoadedMeshes[0].Vertices.size());
+	// 		std::vector<unsigned int> indices;
+	// 		indices.reserve(modelLoader.LoadedMeshes[0].Indices.size());
 
-			for (auto& vert : modelLoader.LoadedMeshes[0].Vertices)
-			{
-				vertices.emplace_back(glm::vec3(vert.Position.X, vert.Position.Y, vert.Position.Z),
-				                      color,
-				                      glm::vec3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
-			}
+	// 		for (auto& vert : modelLoader.LoadedMeshes[0].Vertices)
+	// 		{
+	// 			vertices.emplace_back(glm::vec3(vert.Position.X, vert.Position.Y, vert.Position.Z),
+	// 			                      color,
+	// 			                      glm::vec3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
+	// 		}
 
-			for (auto& index : modelLoader.LoadedMeshes[0].Indices)
-			{
-				indices.emplace_back(index);
-			}
+	// 		for (auto& index : modelLoader.LoadedMeshes[0].Indices)
+	// 		{
+	// 			indices.emplace_back(index);
+	// 		}
 
-			return (*worldObjects).emplace_back(vertices, indices, position);
-		}
-		else
-		{
-			std::cerr << TERM_COLOR_RED << "ERROR: Failed to load file '"
-			          << std::filesystem::absolute(modelPath) << "' file\n"
-			          << TERM_COLOR_RESET;
-			throw std::runtime_error(std::string("ERROR: Failed to load file '")
-			                         + std::filesystem::absolute(modelPath).string() + "' file\n");
-		}
-	}
+	// 		return (*worldObjects).emplace_back(vertices, indices, position);
+	// 	}
+	// 	else
+	// 	{
+	// 		std::cerr << TERM_COLOR_RED << "ERROR: Failed to load file '"
+	// 		          << std::filesystem::absolute(modelPath) << "' file\n"
+	// 		          << TERM_COLOR_RESET;
+	// 		throw std::runtime_error(std::string("ERROR: Failed to load file '")
+	// 		                         + std::filesystem::absolute(modelPath).string() + "' file\n");
+	// 	}
+	// }
 
 	void initInput(std::shared_ptr<ltracer::Window> window)
 	{
@@ -806,7 +801,7 @@ class HelloTriangleApplication
 		renderer->cleanupRenderer();
 
 		window->cleanupSwapChain(logicalDevice);
-		mainDeletionQueue->flush();
+		mainDeletionQueue.flush();
 
 		vkDestroyDevice(logicalDevice, nullptr);
 

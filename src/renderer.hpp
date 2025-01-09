@@ -19,10 +19,9 @@
 #include "src/deletion_queue.hpp"
 #include "src/raytracing.hpp"
 #include "src/types.hpp"
-
 #include "src/ui.hpp"
 #include "src/window.hpp"
-#include "src/worldobject.hpp"
+#include "src/model.hpp"
 
 namespace ltracer
 {
@@ -34,7 +33,7 @@ class Renderer
 
 	Renderer(VkPhysicalDevice physicalDevice,
 	         VkDevice logicalDevice,
-	         std::shared_ptr<ltracer::DeletionQueue> deletionQueue,
+	         ltracer::DeletionQueue& deletionQueue,
 	         std::shared_ptr<ltracer::Window> window,
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
@@ -81,7 +80,6 @@ class Renderer
 
 	/// Initializes the renderer and creates the necessary Vulkan objects
 	void initRenderer(VkInstance& vulkanInstance,
-	                  std::shared_ptr<std::vector<WorldObject>> worldObjects,
 	                  std::shared_ptr<ltracer::Camera> camera,
 	                  const uint32_t width,
 	                  const uint32_t height,
@@ -365,7 +363,7 @@ class Renderer
 	// How many frames can be recorded at the same time
 	const int MAX_FRAMES_IN_FLIGHT = 3;
 
-	std::shared_ptr<DeletionQueue> deletionQueue;
+	DeletionQueue& deletionQueue;
 	RaytracingInfo raytracingInfo = {};
 
 	std::shared_ptr<ltracer::Window> window;
@@ -442,21 +440,21 @@ class Renderer
 			}
 		}
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]()
 		    {
 			    for (size_t i = 0; i < imageAvailableSemaphores.size(); i++)
 				    vkDestroySemaphore(logicalDevice, imageAvailableSemaphores[i], nullptr);
 		    });
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]()
 		    {
 			    for (size_t i = 0; i < renderFinishedSemaphores.size(); i++)
 				    vkDestroySemaphore(logicalDevice, renderFinishedSemaphores[i], nullptr);
 		    });
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]()
 		    {
 			    for (size_t i = 0; i < inFlightFences.size(); i++)
@@ -480,7 +478,7 @@ class Renderer
 			throw std::runtime_error("failed to allocate command buffers!");
 		}
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]()
 		    {
 			    vkFreeCommandBuffers(logicalDevice,
@@ -505,8 +503,8 @@ class Renderer
 			throw std::runtime_error("failed to create command pool!");
 		}
 
-		deletionQueue->push_function(
-		    [=, this]() { vkDestroyCommandPool(logicalDevice, commandPool, nullptr); });
+		deletionQueue.push_function([=, this]()
+		                            { vkDestroyCommandPool(logicalDevice, commandPool, nullptr); });
 
 		// VkCommandPoolCreateInfo poolInfoTransfer{};
 		// poolInfoTransfer.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -663,7 +661,7 @@ class Renderer
 			throw std::runtime_error("failed to create a pipeline layout!");
 		}
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]() { vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr); });
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{
@@ -692,7 +690,7 @@ class Renderer
 			throw std::runtime_error("failed to create graphics pipeline");
 		}
 
-		deletionQueue->push_function(
+		deletionQueue.push_function(
 		    [=, this]() { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); });
 
 		vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
@@ -747,8 +745,8 @@ class Renderer
 			throw std::runtime_error("failed to create render pass!");
 		}
 
-		deletionQueue->push_function([=, this]()
-		                             { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
+		deletionQueue.push_function([=, this]()
+		                            { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
 	}
 
 	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)

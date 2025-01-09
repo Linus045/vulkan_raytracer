@@ -105,7 +105,7 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
 
 inline void createBuffer(VkPhysicalDevice physicalDevice,
                          VkDevice logicalDevice,
-                         std::shared_ptr<DeletionQueue> deletionQueue,
+                         DeletionQueue& deletionQueue,
                          VkDeviceSize size,
                          VkBufferUsageFlags usage,
                          VkMemoryPropertyFlags properties,
@@ -127,7 +127,7 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
 		throw std::runtime_error("failed to create vertex buffer");
 	}
 
-	deletionQueue->push_function([=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
+	deletionQueue.push_function([=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
 
 	VkMemoryRequirements memoryRequirements;
 	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
@@ -143,7 +143,7 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
 		throw std::runtime_error("failed to allocate vertex buffer memory");
 	}
 
-	deletionQueue->push_function([=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
+	deletionQueue.push_function([=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
 	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
 }
 

@@ -3,21 +3,17 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
 
-#include "src/model.hpp"
 #include "src/transform.hpp"
 
 namespace ltracer
 {
 
-class WorldObject : public MeshObject
+class WorldObject
 {
   public:
 	Transform transform;
 
-	WorldObject(const std::vector<Vertex>& vertices,
-	            const std::vector<unsigned int> indices,
-	            glm::vec3 position = glm::vec3{0, 0, 0})
-	    : MeshObject(vertices, indices)
+	WorldObject(glm::vec3 position = glm::vec3{0, 0, 0})
 	{
 		transform.position = position;
 	}

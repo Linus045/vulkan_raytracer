@@ -49,7 +49,7 @@ inline void initImgui(VkInstance vulkanInstance,
                       QueueFamilyIndices& queueFamilyIndices,
                       VkRenderPass renderPass,
                       VkQueue graphicsQueue,
-                      std::shared_ptr<DeletionQueue> deletionQueue)
+                      DeletionQueue& deletionQueue)
 {
 	// oversized but whatever
 	VkDescriptorPoolSize pool_sizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
@@ -76,8 +76,7 @@ inline void initImgui(VkInstance vulkanInstance,
 		throw std::runtime_error("init_imgui - vkCreateDescriptorPool");
 	}
 
-	deletionQueue->push_function([=]()
-	                             { vkDestroyDescriptorPool(logicalDevice, imguiPool, NULL); });
+	deletionQueue.push_function([=]() { vkDestroyDescriptorPool(logicalDevice, imguiPool, NULL); });
 
 	// initialize the core structures of imgui
 	ImGui::CreateContext();
@@ -107,7 +106,7 @@ inline void initImgui(VkInstance vulkanInstance,
 	ImGui_ImplVulkan_CreateFontsTexture();
 
 	// add the destroy the imgui created structures
-	deletionQueue->push_function([]() { ImGui_ImplVulkan_Shutdown(); });
+	deletionQueue.push_function([]() { ImGui_ImplVulkan_Shutdown(); });
 }
 
 inline void renderCameraProperties(const UIData& uiData)
