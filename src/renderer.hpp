@@ -292,8 +292,7 @@ class Renderer
 
 		if (raytracingSupported)
 		{
-			ltracer::rt::updateRaytraceBuffer(
-			    logicalDevice, camera, raytracingInfo.rayTraceImageHandle);
+			ltracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, camera);
 		}
 		updateUniformBuffer(currentFrame);
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex);

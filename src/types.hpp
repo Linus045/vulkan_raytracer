@@ -3,7 +3,6 @@
 #include <cstdint>
 #include <fstream>
 #include <iostream>
-#include <memory>
 #include <optional>
 #include <stdexcept>
 
@@ -53,6 +52,16 @@ struct SharedInfo
 	alignas(16) glm::mat4 proj;
 };
 
+struct UniformStructure
+{
+	float cameraPosition[4];
+	float cameraRight[4];
+	float cameraUp[4];
+	float cameraForward[4];
+
+	uint32_t frameCount;
+};
+
 struct RaytracingInfo
 {
 	VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;
@@ -68,18 +77,20 @@ struct RaytracingInfo
 	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
 	ltracer::QueueFamilyIndices queueFamilyIndices = {};
 
+	UniformStructure uniformStructure;
+
 	VkCommandBuffer commandBufferBuildTopAndBottomLevel = VK_NULL_HANDLE;
 	// VkCommandBuffer commandBufferBuildAccelerationStructure = VK_NULL_HANDLE;
-};
 
-struct UniformStructure
-{
-	float cameraPosition[4];
-	float cameraRight[4];
-	float cameraUp[4];
-	float cameraForward[4];
+	VkAccelerationStructureKHR topLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 
-	uint32_t frameCount;
+	VkBuffer uniformBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory uniformDeviceMemoryHandle = VK_NULL_HANDLE;
+
+	VkShaderModule rayMissShadowShaderModuleHandle = VK_NULL_HANDLE;
+	VkShaderModule rayMissShaderModuleHandle = VK_NULL_HANDLE;
+	VkShaderModule rayGenerateShaderModuleHandle = VK_NULL_HANDLE;
+	VkShaderModule rayClosestHitShaderModuleHandle = VK_NULL_HANDLE;
 };
 
 inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,

@@ -1,10 +1,19 @@
 #pragma once
 
+#include "tiny_obj_loader.h"
 #include <array>
+#include <filesystem>
+#include <iostream>
+
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/vector_float3.hpp"
-#include "src/worldobject.hpp"
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/glm.hpp>
+
+#include "src/worldobject.hpp"
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
@@ -57,10 +66,17 @@ struct Vertex
 class MeshObject : public WorldObject
 {
   public:
-	MeshObject(const glm::vec3& position,
-	           const std::vector<Vertex>& vertices,
-	           const std::vector<unsigned int>& indices)
-	    : WorldObject(position), vertices(vertices), indices(indices) {};
+	static MeshObject loadFromPath(std::filesystem::path filepath)
+	{
+		uint32_t primitiveCount;
+		std::vector<float> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		loadOBJScene(filepath, primitiveCount, vertices, indices, shapes, materials);
+
+		return MeshObject(glm::vec3{0, 0, 0}, primitiveCount, vertices, indices, shapes, materials);
+	}
 
 	MeshObject(MeshObject&&) = default;
 	MeshObject(const MeshObject&) = delete;
@@ -68,20 +84,26 @@ class MeshObject : public WorldObject
 	MeshObject& operator=(const MeshObject&) = delete;
 	~MeshObject() = default;
 
-	const std::vector<Vertex> vertices;
-	const std::vector<uint32_t> indices;
 	const std::vector<glm::vec3> normals;
 
-	VkBuffer vertexBuffer;
-	VkDeviceMemory vertexBufferMemory;
-	VkBuffer indexBuffer;
-	VkDeviceMemory indexBufferMemory;
+	const uint32_t primitiveCount;
+	const std::vector<float> vertices;
+	const std::vector<uint32_t> indices;
+	const std::vector<tinyobj::shape_t> shapes;
+	const std::vector<tinyobj::material_t> materials;
+
+	VkBuffer vertexBufferHandle;
+	VkDeviceMemory vertexBufferDeviceMemoryHandle;
+	VkDeviceAddress vertexBufferDeviceAddress;
+
+	VkBuffer indexBufferHandle;
+	VkDeviceMemory indexBufferDeviceMemoryHandle;
+	VkDeviceAddress indexBufferDeviceAddress;
+
 	// VkBuffer normalBuffer;
 	// VkDeviceMemory normalBufferMemory;
 
-	std::vector<VkBuffer> uniformBuffers;
-	std::vector<VkDeviceMemory> uniformBuffersMemory;
-	std::vector<void*> uniformBuffersMapped;
+	// VkBuffer uniformBufferHandle;
 
 	void cleanup(VkDevice device) const
 	{
@@ -101,6 +123,63 @@ class MeshObject : public WorldObject
 	}
 
   private:
+	MeshObject(const glm::vec3& position,
+	           const uint32_t primitiveCount,
+	           const std::vector<float>& vertices,
+	           const std::vector<uint32_t>& indices,
+	           const std::vector<tinyobj::shape_t>& shapes,
+	           const std::vector<tinyobj::material_t>& materials)
+	    : WorldObject(position), primitiveCount(primitiveCount), vertices(vertices),
+	      indices(indices), shapes(shapes), materials(materials) {};
+
+	inline static void loadOBJScene(std::string scenePath,
+	                                uint32_t& primitiveCount,
+	                                std::vector<float>& vertices,
+	                                std::vector<uint32_t>& indexList,
+	                                std::vector<tinyobj::shape_t>& shapes,
+	                                std::vector<tinyobj::material_t>& materials)
+	{
+		// std::filesystem::path arrowPath = "3d-models/up_arrow.obj";
+		// auto loaded_model = loadModel(arrowPath);
+
+		// =========================================================================
+		// OBJ Model
+
+		tinyobj::ObjReaderConfig reader_config;
+		tinyobj::ObjReader reader;
+
+		if (!reader.ParseFromFile(scenePath, reader_config))
+		{
+			if (!reader.Error().empty())
+			{
+				std::cerr << "TinyObjReader: " << reader.Error();
+			}
+			exit(1);
+		}
+
+		if (!reader.Warning().empty())
+		{
+			std::cout << "TinyObjReader: " << reader.Warning();
+		}
+
+		const tinyobj::attrib_t& attrib = reader.GetAttrib();
+		vertices = attrib.vertices;
+
+		shapes = reader.GetShapes();
+		materials = reader.GetMaterials();
+
+		primitiveCount = 0;
+		for (tinyobj::shape_t shape : shapes)
+		{
+
+			primitiveCount += shape.mesh.num_face_vertices.size();
+
+			for (tinyobj::index_t index : shape.mesh.indices)
+			{
+				indexList.push_back(index.vertex_index);
+			}
+		}
+	}
 };
 
 } // namespace ltracer

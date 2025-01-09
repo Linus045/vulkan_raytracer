@@ -1,9 +1,9 @@
 #pragma once
 
+#include <cstring>
 #include <vulkan/vulkan_core.h>
 
 #include "src/deletion_queue.hpp"
-#include "src/raytracing.hpp"
 #include "src/types.hpp"
 #include "src/device_procedures.hpp"
 
@@ -21,14 +21,7 @@ createAndBuildBottomLevelAccelerationStructureAABB(DeletionQueue& deletionQueue,
 	throw std::runtime_error("createAndBuildBottomLevelAccelerationStructureAABB not implemented");
 }
 
-static VkBuffer bottomLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
-static VkDeviceMemory bottomLevelGeometryInstanceDeviceMemoryHandle = VK_NULL_HANDLE;
-static VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
-static VkBuffer bottomLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
-static VkBuffer bottomLevelGeometryInstanceBufferHandle = VK_NULL_HANDLE;
-static VkFence bottomLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
 // static VkDeviceMemory bottomLevelAccelerationStructureDeviceMemoryHandle = VK_NULL_HANDLE;
-static VkDeviceMemory bottomLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
 
 inline VkDeviceAddress
 createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQueue,
@@ -93,6 +86,8 @@ createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQu
 	    bottomLevelMaxPrimitiveCountList.data(),
 	    &bottomLevelAccelerationStructureBuildSizesInfo);
 
+	VkBuffer bottomLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory bottomLevelAccelerationStructureMemoryHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
 	             deletionQueue,
@@ -102,7 +97,7 @@ createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQu
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureBufferHandle,
-	             bottomLevelGeometryInstanceDeviceMemoryHandle,
+	             bottomLevelAccelerationStructureMemoryHandle,
 	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
 	VkAccelerationStructureCreateInfoKHR bottomLevelAccelerationStructureCreateInfo
@@ -115,6 +110,7 @@ createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQu
 	       .type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR,
 	       .deviceAddress = 0};
 
+	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 	VkResult result = ltracer::procedures::pvkCreateAccelerationStructureKHR(
 	    logicalDevice,
 	    &bottomLevelAccelerationStructureCreateInfo,
@@ -143,6 +139,8 @@ createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQu
 	    = ltracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
 	        logicalDevice, &bottomLevelAccelerationStructureDeviceAddressInfo);
 
+	VkDeviceMemory bottomLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
+	VkBuffer bottomLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
 	             deletionQueue,
@@ -223,6 +221,7 @@ createAndBuildBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQu
 	    .flags = 0,
 	};
 
+	VkFence bottomLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
 	result = vkCreateFence(logicalDevice,
 	                       &bottomLevelAccelerationStructureBuildFenceCreateInfo,
 	                       NULL,
@@ -275,6 +274,9 @@ createBottomLevelGeometryInstance(VkPhysicalDevice physicalDevice,
 	    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
 	    .accelerationStructureReference = bottomLevelAccelerationStructureDeviceAddress};
 
+	VkBuffer bottomLevelGeometryInstanceBufferHandle = VK_NULL_HANDLE;
+
+	VkDeviceMemory bottomLevelGeometryInstanceDeviceMemoryHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
 	             deletionQueue,
