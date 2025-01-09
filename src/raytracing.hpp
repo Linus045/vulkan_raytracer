@@ -2072,6 +2072,9 @@ inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
 	                          raytracingInfo.rayTraceImageViewHandle);
 
 	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo);
+
+	// reset frame count so the window gets refreshed properly
+	uniformStructure.frameCount = 0;
 }
 
 } // namespace rt
