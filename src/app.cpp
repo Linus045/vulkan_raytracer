@@ -396,7 +396,7 @@ class HelloTriangleApplication
 		vulkan_initialized = true;
 	}
 
-	void createLogicalDevice(const std::vector<const char*> requiredDeviceExtensions,
+	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions,
 	                         const bool raytracingSupported)
 	{
 		// grab the required queue families
@@ -443,6 +443,7 @@ class HelloTriangleApplication
 		    physicalDeviceAccelerationStructureFeatures{};
 		VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures{};
 		VkPhysicalDeviceFeatures deviceFeatures{};
+		VkPhysicalDeviceDescriptorIndexingFeatures deviceDescriptorFeature = {};
 
 		VkPhysicalDeviceSynchronization2Features synchronizationFeatures2{};
 		synchronizationFeatures2.sType
@@ -487,7 +488,6 @@ class HelloTriangleApplication
 			physicalDeviceRayTracingPipelineFeatures.rayTracingPipelineTraceRaysIndirect = VK_FALSE;
 			physicalDeviceRayTracingPipelineFeatures.rayTraversalPrimitiveCulling = VK_FALSE;
 
-			VkPhysicalDeviceDescriptorIndexingFeatures deviceDescriptorFeature = {};
 			deviceDescriptorFeature.sType
 			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
 			// allow null in descriptor set
