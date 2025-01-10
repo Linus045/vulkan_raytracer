@@ -42,8 +42,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             blasGeometryInstancesBufferHandle,
-	             blasGeometryInstancesDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.graphicsFamily.value()});
+	             blasGeometryInstancesDeviceMemoryHandle);
 
 	void* hostAccelerationStructureInstancesMemoryBuffer;
 	VkResult result = vkMapMemory(logicalDevice,
@@ -144,8 +143,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             topLevelAccelerationStructureBufferHandle,
-	             topLevelAccelerationStructureDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             topLevelAccelerationStructureDeviceMemoryHandle);
 
 	//=================================================================================================
 	// create top level acceleration structure from geometry
@@ -201,8 +199,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             topLevelAccelerationStructureScratchBufferHandle,
-	             topLevelAccelerationStructureDeviceScratchMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             topLevelAccelerationStructureDeviceScratchMemoryHandle);
 
 	VkBufferDeviceAddressInfo topLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

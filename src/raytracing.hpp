@@ -132,8 +132,7 @@ inline VkBuffer createTetrahedronsBuffer(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             tetrahedronsBufferHandle,
-	             deviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             deviceMemoryHandle);
 
 	void* memoryBuffer;
 	VkResult result = vkMapMemory(logicalDevice,
@@ -180,8 +179,7 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             tetrahedronsAABBBufferHandle,
-	             aabbDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             aabbDeviceMemoryHandle);
 
 	void* aabbPositionsMemoryBuffer;
 	VkResult result = vkMapMemory(logicalDevice,
@@ -903,8 +901,7 @@ inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             meshObject.vertexBufferHandle,
-	             meshObject.vertexBufferDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             meshObject.vertexBufferDeviceMemoryHandle);
 
 	void* hostVertexMemoryBuffer;
 	VkResult result = vkMapMemory(logicalDevice,
@@ -946,8 +943,7 @@ inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             meshObject.indexBufferHandle,
-	             meshObject.indexBufferDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             meshObject.indexBufferDeviceMemoryHandle);
 
 	void* hostIndexMemoryBuffer;
 	result = vkMapMemory(logicalDevice,
@@ -1212,8 +1208,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             raytracingInfo.uniformBufferHandle,
-		             raytracingInfo.uniformDeviceMemoryHandle,
-		             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+		             raytracingInfo.uniformDeviceMemoryHandle);
 
 		void* hostUniformMemoryBuffer;
 		result = vkMapMemory(logicalDevice,
@@ -1262,8 +1257,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             materialIndexBufferHandle,
-		             materialIndexDeviceMemoryHandle,
-		             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+		             materialIndexDeviceMemoryHandle);
 
 		void* hostMaterialIndexMemoryBuffer;
 		result = vkMapMemory(logicalDevice,
@@ -1318,8 +1312,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             materialBufferHandle,
-		             materialDeviceMemoryHandle,
-		             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+		             materialDeviceMemoryHandle);
 
 		void* hostMaterialMemoryBuffer;
 		result = vkMapMemory(logicalDevice,
@@ -1398,8 +1391,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             shaderBindingTableBufferHandle,
-	             shaderBindingTableDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             shaderBindingTableDeviceMemoryHandle);
 
 	char* shaderHandleBuffer = new char[shaderBindingTableSize];
 	result = ltracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(

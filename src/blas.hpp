@@ -194,8 +194,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureBufferHandle,
-	             bottomLevelAccelerationStructureMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             bottomLevelAccelerationStructureMemoryHandle);
 
 	VkAccelerationStructureCreateInfoKHR bottomLevelAccelerationStructureCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -244,8 +243,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureScratchBufferHandle,
-	             bottomLevelAccelerationStructureDeviceScratchMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+	             bottomLevelAccelerationStructureDeviceScratchMemoryHandle);
 
 	VkBufferDeviceAddressInfo bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
