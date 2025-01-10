@@ -9,8 +9,17 @@
 namespace ltracer
 {
 
-class Tetrahedron
+struct Tetrahedron
 {
+	const glm::vec3 a;
+	const glm::vec3 b;
+	const glm::vec3 c;
+};
+
+struct Sphere
+{
+	const glm::vec3 center;
+	const float radius;
 };
 
 class Triangle

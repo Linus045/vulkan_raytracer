@@ -2,41 +2,154 @@
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_debug_printf : enable
 
-// layout(binding = 2, set = 1) buffer AABBBuffer {
-//     vec3 minBounds[];
-//     vec3 maxBounds[];
-// };
+// TODO: Figure out what these do
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_buffer_reference2 : require
+
+#define t_Surface 1
+#define t_Triangle 2
+#define t_Tetrahedron 3
+
+
+// TODO; put this in a common file
+struct Tetrahedron {
+	vec3 a;
+	vec3 b;
+	vec3 c;
+};
+
+struct Ray
+{
+	vec3 origin;
+	vec3 direction;
+};
+
+struct Sphere {
+	vec3 center;
+	float radius;
+};
+
+layout(set = 0, binding=5, scalar) buffer Tetrahedrons
+{
+	Tetrahedron[] tetrahedrons;
+};
+
+// Ray-Sphere intersection
+// http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
+float hitSphere(const Sphere s, const Ray r)
+{
+  vec3  oc           = r.origin - s.center;
+  float a            = dot(r.direction, r.direction);
+  float b            = 2.0 * dot(oc, r.direction);
+  float c            = dot(oc, oc) - s.radius * s.radius;
+  float discriminant = b * b - 4 * a * c;
+  if(discriminant < 0)
+  {
+    return -1.0;
+  }
+  else
+  {
+    return (-b - sqrt(discriminant)) / (2.0 * a);
+  }
+}
+
+
+// Ray-AABB intersection
+// float hitAabb(const Aabb aabb, const Ray r)
+// {
+// 	vec3  invDir = 1.0 / r.direction;
+// 	vec3  tbot   = invDir * (aabb.minimum - r.origin);
+// 	vec3  ttop   = invDir * (aabb.maximum - r.origin);
+// 	vec3  tmin   = min(ttop, tbot);
+// 	vec3  tmax   = max(ttop, tbot);
+// 	float t0     = max(tmin.x, max(tmin.y, tmin.z));
+// 	float t1     = min(tmax.x, min(tmax.y, tmax.z));
+// 	return t1 > max(t0, 0.0) ? t0 : -1.0;
+// }
+
+
+float PointInOrOn(vec3 P1, vec3 P2, vec3 A, vec3 B )
+{
+    vec3 CP1 = cross(B - A, P1 - A);
+    vec3 CP2 = cross(B - A, P2 - A);
+    return step(0.0, dot(CP1, CP2));
+}
+
+float PointInTriangle( vec3 px, vec3 p0, vec3 p1, vec3 p2 )
+{
+    return 
+        PointInOrOn(px, p0, p1, p2) *
+        PointInOrOn(px, p1, p2, p0) *
+        PointInOrOn(px, p2, p0, p1);
+}
+
+
+vec3 IntersectPlane(Ray ray, vec3 p0, vec3 p1, vec3 p2)
+{
+    vec3 D = ray.direction;
+    vec3 N = cross(p1-p0, p2-p0);
+    vec3 X = ray.origin + D * dot(p0 - ray.origin, N) / dot(D, N);
+
+    return X;
+}
+
+
+float IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2)
+{
+    vec3 X = IntersectPlane(ray, p0, p1, p2);
+
+    if(PointInTriangle(X, p0, p1, p2) > 0) {
+		// debugPrintfEXT("IntersectPlane: %f, %f, %f", X.x,X.y,X.z);
+		float dist = distance(ray.origin, X);
+		// debugPrintfEXT("Dist: %f", dist);
+		return dist;
+	}
+	return -1;
+}
+
+
+
 
 void main() {
-	reportIntersectionEXT(1.0, 0);
+	Ray ray;
+	ray.origin    = gl_WorldRayOriginEXT;
+	ray.direction = gl_WorldRayDirectionEXT;
 
-    // // Retrieve the AABB index based on the gl_PrimitiveID.
-    // uint index = gl_PrimitiveID;
-    // vec3 min = minBounds[index];
-    // vec3 max = maxBounds[index];
 
-    // // Ray origin and direction.
-    // vec3 origin = gl_RayOriginEXT;
-    // vec3 direction = gl_RayDirectionEXT;
+	int customIdx = gl_InstanceCustomIndexEXT;
+	// Tetrahedron data
+	Tetrahedron tetrahedron = tetrahedrons[gl_PrimitiveID];
 
-    // // Inverse direction to avoid division in the shader.
-    // vec3 invDir = 1.0 / direction;
+	// debugPrintfEXT("gl_InstanceCustomIndexEXT: %d", gl_InstanceCustomIndexEXT);
+	// debugPrintfEXT("Tetrahedron: a: %f, %f, %f", tetrahedron.a.x,tetrahedron.a.y,tetrahedron.a.z);
+	// debugPrintfEXT("Tetrahedron: b: %f, %f, %f", tetrahedron.b.x,tetrahedron.b.y,tetrahedron.b.z);
+	// debugPrintfEXT("Tetrahedron: c: %f, %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
-    // // Calculate intersection with AABB slabs.
-    // vec3 tmin = (min - origin) * invDir;
-    // vec3 tmax = (max - origin) * invDir;
+	float tHit = -1;
+	if(customIdx == t_Tetrahedron)
+	{
+		// // AABB intersection
+		// Aabb aabb;
+		// aabb.minimum = sphere.center - vec3(sphere.radius);
+		// aabb.maximum = sphere.center + vec3(sphere.radius);
+		// tHit         = hitAabb(aabb, ray);
+		tHit = IntersectTriangle(ray, tetrahedron.a, tetrahedron.b, tetrahedron.c);
+	}
+	else
+	{
+		// Sphere intersection
+		Sphere sphere;
+		sphere.center = vec3(0,0,0);
+		sphere.radius = 4;
 
-    // // Reorder to ensure tmin is the min for each axis.
-    // vec3 t1 = min(tmin, tmax);
-    // vec3 t2 = max(tmin, tmax);
+		tHit = hitSphere(sphere, ray);
+	}
 
-    // // Get the largest tmin and the smallest tmax.
-    // float tNear = max(max(t1.x, t1.y), t1.z);
-    // float tFar = min(min(t2.x, t2.y), t2.z);
+	// Report hit point
+	if(tHit > 0)
+		reportIntersectionEXT(tHit, customIdx);
 
-    // // Check if ray intersects the AABB.
-    // if (tNear < tFar && tFar > 0.0) {
-    //     // Report the intersection with the tNear value.
-    //     reportIntersectionEXT(tNear, 0);
-    // }
 }

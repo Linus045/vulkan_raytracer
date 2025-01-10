@@ -16,10 +16,12 @@ namespace rt
 struct BLASInstance
 {
 	// NOTE: maybe make this a vector of geometries
-	VkAccelerationStructureGeometryKHR geometry;
-	VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
+	const VkAccelerationStructureGeometryKHR geometry;
+	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
 
-	VkTransformMatrixKHR transformMatrix = {
+	const AABB::ObjectType objectType;
+
+	const VkTransformMatrixKHR transformMatrix = {
 		.matrix = {
 			{1, 0, 0, 0},
 			{0, 1, 0, 0},
@@ -28,68 +30,18 @@ struct BLASInstance
 	};
 };
 
-inline BLASInstance createBottomLevelAccelerationStructureAABB(DeletionQueue& deletionQueue,
-                                                               VkDevice logicalDevice,
-                                                               VkPhysicalDevice physicalDevice,
-                                                               RaytracingInfo& raytracingInfo,
-                                                               const std::vector<AABB>& aabbs)
+inline BLASInstance
+createBottomLevelAccelerationStructureAABB(VkPhysicalDevice physicalDevice,
+                                           VkDevice logicalDevice,
+                                           DeletionQueue& deletionQueue,
+                                           RaytracingInfo& raytracingInfo,
+                                           VkBuffer tetrahedronsAABBBufferHandle,
+                                           const uint32_t primitiveCount)
 {
-	std::vector<VkAabbPositionsKHR> aabbPositions;
-	for (auto&& aabb : aabbs)
-	{
-		VkAabbPositionsKHR aabbPosition = {
-		    .minX = aabb.min.x,
-		    .minY = aabb.min.y,
-		    .minZ = aabb.min.z,
-		    .maxX = aabb.max.x,
-		    .maxY = aabb.max.y,
-		    .maxZ = aabb.max.z,
-		};
-
-		aabbPositions.push_back(aabbPosition);
-	}
-
-	// we need an alignment of 8 bytes
-	uint32_t blockSize = ceil(sizeof(VkAabbPositionsKHR) / 8.0) * 8;
-	// TODO: remove this assert?
-	assert(blockSize == 24 && "This should be 24");
-
-	VkBuffer aabbPositionsBufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory aabbPositionsDeviceMemoryHandle = VK_NULL_HANDLE;
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             blockSize * aabbPositions.size(),
-	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             aabbPositionsBufferHandle,
-	             aabbPositionsDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
-
-	void* aabbPositionsMemoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              aabbPositionsDeviceMemoryHandle,
-	                              0,
-	                              blockSize * aabbPositions.size(),
-	                              0,
-	                              &aabbPositionsMemoryBuffer);
-
-	memcpy(aabbPositionsMemoryBuffer, aabbPositions.data(), blockSize * aabbPositions.size());
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error(
-		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
-	}
-
-	vkUnmapMemory(logicalDevice, aabbPositionsDeviceMemoryHandle);
-
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
 	    .pNext = NULL,
-	    .buffer = aabbPositionsBufferHandle,
+	    .buffer = tetrahedronsAABBBufferHandle,
 	};
 
 	VkDeviceAddress aabbPositionsDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
@@ -103,7 +55,7 @@ inline BLASInstance createBottomLevelAccelerationStructureAABB(DeletionQueue& de
 			.data = {
 				.deviceAddress = aabbPositionsDeviceAddress
 			},
-			.stride = blockSize,
+			.stride = sizeof(VkAabbPositionsKHR),
 		},
 	};
 
@@ -116,15 +68,17 @@ inline BLASInstance createBottomLevelAccelerationStructureAABB(DeletionQueue& de
 	};
 
 	VkAccelerationStructureBuildRangeInfoKHR bottomLevelAccelerationStructureBuildRangeInfo = {
-	    .primitiveCount = static_cast<uint32_t>(aabbs.size()),
+	    .primitiveCount = primitiveCount,
 	    .primitiveOffset = 0,
 	    .firstVertex = 0,
 	    .transformOffset = 0,
 	};
 
-	return BLASInstance{
+	return BLASInstance
+	{
 		.geometry = bottomLevelAccelerationStructureGeometry,
 		.buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
+		.objectType = AABB::ObjectType::t_Tetrahedron,
 		.transformMatrix = {
 			.matrix = {
 				{1, 0, 0, 0},
@@ -181,6 +135,7 @@ createBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQueue,
 	return BLASInstance{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
+	    .objectType = AABB::ObjectType::t_Triangle,
 	    .transformMatrix = transformMatrix,
 	};
 }

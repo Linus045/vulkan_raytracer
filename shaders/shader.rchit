@@ -3,7 +3,25 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_debug_printf : enable
 
+// TODO: Figure out what these do
+#extension GL_EXT_nonuniform_qualifier : enable
+#extension GL_EXT_scalar_block_layout : enable
+#extension GL_GOOGLE_include_directive : enable
+#extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
+#extension GL_EXT_buffer_reference2 : require
+
 #define M_PI 3.1415926535897932384626433832795
+
+#define t_Surface 1
+#define t_Triangle 2
+#define t_Tetrahedron 3
+
+// TODO; put this in a common file
+struct Tetrahedron {
+	vec3 a;
+	vec3 b;
+	vec3 c;
+};
 
 struct Material {
   vec3 ambient;
@@ -50,6 +68,11 @@ materialIndexBuffer;
 layout(binding = 1, set = 1) buffer MaterialBuffer { Material data[]; }
 materialBuffer;
 
+layout(binding=5, set = 0, scalar) buffer Tetrahedrons
+{
+	Tetrahedron[] tetrahedrons;
+};
+
 float random(vec2 uv, float seed) {
   return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
                43758.5453);
@@ -75,6 +98,15 @@ void main() {
   if (payload.rayActive == 0) {
     return;
   }
+
+  if(gl_HitKindEXT == t_Tetrahedron) {
+      if (payload.rayDepth == 0) {
+        payload.directColor = vec3(1.0, 1.0, 0.0);
+      } 
+
+       payload.rayActive = 0;
+
+  }else{
 
   ivec3 indices = ivec3(indexBuffer.data[3 * gl_PrimitiveID + 0],
                         indexBuffer.data[3 * gl_PrimitiveID + 1],
@@ -188,4 +220,5 @@ void main() {
   payload.previousNormal = geometricNormal;
 
   payload.rayDepth += 1;
+  }
 }

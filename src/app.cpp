@@ -1,3 +1,4 @@
+#include "src/aabb.hpp"
 #include "src/deletion_queue.hpp"
 #include "src/ui.hpp"
 #include <cstdint>
@@ -118,6 +119,8 @@ class HelloTriangleApplication
 	std::shared_ptr<ltracer::Window> window;
 	std::shared_ptr<ltracer::Renderer> renderer;
 	std::shared_ptr<ltracer::Camera> camera;
+
+	std::vector<ltracer::AABB> AABBs;
 
 	VkDebugUtilsMessengerEXT debugMessenger;
 
@@ -438,31 +441,36 @@ class HelloTriangleApplication
 		createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 		createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
+		// Features that are always needed:
+		VkPhysicalDeviceScalarBlockLayoutFeatures deviceScalarBlockLayoutFeature = {};
+		deviceScalarBlockLayoutFeature.sType
+		    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
+		deviceScalarBlockLayoutFeature.scalarBlockLayout = VK_TRUE;
+
+		VkPhysicalDeviceSynchronization2Features synchronizationFeatures2{};
+		synchronizationFeatures2.sType
+		    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
+		synchronizationFeatures2.synchronization2 = true;
+		synchronizationFeatures2.pNext = &deviceScalarBlockLayoutFeature;
+
+		// Features only needed when ray tracing is supported
 		VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures{};
 		VkPhysicalDeviceAccelerationStructureFeaturesKHR
 		    physicalDeviceAccelerationStructureFeatures{};
 		VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures{};
 		VkPhysicalDeviceFeatures deviceFeatures{};
 		VkPhysicalDeviceDescriptorIndexingFeatures deviceDescriptorFeature = {};
-
-		VkPhysicalDeviceSynchronization2Features synchronizationFeatures2{};
-		synchronizationFeatures2.sType
-		    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
-		synchronizationFeatures2.synchronization2 = true;
-
 		if (raytracingSupported)
 		{
 			physicalDeviceBufferDeviceAddressFeatures.sType
 			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
-			physicalDeviceBufferDeviceAddressFeatures.pNext = NULL;
 			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
 			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddressCaptureReplay = VK_FALSE;
 			physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddressMultiDevice = VK_FALSE;
+			physicalDeviceBufferDeviceAddressFeatures.pNext = &synchronizationFeatures2;
 
 			physicalDeviceAccelerationStructureFeatures.sType
 			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR;
-			physicalDeviceAccelerationStructureFeatures.pNext
-			    = &physicalDeviceBufferDeviceAddressFeatures;
 			physicalDeviceAccelerationStructureFeatures.accelerationStructure = VK_TRUE;
 			physicalDeviceAccelerationStructureFeatures.accelerationStructureCaptureReplay
 			    = VK_FALSE;
@@ -473,11 +481,11 @@ class HelloTriangleApplication
 			physicalDeviceAccelerationStructureFeatures
 			    .descriptorBindingAccelerationStructureUpdateAfterBind
 			    = VK_FALSE;
+			physicalDeviceAccelerationStructureFeatures.pNext
+			    = &physicalDeviceBufferDeviceAddressFeatures;
 
 			physicalDeviceRayTracingPipelineFeatures.sType
 			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR;
-			physicalDeviceRayTracingPipelineFeatures.pNext
-			    = &physicalDeviceAccelerationStructureFeatures;
 			physicalDeviceRayTracingPipelineFeatures.rayTracingPipeline = VK_TRUE;
 			physicalDeviceRayTracingPipelineFeatures
 			    .rayTracingPipelineShaderGroupHandleCaptureReplay
@@ -487,6 +495,8 @@ class HelloTriangleApplication
 			    = VK_FALSE;
 			physicalDeviceRayTracingPipelineFeatures.rayTracingPipelineTraceRaysIndirect = VK_FALSE;
 			physicalDeviceRayTracingPipelineFeatures.rayTraversalPrimitiveCulling = VK_FALSE;
+			physicalDeviceRayTracingPipelineFeatures.pNext
+			    = &physicalDeviceAccelerationStructureFeatures;
 
 			deviceDescriptorFeature.sType
 			    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
@@ -494,15 +504,16 @@ class HelloTriangleApplication
 			deviceDescriptorFeature.descriptorBindingPartiallyBound = true;
 			deviceDescriptorFeature.pNext = &physicalDeviceRayTracingPipelineFeatures;
 
-			// link chain of pNext pointers
-			synchronizationFeatures2.pNext = &deviceDescriptorFeature;
-
 			// Needs to be enabled for Raytracing
-			deviceFeatures.geometryShader = VK_TRUE;
 			createInfo.pEnabledFeatures = &deviceFeatures;
-		}
 
-		createInfo.pNext = &synchronizationFeatures2;
+			// link chain of pNext pointers
+			createInfo.pNext = &deviceDescriptorFeature;
+		}
+		else
+		{
+			createInfo.pNext = &synchronizationFeatures2;
+		}
 
 		if (enableValidationLayer)
 		{

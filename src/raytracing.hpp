@@ -17,6 +17,7 @@
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
+#include "src/aabb.hpp"
 #include "src/blas.hpp"
 #include "src/camera.hpp"
 #include "src/deletion_queue.hpp"
@@ -41,6 +42,10 @@ namespace rt
 static VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
 
 static std::vector<MeshObject> meshObjects;
+
+// TODO: convert into a list for the aabbs per blas
+static VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
+static VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
 
 inline void updateUniformStructure(RaytracingInfo& raytracingInfo,
                                    const glm::vec3& position,
@@ -109,6 +114,94 @@ inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatur
 	// };
 
 	return physicalDeviceRayTracingPipelineFeatures;
+}
+
+inline VkBuffer createTetrahedronsBuffer(VkPhysicalDevice physicalDevice,
+                                         VkDevice logicalDevice,
+                                         DeletionQueue& deletionQueue,
+                                         RaytracingInfo& raytracingInfo,
+                                         const std::vector<Tetrahedron>& tetrahedrons)
+{
+	VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory deviceMemoryHandle = VK_NULL_HANDLE;
+	createBuffer(physicalDevice,
+	             logicalDevice,
+	             deletionQueue,
+	             sizeof(Tetrahedron) * tetrahedrons.size(),
+	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	             memoryAllocateFlagsInfo,
+	             tetrahedronsBufferHandle,
+	             deviceMemoryHandle,
+	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+
+	void* memoryBuffer;
+	VkResult result = vkMapMemory(logicalDevice,
+	                              deviceMemoryHandle,
+	                              0,
+	                              sizeof(Tetrahedron) * tetrahedrons.size(),
+	                              0,
+	                              &memoryBuffer);
+
+	memcpy(memoryBuffer, tetrahedrons.data(), sizeof(Tetrahedron) * tetrahedrons.size());
+
+	if (result != VK_SUCCESS)
+	{
+		throw new std::runtime_error(
+		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
+	}
+
+	vkUnmapMemory(logicalDevice, deviceMemoryHandle);
+
+	return tetrahedronsBufferHandle;
+}
+
+inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
+                                 VkDevice logicalDevice,
+                                 DeletionQueue& deletionQueue,
+                                 RaytracingInfo& raytracingInfo,
+                                 const std::vector<AABB>& aabbs)
+{
+	std::vector<VkAabbPositionsKHR> aabbPositions;
+	for (auto&& aabb : aabbs)
+		aabbPositions.push_back(aabb.getAabb());
+
+	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
+	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
+
+	VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
+	createBuffer(physicalDevice,
+	             logicalDevice,
+	             deletionQueue,
+	             blockSize * aabbPositions.size(),
+	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	             memoryAllocateFlagsInfo,
+	             tetrahedronsAABBBufferHandle,
+	             aabbDeviceMemoryHandle,
+	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
+
+	void* aabbPositionsMemoryBuffer;
+	VkResult result = vkMapMemory(logicalDevice,
+	                              aabbDeviceMemoryHandle,
+	                              0,
+	                              blockSize * aabbPositions.size(),
+	                              0,
+	                              &aabbPositionsMemoryBuffer);
+
+	memcpy(aabbPositionsMemoryBuffer, aabbPositions.data(), blockSize * aabbPositions.size());
+
+	if (result != VK_SUCCESS)
+	{
+		throw new std::runtime_error(
+		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
+	}
+
+	vkUnmapMemory(logicalDevice, aabbDeviceMemoryHandle);
+
+	return tetrahedronsAABBBufferHandle;
 }
 
 inline void buildRaytracingAccelerationStructures(VkDevice logicalDevice,
@@ -281,44 +374,54 @@ inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
                                       VkDevice logicalDevice,
                                       VkDescriptorSetLayout& descriptorSetLayoutHandle)
 {
-	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindingList
-	    = {{
-	           .binding = 0,
-	           .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-	           .descriptorCount = 1,
-	           .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	           .pImmutableSamplers = NULL,
-	       },
-	       {
-	           .binding = 1,
-	           .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	           .descriptorCount = 1,
-	           .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	           .pImmutableSamplers = NULL,
-	       },
-	       {
-	           .binding = 2,
-	           .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	           .descriptorCount = 1,
-	           .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	           .pImmutableSamplers = NULL,
-	       },
-	       {
-	           .binding = 3,
-	           .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	           .descriptorCount = 1,
-	           .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	           .pImmutableSamplers = NULL,
-	       },
-	       {
-	           .binding = 4,
-	           .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-	           .descriptorCount = 1,
-	           .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-	           .pImmutableSamplers = NULL,
-	       }};
+	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindingList = {
+	    {
+	        .binding = 0,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 1,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 2,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 3,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 4,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 5,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	};
 
 	std::vector<VkDescriptorBindingFlags> bindingFlags = {
+	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
 	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
 	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
 	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
@@ -335,7 +438,7 @@ inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
 
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-	    //   .pNext = &layoutBindingFlags,
+	    .pNext = &layoutBindingFlags,
 	    .flags = 0,
 	    .bindingCount = static_cast<uint32_t>(descriptorSetLayoutBindingList.size()),
 	    .pBindings = descriptorSetLayoutBindingList.data(),
@@ -652,7 +755,8 @@ inline void createRaytracingPipeline(DeletionQueue& deletionQueue,
 
 inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
                                                      RaytracingInfo& raytracingInfo,
-                                                     const std::vector<MeshObject>& meshObjects)
+                                                     const std::vector<MeshObject>& meshObjects,
+                                                     VkBuffer tetrahedronsAABBBufferHandle)
 {
 	VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorInfo = {
 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
@@ -663,6 +767,12 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 
 	VkDescriptorBufferInfo uniformDescriptorInfo = {
 	    .buffer = raytracingInfo.uniformBufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
+	VkDescriptorBufferInfo tetrahedronsDescriptorInfo = {
+	    .buffer = tetrahedronsBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
@@ -754,6 +864,19 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
 	    .pImageInfo = &rayTraceImageDescriptorInfo,
 	    .pBufferInfo = NULL,
+	    .pTexelBufferView = NULL,
+	});
+
+	writeDescriptorSetList.push_back({
+	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	    .pNext = NULL,
+	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+	    .dstBinding = 5,
+	    .dstArrayElement = 0,
+	    .descriptorCount = 1,
+	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	    .pImageInfo = NULL,
+	    .pBufferInfo = &tetrahedronsDescriptorInfo,
 	    .pTexelBufferView = NULL,
 	});
 
@@ -965,10 +1088,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	createRaytracingPipeline(deletionQueue, raytracingInfo, logicalDevice);
 
 	// =========================================================================
-	// load OBJ Model
-
-	std::vector<BLASInstance> blasInstancesData;
-
+	// load OBJ Models
 	std::string scenePath = "3d-models/cube_scene.obj";
 	{
 		MeshObject meshObject = MeshObject::loadFromPath(scenePath);
@@ -983,6 +1103,30 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		// meshObjects.push_back(std::move(meshObject2));
 	}
 
+	// =========================================================================
+	// create aabbs (temporary)
+
+	std::vector<Tetrahedron> tetrahedrons
+	    = {Tetrahedron{glm::vec3(0, 0, 2), glm::vec3(2, 0, 0), glm::vec3(0, 2, 0)}};
+
+	// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
+	// something like that
+	std::vector<AABB> aabbs;
+	for (auto&& tetrahedron : tetrahedrons)
+	{
+		aabbs.push_back(AABB::fromTetrahedron(tetrahedron));
+	}
+
+	// =========================================================================
+	// AABB Buffer
+	tetrahedronsBufferHandle = createTetrahedronsBuffer(
+	    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, tetrahedrons);
+	tetrahedronsAABBBufferHandle
+	    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, raytracingInfo, aabbs);
+
+	// =========================================================================
+	// convert to bottom level acceleration structure
+	std::vector<BLASInstance> blasInstancesData;
 	for (auto&& obj : meshObjects)
 	{
 		loadAndCreateVertexAndIndexBufferForModel(
@@ -1004,19 +1148,14 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		blasInstancesData.push_back(triangleBLAS);
 	}
 
-	ltracer::Triangle t
-	    = ltracer::Triangle(glm::vec3(0, 0, 2), glm::vec3(2, 0, 0), glm::vec3(0, 2, 0));
-
-	blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
-	    deletionQueue,
-	    logicalDevice,
-	    physicalDevice,
-	    raytracingInfo,
-	    {
-	        AABB::fromTriangle(t),
-	        ltracer::AABB{.min = glm::vec3(10, 3, 3), .max = glm::vec3(15, 5, 5)},
-	        ltracer::AABB{.min = glm::vec3(-2, -20, -2), .max = glm::vec3(1, -2, 1)},
-	    }));
+	// TODO: Make it possible to have multiple BLAS with their individual AABBs
+	blasInstancesData.push_back(
+	    createBottomLevelAccelerationStructureAABB(physicalDevice,
+	                                               logicalDevice,
+	                                               deletionQueue,
+	                                               raytracingInfo,
+	                                               tetrahedronsAABBBufferHandle,
+	                                               aabbs.size()));
 
 	// =========================================================================
 	// Top Level Acceleration Structure
@@ -1046,7 +1185,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 		auto bottomLevelGeometryInstance = VkAccelerationStructureInstanceKHR{
 		    .transform = blasData.transformMatrix,
-		    .instanceCustomIndex = 0,
+		    .instanceCustomIndex = blasData.objectType,
 		    .mask = 0xFF,
 		    .instanceShaderBindingTableRecordOffset = 0,
 		    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -1064,35 +1203,38 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	                                            graphicsQueueHandle);
 	// =========================================================================
 	// Uniform Buffer
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             sizeof(UniformStructure),
-	             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             raytracingInfo.uniformBufferHandle,
-	             raytracingInfo.uniformDeviceMemoryHandle,
-	             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
-
-	void* hostUniformMemoryBuffer;
-	result = vkMapMemory(logicalDevice,
-	                     raytracingInfo.uniformDeviceMemoryHandle,
-	                     0,
-	                     sizeof(UniformStructure),
-	                     0,
-	                     &hostUniformMemoryBuffer);
-	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkMapMemory");
-	}
-	memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
+		createBuffer(physicalDevice,
+		             logicalDevice,
+		             deletionQueue,
+		             sizeof(UniformStructure),
+		             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		             memoryAllocateFlagsInfo,
+		             raytracingInfo.uniformBufferHandle,
+		             raytracingInfo.uniformDeviceMemoryHandle,
+		             {raytracingInfo.queueFamilyIndices.presentFamily.value()});
 
-	vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+		void* hostUniformMemoryBuffer;
+		result = vkMapMemory(logicalDevice,
+		                     raytracingInfo.uniformDeviceMemoryHandle,
+		                     0,
+		                     sizeof(UniformStructure),
+		                     0,
+		                     &hostUniformMemoryBuffer);
+		if (result != VK_SUCCESS)
+		{
+			throw new std::runtime_error("initRayTraci - vkMapMemory");
+		}
+		memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
+
+		vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+	}
 
 	// =========================================================================
 	// Update Descriptor Set
-	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice, raytracingInfo, meshObjects, tetrahedronsAABBBufferHandle);
 
 	// =========================================================================
 	// Material Index Buffer
@@ -1633,7 +1775,8 @@ inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
 	                          raytracingInfo.rayTraceImageHandle,
 	                          raytracingInfo.rayTraceImageViewHandle);
 
-	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice, raytracingInfo, meshObjects, tetrahedronsAABBBufferHandle);
 
 	// reset frame count so the window gets refreshed properly
 	resetFrameCount(raytracingInfo);

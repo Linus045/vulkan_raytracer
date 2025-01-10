@@ -7,6 +7,7 @@
 #include <stdexcept>
 
 #include "glm/ext/matrix_float4x4.hpp"
+#include "src/aabb.hpp"
 #include "src/deletion_queue.hpp"
 #include <vulkan/vulkan_core.h>
 
@@ -139,6 +140,7 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
                          VkMemoryAllocateFlagsInfo& additionalMemoryAllocateFlagsInfo,
                          VkBuffer& buffer,
                          VkDeviceMemory& bufferMemory,
+                         // TODO: this parameter is unnecessary
                          std::vector<uint32_t> queueFamilyIndices)
 {
 	VkBufferCreateInfo bufferInfo{};
