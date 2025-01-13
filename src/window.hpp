@@ -84,7 +84,11 @@ class Window
 			glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
 			glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-			glfwWindow = glfwCreateWindow(initialWidth, initialHeight, "Vulkan", nullptr, nullptr);
+			glfwWindow = glfwCreateWindow(static_cast<int>(initialWidth),
+			                              static_cast<int>(initialHeight),
+			                              "Vulkan",
+			                              nullptr,
+			                              nullptr);
 		}
 		glfwSetFramebufferSizeCallback(glfwWindow, framebufferResizeCallback);
 
@@ -98,7 +102,7 @@ class Window
 
 	/// Returns whether the window should close (e.g. user pressed the close
 	/// button)
-	const bool shouldClose() const
+	bool shouldClose() const
 	{
 		return glfwWindowShouldClose(glfwWindow);
 	}
@@ -110,8 +114,6 @@ class Window
 		{
 			throw std::runtime_error("failed to create window surface");
 		}
-
-		debug_print("%s: %p", "Vulkan surface created:", vulkanSurface);
 	}
 
 	void getFramebufferSize(int* width, int* height) const

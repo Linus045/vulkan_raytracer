@@ -119,7 +119,6 @@ inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatur
 inline VkBuffer createTetrahedronsBuffer(VkPhysicalDevice physicalDevice,
                                          VkDevice logicalDevice,
                                          DeletionQueue& deletionQueue,
-                                         RaytracingInfo& raytracingInfo,
                                          const std::vector<Tetrahedron>& tetrahedrons)
 {
 	VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
@@ -158,7 +157,6 @@ inline VkBuffer createTetrahedronsBuffer(VkPhysicalDevice physicalDevice,
 inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
                                  VkDevice logicalDevice,
                                  DeletionQueue& deletionQueue,
-                                 RaytracingInfo& raytracingInfo,
                                  const std::vector<AABB>& aabbs)
 {
 	std::vector<VkAabbPositionsKHR> aabbPositions;
@@ -202,63 +200,6 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 	return tetrahedronsAABBBufferHandle;
 }
 
-inline void buildRaytracingAccelerationStructures(VkDevice logicalDevice,
-                                                  RaytracingInfo& raytracingInfo,
-                                                  VkCommandBuffer commandBuffer)
-{
-	// =========================================================================
-	// Ray Trace Image Barrier
-	// (VK_IMAGE_LAYOUT_UNDEFINED -> VK_IMAGE_LAYOUT_GENERAL)
-
-	// VkSubmitInfo rayTraceImageBarrierAccelerationStructureBuildSubmitInfo = {
-	//     .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	//     .pNext = NULL,
-	//     .waitSemaphoreCount = 0,
-	//     .pWaitSemaphores = NULL,
-	//     .pWaitDstStageMask = NULL,
-	//     .commandBufferCount = 1,
-	//     .pCommandBuffers = &commandBuffer,
-	//     .signalSemaphoreCount = 0,
-	//     .pSignalSemaphores = NULL,
-	// };
-
-	// VkFenceCreateInfo
-	//     rayTraceImageBarrierAccelerationStructureBuildFenceCreateInfo = {
-	//         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-	//         .pNext = NULL,
-	//         .flags = 0,
-	//     };
-
-	// VkFence rayTraceImageBarrierAccelerationStructureBuildFenceHandle =
-	//     VK_NULL_HANDLE;
-	// VkResult result = vkCreateFence(
-	//     logicalDevice,
-	//     &rayTraceImageBarrierAccelerationStructureBuildFenceCreateInfo, NULL,
-	//     &rayTraceImageBarrierAccelerationStructureBuildFenceHandle);
-
-	// if (result != VK_SUCCESS) {
-	//   throw new std::runtime_error("initRayTraci - vkCreateFence");
-	// }
-
-	// result = vkQueueSubmit(
-	//     queueHandle, 1,
-	//     &rayTraceImageBarrierAccelerationStructureBuildSubmitInfo,
-	//     rayTraceImageBarrierAccelerationStructureBuildFenceHandle);
-
-	// if (result != VK_SUCCESS) {
-	//   throw new std::runtime_error("initRayTraci - vkQueueSubmit");
-	// }
-
-	// result = vkWaitForFences(
-	//     logicalDevice, 1,
-	//     &rayTraceImageBarrierAccelerationStructureBuildFenceHandle, true,
-	//     UINT32_MAX);
-
-	// if (result != VK_SUCCESS && result != VK_TIMEOUT) {
-	//   throw new std::runtime_error("initRayTraci - vkWaitForFences");
-	// }
-}
-
 inline void createCommandPool(VkDevice logicalDevice,
                               DeletionQueue& deletionQueue,
                               RaytracingInfo& raytracingInfo,
@@ -290,10 +231,9 @@ inline void requestRaytracingProperties(
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
-	physicalDeviceRayTracingPipelineProperties = {
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
-	    .pNext = NULL,
-	};
+	physicalDeviceRayTracingPipelineProperties.sType
+	    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
+	physicalDeviceRayTracingPipelineProperties.pNext = NULL;
 
 	VkPhysicalDeviceProperties2 physicalDeviceProperties2 = {
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
@@ -753,8 +693,7 @@ inline void createRaytracingPipeline(DeletionQueue& deletionQueue,
 
 inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
                                                      RaytracingInfo& raytracingInfo,
-                                                     const std::vector<MeshObject>& meshObjects,
-                                                     VkBuffer tetrahedronsAABBBufferHandle)
+                                                     const std::vector<MeshObject>& meshObjects)
 {
 	VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorInfo = {
 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
@@ -878,14 +817,16 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .pTexelBufferView = NULL,
 	});
 
-	vkUpdateDescriptorSets(
-	    logicalDevice, writeDescriptorSetList.size(), writeDescriptorSetList.data(), 0, NULL);
+	vkUpdateDescriptorSets(logicalDevice,
+	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
+	                       writeDescriptorSetList.data(),
+	                       0,
+	                       NULL);
 }
 
 inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
                                                       VkPhysicalDevice physicalDevice,
                                                       DeletionQueue& deletionQueue,
-                                                      RaytracingInfo& raytracingInfo,
                                                       MeshObject& meshObject)
 {
 
@@ -977,13 +918,11 @@ inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 inline void initRayTracing(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
                            DeletionQueue& deletionQueue,
-                           std::shared_ptr<ltracer::Window> window,
-                           std::vector<VkImageView>& swapChainImageViews,
                            RaytracingInfo& raytracingInfo)
 {
 
 	// Requesting ray tracing properties
-	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties;
+	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties{};
 	requestRaytracingProperties(physicalDevice, physicalDeviceRayTracingPipelineProperties);
 
 	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
@@ -1115,10 +1054,10 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// AABB Buffer
-	tetrahedronsBufferHandle = createTetrahedronsBuffer(
-	    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, tetrahedrons);
+	tetrahedronsBufferHandle
+	    = createTetrahedronsBuffer(physicalDevice, logicalDevice, deletionQueue, tetrahedrons);
 	tetrahedronsAABBBufferHandle
-	    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, raytracingInfo, aabbs);
+	    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbs);
 
 	// =========================================================================
 	// convert to bottom level acceleration structure
@@ -1126,32 +1065,22 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	for (auto&& obj : meshObjects)
 	{
 		loadAndCreateVertexAndIndexBufferForModel(
-		    logicalDevice, physicalDevice, deletionQueue, raytracingInfo, obj);
+		    logicalDevice, physicalDevice, deletionQueue, obj);
 
 		// =========================================================================
 		// Bottom Level Acceleration Structure
-		BLASInstance triangleBLAS
-		    = createBottomLevelAccelerationStructureTriangle(deletionQueue,
-		                                                     logicalDevice,
-		                                                     physicalDevice,
-		                                                     obj.primitiveCount,
-		                                                     obj.vertices.size(),
-		                                                     obj.vertexBufferDeviceAddress,
-		                                                     obj.indexBufferDeviceAddress,
-		                                                     obj.transform.getTransformMatrix(),
-		                                                     raytracingInfo,
-		                                                     graphicsQueueHandle);
+		BLASInstance triangleBLAS = createBottomLevelAccelerationStructureTriangle(
+		    obj.primitiveCount,
+		    static_cast<uint32_t>(obj.vertices.size()),
+		    obj.vertexBufferDeviceAddress,
+		    obj.indexBufferDeviceAddress,
+		    obj.transform.getTransformMatrix());
 		blasInstancesData.push_back(triangleBLAS);
 	}
 
 	// TODO: Make it possible to have multiple BLAS with their individual AABBs
-	blasInstancesData.push_back(
-	    createBottomLevelAccelerationStructureAABB(physicalDevice,
-	                                               logicalDevice,
-	                                               deletionQueue,
-	                                               raytracingInfo,
-	                                               tetrahedronsAABBBufferHandle,
-	                                               aabbs.size()));
+	blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
+	    logicalDevice, tetrahedronsAABBBufferHandle, static_cast<uint32_t>(aabbs.size())));
 
 	// =========================================================================
 	// Top Level Acceleration Structure
@@ -1181,7 +1110,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 		auto bottomLevelGeometryInstance = VkAccelerationStructureInstanceKHR{
 		    .transform = blasData.transformMatrix,
-		    .instanceCustomIndex = blasData.objectType,
+		    .instanceCustomIndex = static_cast<uint32_t>(blasData.objectType),
 		    .mask = 0xFF,
 		    .instanceShaderBindingTableRecordOffset = 0,
 		    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -1228,8 +1157,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Update Descriptor Set
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice, raytracingInfo, meshObjects, tetrahedronsAABBBufferHandle);
+	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
 
 	// =========================================================================
 	// Material Index Buffer
@@ -1243,7 +1171,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		{
 			for (int index : shape.mesh.material_ids)
 			{
-				materialIndexList.push_back(index);
+				materialIndexList.push_back(static_cast<uint32_t>(index));
 			}
 		}
 
@@ -1368,7 +1296,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		};
 
 		vkUpdateDescriptorSets(logicalDevice,
-		                       materialWriteDescriptorSetList.size(),
+		                       static_cast<uint32_t>(materialWriteDescriptorSetList.size()),
 		                       materialWriteDescriptorSetList.data(),
 		                       0,
 		                       NULL);
@@ -1469,15 +1397,10 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	raytracingInfo.callableShaderBindingTable = {};
 }
 
-inline void recordRaytracingCommandBuffer(VkPhysicalDevice physicalDevice,
-                                          VkDevice logicalDevice,
-                                          VkCommandBuffer commandBuffer,
+inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
                                           RaytracingInfo& raytracingInfo,
                                           std::shared_ptr<ltracer::Window> window)
 {
-
-	buildRaytracingAccelerationStructures(logicalDevice, raytracingInfo, commandBuffer);
-
 	VkImageMemoryBarrier rayTraceGeneralMemoryBarrier = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
       .pNext = NULL,
@@ -1521,7 +1444,7 @@ inline void recordRaytracingCommandBuffer(VkPhysicalDevice physicalDevice,
 	                        VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR,
 	                        raytracingInfo.pipelineLayoutHandle,
 	                        0,
-	                        raytracingInfo.descriptorSetHandleList.size(),
+	                        static_cast<uint32_t>(raytracingInfo.descriptorSetHandleList.size()),
 	                        raytracingInfo.descriptorSetHandleList.data(),
 	                        0,
 	                        NULL);
@@ -1666,7 +1589,7 @@ inline void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);
 
-	uint32_t rayTraceImageMemoryTypeIndex = -1;
+	uint32_t rayTraceImageMemoryTypeIndex = 0;
 	for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount; x++)
 	{
 		if ((rayTraceImageMemoryRequirements.memoryTypeBits & (1 << x))
@@ -1767,8 +1690,7 @@ inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
 	                          raytracingInfo.rayTraceImageHandle,
 	                          raytracingInfo.rayTraceImageViewHandle);
 
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice, raytracingInfo, meshObjects, tetrahedronsAABBBufferHandle);
+	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
 
 	// reset frame count so the window gets refreshed properly
 	resetFrameCount(raytracingInfo);

@@ -30,13 +30,8 @@ struct BLASInstance
 	};
 };
 
-inline BLASInstance
-createBottomLevelAccelerationStructureAABB(VkPhysicalDevice physicalDevice,
-                                           VkDevice logicalDevice,
-                                           DeletionQueue& deletionQueue,
-                                           RaytracingInfo& raytracingInfo,
-                                           VkBuffer tetrahedronsAABBBufferHandle,
-                                           const uint32_t primitiveCount)
+inline BLASInstance createBottomLevelAccelerationStructureAABB(
+    VkDevice logicalDevice, VkBuffer tetrahedronsAABBBufferHandle, const uint32_t primitiveCount)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -90,16 +85,11 @@ createBottomLevelAccelerationStructureAABB(VkPhysicalDevice physicalDevice,
 }
 
 inline BLASInstance
-createBottomLevelAccelerationStructureTriangle(DeletionQueue& deletionQueue,
-                                               VkDevice logicalDevice,
-                                               VkPhysicalDevice physicalDevice,
-                                               uint32_t primitiveCount,
+createBottomLevelAccelerationStructureTriangle(uint32_t primitiveCount,
                                                uint32_t verticesCount,
                                                VkDeviceAddress vertexBufferDeviceAddress,
                                                VkDeviceAddress indexBufferDeviceAddress,
-                                               VkTransformMatrixKHR transformMatrix,
-                                               RaytracingInfo& raytracingInfo,
-                                               VkQueue queueHandle)
+                                               VkTransformMatrixKHR transformMatrix)
 {
 
 	// create Bottom Level Acceleration Structure
@@ -226,13 +216,6 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    });
 
 	// Build Bottom Level Acceleration Structure
-	VkAccelerationStructureDeviceAddressInfoKHR bottomLevelAccelerationStructureDeviceAddressInfo
-	    = {
-	        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-	        .pNext = NULL,
-	        .accelerationStructure = bottomLevelAccelerationStructureHandle,
-	    };
-
 	VkDeviceMemory bottomLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
 	VkBuffer bottomLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,

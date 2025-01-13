@@ -58,7 +58,7 @@ class HelloTriangleApplication
 		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
 		    swapChainSupport);
 
-		renderer->initRenderer(vulkanInstance, camera, width, height, swapChainSupport);
+		renderer->initRenderer(vulkanInstance);
 	}
 
   public:
@@ -332,7 +332,9 @@ class HelloTriangleApplication
 		}
 	}
 
-	static void framebufferResizeCallback(GLFWwindow* window, int width, int height)
+	static void framebufferResizeCallback(GLFWwindow* window,
+	                                      [[maybe_unused]] int width,
+	                                      [[maybe_unused]] int height)
 	{
 
 		auto& app = *reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
@@ -534,15 +536,15 @@ class HelloTriangleApplication
 		// get the handle to the graphics queue
 		if (indices.graphicsFamily.has_value())
 			vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
-		debug_print("Graphics queue: %p\n", graphicsQueue);
+		debug_print("Graphics queue: %p\n", static_cast<void*>(graphicsQueue));
 
 		if (indices.presentFamily.has_value())
 			vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
-		debug_print("Present queue: %p\n", presentQueue);
+		debug_print("Present queue: %p\n", static_cast<void*>(presentQueue));
 
 		if (indices.transferFamily.has_value())
 			vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
-		debug_print("Transfer queue: %p\n", transferQueue);
+		debug_print("Transfer queue: %p\n", static_cast<void*>(transferQueue));
 	}
 
 	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice,
@@ -558,17 +560,17 @@ class HelloTriangleApplication
 		VkPhysicalDeviceProperties properties;
 		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
 
-		std::cout << "----------------------------\n";
-		std::cout << "Device: " << properties.deviceName << "\n";
-		std::cout << "Driver Version: " << properties.driverVersion << "\n";
-		std::cout << "Api Version:" << properties.apiVersion << "\n";
-		std::cout << "Available Extensions on device: \n";
-		for (const auto& extension : availableExtensions)
-		{
-			// std::cout << "Name: " << extension.extensionName
-			//           << " Version: " << extension.specVersion << '\n';
-		}
-		std::cout << std::endl;
+		// std::cout << "----------------------------\n";
+		// std::cout << "Device: " << properties.deviceName << "\n";
+		// std::cout << "Driver Version: " << properties.driverVersion << "\n";
+		// std::cout << "Api Version:" << properties.apiVersion << "\n";
+		// std::cout << "Available Extensions on device: \n";
+		// for (const auto& extension : availableExtensions)
+		// {
+		// 	std::cout << "Name: " << extension.extensionName
+		// 	          << " Version: " << extension.specVersion << '\n';
+		// }
+		// std::cout << std::endl;
 
 		std::set<std::string> requiredExtensions(requiredDeviceExtensions.begin(),
 		                                         requiredDeviceExtensions.end());
@@ -858,7 +860,8 @@ class HelloTriangleApplication
 
 		VkValidationFeatureEnableEXT validationFeatureEnable[]
 		    = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
-		VkValidationFeaturesEXT features{VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT};
+		VkValidationFeaturesEXT features{};
+		features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
 
 		// debugMessengerCreation initialization is put outside of if statement to
 		// make sure its valid until the vkCreateInstance call below
@@ -908,9 +911,9 @@ class HelloTriangleApplication
 
 	static VKAPI_ATTR VkBool32 VKAPI_CALL
 	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	              VkDebugUtilsMessageTypeFlagsEXT messageType,
+	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
 	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	              void* pUserData)
+	              [[maybe_unused]] void* pUserData)
 	{
 		auto errMsg = std::format("Validation layer ({}): {}\n",
 		                          string_VkDebugUtilsMessageSeverityFlagBitsEXT(messageSeverity),

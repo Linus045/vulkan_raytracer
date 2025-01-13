@@ -17,7 +17,8 @@ inline void createShaderModule(const std::filesystem::path& filePath,
 	std::ifstream shaderFile(filePath, std::ios::binary | std::ios::ate);
 	std::streamsize shaderFileSize = shaderFile.tellg();
 	shaderFile.seekg(0, std::ios::beg);
-	std::vector<uint32_t> shaderSource(shaderFileSize / sizeof(uint32_t));
+	std::vector<uint32_t> shaderSource(static_cast<unsigned long>(shaderFileSize)
+	                                   / sizeof(uint32_t));
 
 	shaderFile.read(reinterpret_cast<char*>(shaderSource.data()), shaderFileSize);
 	shaderFile.close();

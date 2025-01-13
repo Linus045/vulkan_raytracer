@@ -17,7 +17,8 @@ namespace ltracer
 class AABB
 {
   public:
-	enum ObjectType
+	// TODO: Move into a separate file so we can also include it in the shader files
+	enum class ObjectType
 	{
 		t_Surface = 1,
 		t_Triangle = 2,
@@ -56,7 +57,8 @@ class AABB
 				glm::max(tetrahedron.a.x, glm::max(tetrahedron.b.x, tetrahedron.c.x)),
 				glm::max(tetrahedron.a.y, glm::max(tetrahedron.b.y, tetrahedron.c.y)),
 				glm::max(tetrahedron.a.z, glm::max(tetrahedron.b.z, tetrahedron.c.z)),
-			}
+			},
+			.objectType = ObjectType::t_Tetrahedron,
 		};
 	}
 
@@ -73,7 +75,8 @@ class AABB
 				glm::max(triangle.a.x, glm::max(triangle.b.x, triangle.c.x)),
 				glm::max(triangle.a.y, glm::max(triangle.b.y, triangle.c.y)),
 				glm::max(triangle.a.z, glm::max(triangle.b.z, triangle.c.z)),
-			}
+			},
+			.objectType = ObjectType::t_Triangle,
 		};
 	}
 };

@@ -155,7 +155,7 @@ class Camera
 	uint32_t screen_width = 0;
 	uint32_t screen_height = 0;
 
-	float zNear = 0.01;
+	float zNear = 0.01f;
 	float zFar = 1000.0f;
 
 	float fovy_degree = 70.0f; // degree

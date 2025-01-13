@@ -186,7 +186,7 @@ inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDe
 	vkGetPhysicalDeviceQueueFamilyProperties(
 	    physicalDevice, &queueFamilyCount, queueFamilies.data());
 
-	int i = 0;
+	uint32_t i = 0;
 	// std::cout << "------------------------------------\n";
 	for (const auto& queueFamily : queueFamilies)
 	{
@@ -244,7 +244,7 @@ static std::vector<char> readFile(const std::string& filename)
 	size_t filesize = static_cast<size_t>(file.tellg());
 	std::vector<char> buffer(filesize);
 	file.seekg(0);
-	file.read(buffer.data(), filesize);
+	file.read(buffer.data(), static_cast<long>(filesize));
 
 	file.close();
 

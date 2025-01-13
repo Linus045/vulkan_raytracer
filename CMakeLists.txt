@@ -23,6 +23,7 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CXX_STANDARD_REQUIRED ON)
 
+
 set(target_name vulkan_experiments)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -137,7 +138,7 @@ file(COPY "3d-models" DESTINATION ${3d_models_output_parent})
 #   COMMENT "Copying 3D models to output directory"
 # )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 ###############################################################################
 ## IMGUI  #####################################################################
@@ -165,7 +166,7 @@ file(GLOB IMGUI_SOURCES
 )
 add_library("imgui" STATIC ${IMGUI_SOURCES})
 
-target_include_directories("imgui" PUBLIC ${IMGUI_PATH})
+target_include_directories("imgui" PRIVATE ${IMGUI_PATH})
 target_link_libraries("imgui" PRIVATE glfw)
 
 ###############################################################################
@@ -182,10 +183,7 @@ add_executable(${target_name} ${sources}
     ${raytracing_shader_rmiss_output}
     ${raytracing_shader_shadow_rmiss_output}
 )
-
-# just for vulkan_experiments add some compiler flags
-# TODO: Make this OS dependant
-# target_compile_options(vulkan_experiments PUBLIC -Wall -Wfloat-conversion)
+target_compile_options(vulkan_experiments PUBLIC -pedantic -Wall -Wfloat-conversion -Wextra -Wconversion)
 
 ###############################################################################
 ## dependencies ###############################################################
@@ -198,7 +196,7 @@ find_package(Vulkan REQUIRED)
 include_directories(${Vulkan_INCLUDE_DIR})
 target_include_directories(${target_name} PRIVATE Vulkan_INCLUDE_DIRS)
 
-target_link_libraries(${target_name} PUBLIC
+target_link_libraries(${target_name} PRIVATE
     # here you can add any library dependencies
 	"glfw"
   "tinyobjloader"

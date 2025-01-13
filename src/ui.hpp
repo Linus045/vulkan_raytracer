@@ -15,7 +15,6 @@
 #include "glm/ext.hpp"
 
 #include "src/camera.hpp"
-#include "src/types.hpp"
 #include "src/window.hpp"
 
 #include <vulkan/vk_enum_string_helper.h>
@@ -47,7 +46,6 @@ inline void initImgui(VkInstance vulkanInstance,
                       VkDevice logicalDevice,
                       VkPhysicalDevice physicalDevice,
                       std::shared_ptr<Window> window,
-                      QueueFamilyIndices& queueFamilyIndices,
                       VkRenderPass renderPass,
                       VkQueue graphicsQueue,
                       DeletionQueue& deletionQueue)

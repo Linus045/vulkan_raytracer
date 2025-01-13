@@ -40,10 +40,10 @@ class Renderer
 	         VkQueue transferQueue,
 	         const bool raytracingSupported,
 	         const ltracer::ui::UIData& uiData)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
-	      deletionQueue(deletionQueue), window(window), graphicsQueue(graphicsQueue),
-	      presentQueue(presentQueue), transferQueue(transferQueue), uiData(uiData),
-	      raytracingSupported(raytracingSupported) //
+	    : deletionQueue(deletionQueue), window(window), uiData(uiData),
+	      physicalDevice(physicalDevice), raytracingSupported(raytracingSupported),
+	      logicalDevice(logicalDevice), graphicsQueue(graphicsQueue), presentQueue(presentQueue),
+	      transferQueue(transferQueue) //
 	{
 	}
 
@@ -81,11 +81,7 @@ class Renderer
 	}
 
 	/// Initializes the renderer and creates the necessary Vulkan objects
-	void initRenderer(VkInstance& vulkanInstance,
-	                  std::shared_ptr<ltracer::Camera> camera,
-	                  const uint32_t width,
-	                  const uint32_t height,
-	                  ltracer::SwapChainSupportDetails swapChainSupport)
+	void initRenderer(VkInstance& vulkanInstance)
 	{
 		// this->worldObjects = worldObjects;
 
@@ -118,7 +114,6 @@ class Renderer
 		                       logicalDevice,
 		                       physicalDevice,
 		                       window,
-		                       queueFamilyIndices,
 		                       renderPass,
 		                       graphicsQueue,
 		                       deletionQueue);
@@ -139,15 +134,11 @@ class Renderer
 
 			raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
-			ltracer::rt::initRayTracing(physicalDevice,
-			                            logicalDevice,
-			                            deletionQueue,
-			                            window,
-			                            swapChainImageViews,
-			                            raytracingInfo);
+			ltracer::rt::initRayTracing(
+			    physicalDevice, logicalDevice, deletionQueue, raytracingInfo);
 		}
 
-		auto& cameraTransform = camera->transform;
+		// auto& cameraTransform = camera->transform;
 		// ltracer::updateUniformStructure(
 		//     cameraTransform.position, cameraTransform.getRight(),
 		//     cameraTransform.getUp(), cameraTransform.getForward());
@@ -220,6 +211,8 @@ class Renderer
 
 			VkFramebufferCreateInfo framebufferInfo{
 			    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+			    .pNext = NULL,
+			    .flags = 0,
 			    .renderPass = renderPass,
 			    .attachmentCount = 1,
 			    .pAttachments = attachments,
@@ -245,7 +238,7 @@ class Renderer
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	}
 
-	void updateUniformBuffer(uint32_t currentImage)
+	void updateUniformBuffer([[maybe_unused]] uint32_t currentImage)
 	{
 		// for (ltracer::WorldObject &obj : *worldObjects) {
 		//   ltracer::UniformBufferObject ubo{};
@@ -259,7 +252,7 @@ class Renderer
 	}
 
 	/// Draws the frame and updates the surface
-	void drawFrame(std::shared_ptr<Camera> camera, float delta)
+	void drawFrame(std::shared_ptr<Camera> camera, [[maybe_unused]] double delta)
 	{
 
 		vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -345,7 +338,7 @@ class Renderer
 			throw std::runtime_error("failed to present swap chain image");
 		}
 
-		currentFrame = (currentFrame + 1) % MAX_FRAMES_IN_FLIGHT;
+		currentFrame = (currentFrame + 1) % static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
 	}
 
 	void updateViewProjectionMatrix(const glm::mat4 view, const glm::mat4 proj)
@@ -383,7 +376,9 @@ class Renderer
 
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkQueue presentQueue = VK_NULL_HANDLE;
-	VkQueue transferQueue = VK_NULL_HANDLE;
+
+	// TODO: maybe utilize this queue for transfer operations
+	[[maybe_unused]] VkQueue transferQueue = VK_NULL_HANDLE;
 
 	uint32_t currentFrame = 0;
 
@@ -409,9 +404,9 @@ class Renderer
 
 	void createSyncObjects()
 	{
-		imageAvailableSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		renderFinishedSemaphores.resize(MAX_FRAMES_IN_FLIGHT);
-		inFlightFences.resize(MAX_FRAMES_IN_FLIGHT);
+		imageAvailableSemaphores.resize(static_cast<size_t>(MAX_FRAMES_IN_FLIGHT));
+		renderFinishedSemaphores.resize(static_cast<size_t>(MAX_FRAMES_IN_FLIGHT));
+		inFlightFences.resize(static_cast<size_t>(MAX_FRAMES_IN_FLIGHT));
 
 		VkSemaphoreCreateInfo semaphoreInfo{};
 		semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -420,7 +415,7 @@ class Renderer
 		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-		for (size_t i = 0; i < MAX_FRAMES_IN_FLIGHT; i++)
+		for (size_t i = 0; i < static_cast<size_t>(MAX_FRAMES_IN_FLIGHT); i++)
 		{
 
 			if (vkCreateSemaphore(
@@ -465,7 +460,7 @@ class Renderer
 
 	void createCommandBuffers()
 	{
-		commandBuffers.resize(MAX_FRAMES_IN_FLIGHT);
+		commandBuffers.resize(static_cast<size_t>(MAX_FRAMES_IN_FLIGHT));
 
 		VkCommandBufferAllocateInfo allocInfo{};
 		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -546,16 +541,22 @@ class Renderer
 
 		VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .stage = VK_SHADER_STAGE_VERTEX_BIT,
 		    .module = vertShaderModule,
 		    .pName = "main",
+		    .pSpecializationInfo = NULL,
 		};
 
 		VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 		    .module = fragShaderModule,
 		    .pName = "main",
+		    .pSpecializationInfo = NULL,
 		};
 
 		VkPipelineShaderStageCreateInfo shaderStages[] = {
@@ -564,12 +565,15 @@ class Renderer
 		};
 
 		auto bindingDescription = ltracer::Vertex::getBindingDescription();
-		auto attributeDescriptions = ltracer::Vertex::getAttributeDescriptions();
+		// auto attributeDescriptions = ltracer::Vertex::getAttributeDescriptions();
 
 		VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .vertexBindingDescriptionCount = 1,
 		    .pVertexBindingDescriptions = &bindingDescription,
+		    // TODO: figure out if this is neeeded? probably not for ray tracing
 		    .vertexAttributeDescriptionCount
 		    = 0, // static_cast<uint32_t>(attributeDescriptions.size()),
 		    .pVertexAttributeDescriptions = VK_NULL_HANDLE, // attributeDescriptions.data(),
@@ -577,6 +581,8 @@ class Renderer
 
 		VkPipelineInputAssemblyStateCreateInfo inputAssembly{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
 		    .primitiveRestartEnable = VK_FALSE,
 		};
@@ -588,18 +594,28 @@ class Renderer
 
 		VkPipelineDynamicStateCreateInfo dynamicState{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
 		    .pDynamicStates = dynamicStates.data(),
 		};
 
 		VkPipelineViewportStateCreateInfo viewportState{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .viewportCount = 1,
+		    // viewport and scissors are dynamic, this pointer is ignored
+		    .pViewports = NULL,
 		    .scissorCount = 1,
+		    // viewport and scissors are dynamic, this pointer is ignored
+		    .pScissors = NULL,
 		};
 
 		VkPipelineRasterizationStateCreateInfo rasterizer{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .depthClampEnable = VK_FALSE,
 		    .rasterizerDiscardEnable = VK_FALSE,
 		    .polygonMode = VK_POLYGON_MODE_FILL,
@@ -614,6 +630,8 @@ class Renderer
 
 		VkPipelineMultisampleStateCreateInfo multisampling{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT,
 		    .sampleShadingEnable = VK_FALSE,
 		    .minSampleShading = 1.0f,
@@ -636,6 +654,8 @@ class Renderer
 
 		VkPipelineColorBlendStateCreateInfo colorBlending{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .logicOpEnable = VK_FALSE,
 		    .logicOp = VK_LOGIC_OP_COPY,
 		    .attachmentCount = 1,
@@ -648,6 +668,8 @@ class Renderer
 
 		VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 		    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    // .setLayoutCount = 2,
 		    // .pSetLayouts = layouts.data(),
 		    .setLayoutCount = 0,
@@ -667,10 +689,13 @@ class Renderer
 
 		VkGraphicsPipelineCreateInfo pipelineInfo{
 		    .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .stageCount = 2,
 		    .pStages = shaderStages,
 		    .pVertexInputState = &vertexInputInfo,
 		    .pInputAssemblyState = &inputAssembly,
+		    .pTessellationState = NULL,
 		    .pViewportState = &viewportState,
 		    .pRasterizationState = &rasterizer,
 		    .pMultisampleState = &multisampling,
@@ -701,6 +726,7 @@ class Renderer
 	void createRenderPass()
 	{
 		VkAttachmentDescription colorAttachment{
+		    .flags = 0,
 		    .format = window->getSwapChainImageFormat(),
 		    .samples = VK_SAMPLE_COUNT_1_BIT,
 		    .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
@@ -717,9 +743,17 @@ class Renderer
 		};
 
 		VkSubpassDescription subpass{
+		    .flags = 0,
 		    .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+		    .inputAttachmentCount = 0,
+		    .pInputAttachments = NULL,
 		    .colorAttachmentCount = 1,
 		    .pColorAttachments = &colorAttachmentRef,
+		    .pResolveAttachments = NULL,
+		    .pDepthStencilAttachment = NULL,
+		    .preserveAttachmentCount = 0,
+		    .pPreserveAttachments = NULL,
+
 		};
 
 		VkSubpassDependency dependency{
@@ -729,10 +763,13 @@ class Renderer
 		    .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 		    .srcAccessMask = 0,
 		    .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		    .dependencyFlags = 0,
 		};
 
 		VkRenderPassCreateInfo renderPassInfo{
 		    .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+		    .pNext = NULL,
+		    .flags = 0,
 		    .attachmentCount = 1,
 		    .pAttachments = &colorAttachment,
 		    .subpassCount = 1,
@@ -802,8 +839,7 @@ class Renderer
 
 		if (raytracingSupported)
 		{
-			ltracer::rt::recordRaytracingCommandBuffer(
-			    physicalDevice, logicalDevice, commandBuffer, raytracingInfo, window);
+			ltracer::rt::recordRaytracingCommandBuffer(commandBuffer, raytracingInfo, window);
 
 			//////////////////////////////////////////////////////////////////////////////////////////////////////
 

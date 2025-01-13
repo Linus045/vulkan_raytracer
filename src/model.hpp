@@ -1,9 +1,11 @@
 #pragma once
 
-#include "tiny_obj_loader.h"
 #include <array>
 #include <filesystem>
 #include <iostream>
+#include <vector>
+
+#include <vulkan/vulkan_core.h>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
@@ -14,8 +16,7 @@
 #include <glm/glm.hpp>
 
 #include "src/worldobject.hpp"
-#include <vector>
-#include <vulkan/vulkan_core.h>
+#include "tiny_obj_loader.h"
 
 namespace ltracer
 {
@@ -105,7 +106,7 @@ class MeshObject : public WorldObject
 
 	// VkBuffer uniformBufferHandle;
 
-	void cleanup(VkDevice device) const
+	void cleanup([[maybe_unused]] VkDevice device) const
 	{
 		// vkDestroyBuffer(device, indexBuffer, nullptr);
 		// vkFreeMemory(device, indexBufferMemory, nullptr);
@@ -176,7 +177,7 @@ class MeshObject : public WorldObject
 
 			for (tinyobj::index_t index : shape.mesh.indices)
 			{
-				indexList.push_back(index.vertex_index);
+				indexList.push_back(static_cast<uint32_t>(index.vertex_index));
 			}
 		}
 	}
