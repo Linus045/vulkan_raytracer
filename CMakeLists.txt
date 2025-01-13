@@ -47,6 +47,28 @@ if ( MSVC )
   set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${CMAKE_BINARY_DIR}/bin)
 endif ( MSVC )
 
+# build external project glslang to compile shaders
+include(ExternalProject)
+ExternalProject_Add(
+	glslang
+	PREFIX ${CMAKE_SOURCE_DIR}/3rdparty/glslang
+	SOURCE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang
+	BINARY_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build
+	STEP_TARGETS glslang_update_sources
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <SOURCE_DIR>/build
+	INSTALL_COMMAND ""
+	COMMENT "Building glslang to compile shaders"
+)
+
+find_package (Python COMPONENTS Interpreter)
+ExternalProject_Add_Step(
+	glslang glslang_update_sources
+	WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/3rdparty/glslang
+	COMMAND ${Python_EXECUTABLE} ${CMAKE_SOURCE_DIR}/3rdparty/glslang/update_glslang_sources.py
+	LOG TRUE
+	COMMENT "Updating glslang sources"
+)
+
 # these instructions search the directory tree when CMake is
 # invoked and put all files that match the pattern in the variables
 # `sources` and `data`
@@ -91,7 +113,7 @@ add_custom_command(
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rmiss" -o "${raytracing_shader_rmiss_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_shadow.rmiss" -o "${raytracing_shader_shadow_rmiss_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_aabb.rint" -o "${raytracing_aabb_intersection_output}"
-  DEPENDS shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss shaders/shader_aabb.rint
+  DEPENDS glslang shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss shaders/shader_aabb.rint
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Compiling shader files"
 )
