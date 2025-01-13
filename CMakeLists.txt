@@ -80,9 +80,9 @@ add_subdirectory(3rdparty/glm)
 add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/tinyobjloader)
 
-include_directories(3rdparty/tinyobjloader)
-include_directories(3rdparty/glm)
-include_directories(3rdparty/imgui)
+include_directories(SYSTEM 3rdparty/tinyobjloader)
+include_directories(SYSTEM 3rdparty/glm)
+include_directories(SYSTEM 3rdparty/imgui)
 
 
 ###############################################################################
@@ -144,7 +144,7 @@ include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 ## IMGUI  #####################################################################
 ###############################################################################
 # Set where the ImGui files are stored
-set(IMGUI_PATH  "3rdparty/imgui")
+set(IMGUI_PATH "3rdparty/imgui")
 file(GLOB IMGUI_SOURCES
     ${IMGUI_PATH}/imgui.h
     ${IMGUI_PATH}/imgui.cpp
@@ -166,8 +166,9 @@ file(GLOB IMGUI_SOURCES
 )
 add_library("imgui" STATIC ${IMGUI_SOURCES})
 
-target_include_directories("imgui" PRIVATE ${IMGUI_PATH})
-target_link_libraries("imgui" PRIVATE glfw)
+target_include_directories("imgui" SYSTEM INTERFACE ${IMGUI_PATH})
+target_link_libraries("imgui" INTERFACE glfw)
+
 
 ###############################################################################
 ## target definitions #########################################################
@@ -175,7 +176,6 @@ target_link_libraries("imgui" PRIVATE glfw)
 
 # add the data to the target, so it becomes visible in some IDE
 add_executable(${target_name} ${sources}
-    ${IMGUI_SOURCES}
     ${frag_shader_output}
     ${vert_shader_output}
     ${raytracing_shader_rgen_output}
@@ -183,7 +183,15 @@ add_executable(${target_name} ${sources}
     ${raytracing_shader_rmiss_output}
     ${raytracing_shader_shadow_rmiss_output}
 )
-target_compile_options(vulkan_experiments PUBLIC -pedantic -Wall -Wfloat-conversion -Wextra -Wconversion)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+  # using Clang
+  message("Using Clang")
+  target_compile_options(vulkan_experiments PRIVATE -pedantic -Wall -Wextra -Wconversion -Wfloat-conversion)
+else()
+  message("Using not clang")
+  target_compile_options(vulkan_experiments PRIVATE -pedantic -Wall -Wextra -Wconversion)
+endif()
 
 ###############################################################################
 ## dependencies ###############################################################
@@ -193,15 +201,13 @@ target_compile_options(vulkan_experiments PUBLIC -pedantic -Wall -Wfloat-convers
 
 # Vulkan
 find_package(Vulkan REQUIRED)
-include_directories(${Vulkan_INCLUDE_DIR})
-target_include_directories(${target_name} PRIVATE Vulkan_INCLUDE_DIRS)
+include_directories(SYSTEM ${Vulkan_INCLUDE_DIR})
+target_include_directories(${target_name} SYSTEM PRIVATE Vulkan_INCLUDE_DIRS)
 
 target_link_libraries(${target_name} PRIVATE
     # here you can add any library dependencies
-	"glfw"
+  "glfw"
   "tinyobjloader"
-	${Vulkan_LIBRARY}
+  ${Vulkan_LIBRARY}
   "imgui"
 )
-
-

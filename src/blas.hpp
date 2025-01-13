@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "src/aabb.hpp"
+#include "src/common_types.h"
 #include "src/deletion_queue.hpp"
 #include "src/types.hpp"
 #include "src/device_procedures.hpp"
@@ -19,7 +20,7 @@ struct BLASInstance
 	const VkAccelerationStructureGeometryKHR geometry;
 	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
 
-	const AABB::ObjectType objectType;
+	const ObjectType objectType;
 
 	const VkTransformMatrixKHR transformMatrix = {
 		.matrix = {
@@ -73,7 +74,7 @@ inline BLASInstance createBottomLevelAccelerationStructureAABB(
 	{
 		.geometry = bottomLevelAccelerationStructureGeometry,
 		.buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-		.objectType = AABB::ObjectType::t_Tetrahedron,
+		.objectType = ObjectType::t_Tetrahedron,
 		.transformMatrix = {
 			.matrix = {
 				{1, 0, 0, 0},
@@ -125,7 +126,7 @@ createBottomLevelAccelerationStructureTriangle(uint32_t primitiveCount,
 	return BLASInstance{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-	    .objectType = AABB::ObjectType::t_Triangle,
+	    .objectType = ObjectType::t_Triangle,
 	    .transformMatrix = transformMatrix,
 	};
 }

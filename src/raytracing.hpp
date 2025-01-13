@@ -1110,7 +1110,11 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 		auto bottomLevelGeometryInstance = VkAccelerationStructureInstanceKHR{
 		    .transform = blasData.transformMatrix,
-		    .instanceCustomIndex = static_cast<uint32_t>(blasData.objectType),
+		    // TODO: maybe add a method that makes sure objectType does not exceed 24 bits see:
+		    // https://registry.khronos.org/vulkan/specs/latest/man/html/InstanceCustomIndexKHR.html
+		    // only grab 24 bits
+		    .instanceCustomIndex = static_cast<uint32_t>(blasData.objectType) & 0xFFFFFF,
+
 		    .mask = 0xFF,
 		    .instanceShaderBindingTableRecordOffset = 0,
 		    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,

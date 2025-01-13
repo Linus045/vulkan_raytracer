@@ -2,15 +2,14 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <limits>
+#include <stdexcept>
+
+#include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include <limits>
-#include <stdexcept>
-#include <vulkan/vulkan_core.h>
-
-#include "src/logger.hpp"
 #include "src/types.hpp"
 
 namespace ltracer

@@ -1,6 +1,3 @@
-#include "src/aabb.hpp"
-#include "src/deletion_queue.hpp"
-#include "src/ui.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -28,6 +25,9 @@
 #include "src/logger.hpp"
 #include "src/renderer.hpp"
 #include "src/window.hpp"
+#include "src/aabb.hpp"
+#include "src/deletion_queue.hpp"
+#include "src/ui.hpp"
 
 #include "tiny_obj_loader.h"
 

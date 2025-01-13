@@ -9,6 +9,7 @@
 #include "glm/common.hpp"
 
 #include "src/tetrahedron.hpp"
+#include "src/common_types.h"
 
 namespace ltracer
 {
@@ -17,14 +18,6 @@ namespace ltracer
 class AABB
 {
   public:
-	// TODO: Move into a separate file so we can also include it in the shader files
-	enum class ObjectType
-	{
-		t_Surface = 1,
-		t_Triangle = 2,
-		t_Tetrahedron = 3,
-	};
-
 	// Bottom left corder
 	const glm::vec3 min;
 

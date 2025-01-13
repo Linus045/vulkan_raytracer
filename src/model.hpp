@@ -12,11 +12,10 @@
 #define GLM_FORCE_RADIANS
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/vector_float3.hpp"
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/glm.hpp>
+
+#include "tiny_obj_loader.h"
 
 #include "src/worldobject.hpp"
-#include "tiny_obj_loader.h"
 
 namespace ltracer
 {
@@ -173,7 +172,7 @@ class MeshObject : public WorldObject
 		for (tinyobj::shape_t shape : shapes)
 		{
 
-			primitiveCount += shape.mesh.num_face_vertices.size();
+			primitiveCount += static_cast<uint32_t>(shape.mesh.num_face_vertices.size());
 
 			for (tinyobj::index_t index : shape.mesh.indices)
 			{
