@@ -30,6 +30,11 @@ layout(set = 0, binding=6, scalar) buffer Spheres
 	Sphere[] spheres;
 };
 
+layout(set = 0, binding=7, scalar) buffer RectangularBezierSurfaces
+{
+	RectangularBezierSurface2x2[] rectangularBezierSurfaces2x2;
+};
+
 // Ray-Sphere intersection
 // http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
 float hitSphere(const Sphere s, const Ray r)
@@ -136,7 +141,29 @@ void main() {
 		// Sphere intersection
 		Sphere sphere = spheres[gl_PrimitiveID];
 		tHit = hitSphere(sphere, ray);
-	}else{
+	}
+	else if (objectType == t_RectangularBezierSurface2x2)
+	{
+		RectangularBezierSurface2x2 surface = rectangularBezierSurfaces2x2[gl_PrimitiveID];
+		vec3 o = ray.origin;
+		vec3 n1, n2;
+		
+		float dx = ray.direction.x;
+		float dy = ray.direction.y;
+		float dz = ray.direction.z;
+
+		if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
+			n1 = vec3(dy, -dx, 0);
+		}else{
+			n1 = vec3(0, dz, -dy);
+		}
+		n2 = cross(n1, ray.direction);
+
+		// TODO: finish this
+		tHit = 1;
+	}
+	else
+	{
 		// always mark as hit
 		tHit = 1;
 	}

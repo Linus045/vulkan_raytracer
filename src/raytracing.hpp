@@ -52,6 +52,9 @@ static VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
 static VkBuffer spheresBufferHandle = VK_NULL_HANDLE;
 static VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
 
+static VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
+static VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
+
 inline void updateUniformStructure(RaytracingInfo& raytracingInfo,
                                    const glm::vec3& position,
                                    const glm::vec3& forward,
@@ -359,6 +362,14 @@ inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
 	    },
 	    {
 	        .binding = 6,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 7,
 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 	        .descriptorCount = 1,
 	        .stageFlags
@@ -723,6 +734,12 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo rectangularBezierSurfaces2x2DescriptorInfo = {
+	    .buffer = rectangularBezierSurfaces2x2BufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	std::vector<VkWriteDescriptorSet> writeDescriptorSetList;
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
@@ -845,6 +862,22 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
+	if (rectangularBezierSurfaces2x2BufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 7,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &rectangularBezierSurfaces2x2DescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
+
 	vkUpdateDescriptorSets(logicalDevice,
 	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
 	                       writeDescriptorSetList.data(),
@@ -940,6 +973,28 @@ inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 
 	meshObject.indexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
 	    logicalDevice, &indexBufferDeviceAddressInfo);
+}
+
+template <typename T>
+inline void createBottomLevelAccelerationStructuresForObjects(
+    VkPhysicalDevice physicalDevice,
+    VkDevice logicalDevice,
+    ltracer::DeletionQueue& deletionQueue,
+    const std::vector<T>& objects,
+    const ObjectType objectType,
+    std::vector<ltracer::AABB>& aabbs,
+    std::vector<ltracer::rt::BLASInstance>& blasInstancesData,
+    VkBuffer& objectsBufferHandle,
+    VkBuffer& aabbObjectsBufferHandle)
+{
+	objectsBufferHandle
+	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, objects);
+
+	aabbObjectsBufferHandle = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbs);
+
+	// TODO: Make it possible to have multiple BLAS with their individual AABBs
+	blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
+	    logicalDevice, aabbObjectsBufferHandle, objectType, static_cast<uint32_t>(aabbs.size())));
 }
 
 // TODO: Split into multiple functions for each step
@@ -1055,7 +1110,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	std::string scenePath = "3d-models/cube_scene.obj";
 	{
 		MeshObject meshObject = MeshObject::loadFromPath(scenePath);
-		meshObject.translate(10, 0, 0);
+		meshObject.translate(20, 0, 0);
 		meshObjects.push_back(std::move(meshObject));
 	}
 	{
@@ -1103,54 +1158,95 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		}
 	}
 
-	// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
-	// something like that
-	std::vector<AABB> aabbsTetrahedrons;
-	for (auto&& tetrahedron : tetrahedrons)
-	{
-		aabbsTetrahedrons.push_back(AABB::fromTetrahedron(tetrahedron));
-	}
-
-	std::vector<AABB> aabbsSpheres;
-	for (auto&& sphere : spheres)
-	{
-		auto a = AABB::fromSphere(sphere);
-		aabbsSpheres.push_back(a);
-	}
+	std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
+	    RectangularBezierSurface(2,
+	                             2,
+	                             {
+	                                 glm::vec3(0, 0, 0),
+	                                 glm::vec3(5, 0, 0),
+	                                 glm::vec3(10, 0, 0),
+	                                 glm::vec3(0, 5, 0),
+	                                 glm::vec3(5, 5, 3),
+	                                 glm::vec3(10, 5, 0),
+	                                 glm::vec3(0, 10, 0),
+	                                 glm::vec3(5, 10, 0),
+	                                 glm::vec3(10, 10, 0),
+	                             }),
+	};
 
 	// create vector to hold all BLAS instances
 	std::vector<BLASInstance> blasInstancesData;
 
 	// =========================================================================
-	// Create AABB Buffer and BLAS for Tetrahedrons and Spheres
+	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
 	if (tetrahedrons.size() > 0)
 	{
-		tetrahedronsBufferHandle
-		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, tetrahedrons);
+		// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
+		// something like that
+		std::vector<AABB> aabbsTetrahedrons;
+		for (auto&& tetrahedron : tetrahedrons)
+		{
+			aabbsTetrahedrons.push_back(AABB::fromTetrahedron(tetrahedron));
+		}
 
-		tetrahedronsAABBBufferHandle
-		    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbsTetrahedrons);
-
-		// TODO: Make it possible to have multiple BLAS with their individual AABBs
-		blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
+		createBottomLevelAccelerationStructuresForObjects<Tetrahedron>(
+		    physicalDevice,
 		    logicalDevice,
-		    tetrahedronsAABBBufferHandle,
+		    deletionQueue,
+		    tetrahedrons,
 		    ObjectType::t_Tetrahedron,
-		    static_cast<uint32_t>(aabbsTetrahedrons.size())));
+		    aabbsTetrahedrons,
+		    blasInstancesData,
+		    tetrahedronsBufferHandle,
+		    tetrahedronsAABBBufferHandle);
 	}
 
 	if (spheres.size() > 0)
 	{
-		spheresBufferHandle
-		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, spheres);
-		spheresAABBBufferHandle
-		    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbsSpheres);
+		std::vector<AABB> aabbsSpheres;
+		for (auto&& sphere : spheres)
+		{
+			aabbsSpheres.push_back(AABB::fromSphere(sphere));
+		}
 
-		blasInstancesData.push_back(
-		    createBottomLevelAccelerationStructureAABB(logicalDevice,
-		                                               spheresAABBBufferHandle,
-		                                               ObjectType::t_Sphere,
-		                                               static_cast<uint32_t>(aabbsSpheres.size())));
+		createBottomLevelAccelerationStructuresForObjects<Sphere>(physicalDevice,
+		                                                          logicalDevice,
+		                                                          deletionQueue,
+		                                                          spheres,
+		                                                          ObjectType::t_Sphere,
+		                                                          aabbsSpheres,
+		                                                          blasInstancesData,
+		                                                          spheresBufferHandle,
+		                                                          spheresAABBBufferHandle);
+	}
+
+	if (rectangularBezierSurfaces.size() > 0)
+	{
+
+		std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
+		if (!rectangularBezierSurfaces[0].tryConvertToRectangularSurfaces2x2(
+		        rectangularBezierSurfaces2x2))
+		{
+			throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
+		}
+
+		std::vector<AABB> aabbsRectangularSurfaces2x2;
+		for (auto&& rectangularBezierSurface2x2 : rectangularBezierSurfaces2x2)
+		{
+			aabbsRectangularSurfaces2x2.push_back(
+			    AABB::fromRectangularBezierSurface(rectangularBezierSurface2x2));
+		}
+
+		createBottomLevelAccelerationStructuresForObjects<RectangularBezierSurface2x2>(
+		    physicalDevice,
+		    logicalDevice,
+		    deletionQueue,
+		    rectangularBezierSurfaces2x2,
+		    ObjectType::t_RectangularBezierSurface2x2,
+		    aabbsRectangularSurfaces2x2,
+		    blasInstancesData,
+		    rectangularBezierSurfaces2x2BufferHandle,
+		    rectangularBezierSurfacesAABB2x2BufferHandle);
 	}
 
 	// =========================================================================

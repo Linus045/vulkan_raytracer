@@ -36,6 +36,49 @@ class AABB
 		};
 	}
 
+	static AABB
+	fromRectangularBezierSurface(const RectangularBezierSurface2x2& rectangularBezierSurface2x2)
+	{
+		glm::vec3 min = rectangularBezierSurface2x2.controlPoints[0];
+		glm::vec3 max = rectangularBezierSurface2x2.controlPoints[0];
+
+		for (const glm::vec3& point : rectangularBezierSurface2x2.controlPoints)
+		{
+			min.x = glm::min(min.x, point.x);
+			min.y = glm::min(min.y, point.y);
+			min.z = glm::min(min.z, point.z);
+
+			max.x = glm::max(max.x, point.x);
+			max.y = glm::max(max.y, point.y);
+			max.z = glm::max(max.z, point.z);
+		}
+
+		return AABB{
+		    .min = min,
+		    .max = max,
+		};
+	}
+	static AABB
+	fromRectangularBezierSurface(const RectangularBezierSurface& rectangularBezierSurface)
+	{
+		glm::vec3 min, max;
+		for (const glm::vec3& point : rectangularBezierSurface.getControlPoints())
+		{
+			min.x = glm::min(min.x, point.x);
+			min.y = glm::min(min.y, point.y);
+			min.z = glm::min(min.z, point.z);
+
+			max.x = glm::min(max.x, point.x);
+			max.y = glm::min(max.y, point.y);
+			max.z = glm::min(max.z, point.z);
+		}
+
+		return AABB{
+		    .min = min,
+		    .max = max,
+		};
+	}
+
 	static AABB fromTetrahedron(const Tetrahedron& tetrahedron)
 	{
 		return AABB

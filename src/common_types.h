@@ -49,7 +49,8 @@ using uint = unsigned int;
 START_BINDING(ObjectType)
 	t_Sphere = 1,
 	t_Triangle = 2,
-	t_Tetrahedron = 3
+	t_Tetrahedron = 3,
+	t_RectangularBezierSurface2x2 = 4
 END_BINDING();
 
 // clang-format on
@@ -71,6 +72,19 @@ struct Tetrahedron
 	vec3 a;
 	vec3 b;
 	vec3 c;
+};
+
+struct Triangle
+{
+	vec3 a;
+	vec3 b;
+	vec3 c;
+};
+
+
+struct RectangularBezierSurface2x2
+{
+	vec3 controlPoints[9];
 };
 
 struct Material

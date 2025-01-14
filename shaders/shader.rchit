@@ -110,6 +110,12 @@ void main() {
 	  vec3 sphereNormal = normalize(position - s.center);
       payload.directColor = surfaceColor * lightColor *
                               dot(sphereNormal, positionToLightDirection);
+       payload.rayActive = 0;
+  }else if(gl_HitKindEXT == t_RectangularBezierSurface2x2) {
+      if (payload.rayDepth == 0) {
+          payload.directColor = lightColor;
+          payload.rayActive = 0;
+      } 
   }else{
 
   ivec3 indices = ivec3(indexBuffer.data[3 * gl_PrimitiveID + 0],
