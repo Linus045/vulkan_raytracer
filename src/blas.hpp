@@ -31,8 +31,11 @@ struct BLASInstance
 	};
 };
 
-inline BLASInstance createBottomLevelAccelerationStructureAABB(
-    VkDevice logicalDevice, VkBuffer tetrahedronsAABBBufferHandle, const uint32_t primitiveCount)
+inline BLASInstance
+createBottomLevelAccelerationStructureAABB(VkDevice logicalDevice,
+                                           VkBuffer tetrahedronsAABBBufferHandle,
+                                           const ObjectType& objectType,
+                                           const uint32_t primitiveCount)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -74,7 +77,7 @@ inline BLASInstance createBottomLevelAccelerationStructureAABB(
 	{
 		.geometry = bottomLevelAccelerationStructureGeometry,
 		.buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-		.objectType = ObjectType::t_Tetrahedron,
+		.objectType = objectType,
 		.transformMatrix = {
 			.matrix = {
 				{1, 0, 0, 0},

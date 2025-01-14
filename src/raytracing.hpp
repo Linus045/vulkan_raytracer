@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <memory>
+#include <random>
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
@@ -20,6 +21,7 @@
 #include "src/aabb.hpp"
 #include "src/blas.hpp"
 #include "src/camera.hpp"
+#include "src/common_types.h"
 #include "src/deletion_queue.hpp"
 #include "src/model.hpp"
 #include "src/shader_module.hpp"
@@ -46,6 +48,9 @@ static std::vector<MeshObject> meshObjects;
 // TODO: convert into a list for the aabbs per blas
 static VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
 static VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
+
+static VkBuffer spheresBufferHandle = VK_NULL_HANDLE;
+static VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
 
 inline void updateUniformStructure(RaytracingInfo& raytracingInfo,
                                    const glm::vec3& position,
@@ -116,42 +121,38 @@ inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatur
 	return physicalDeviceRayTracingPipelineFeatures;
 }
 
-inline VkBuffer createTetrahedronsBuffer(VkPhysicalDevice physicalDevice,
-                                         VkDevice logicalDevice,
-                                         DeletionQueue& deletionQueue,
-                                         const std::vector<Tetrahedron>& tetrahedrons)
+template <typename T>
+inline VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
+                                    VkDevice logicalDevice,
+                                    DeletionQueue& deletionQueue,
+                                    const std::vector<T>& objects)
 {
-	VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
+	VkBuffer bufferHandle = VK_NULL_HANDLE;
 	VkDeviceMemory deviceMemoryHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
 	             deletionQueue,
-	             sizeof(Tetrahedron) * tetrahedrons.size(),
+	             sizeof(T) * objects.size(),
 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
-	             tetrahedronsBufferHandle,
+	             bufferHandle,
 	             deviceMemoryHandle);
 
 	void* memoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              deviceMemoryHandle,
-	                              0,
-	                              sizeof(Tetrahedron) * tetrahedrons.size(),
-	                              0,
-	                              &memoryBuffer);
+	VkResult result = vkMapMemory(
+	    logicalDevice, deviceMemoryHandle, 0, sizeof(T) * objects.size(), 0, &memoryBuffer);
 
-	memcpy(memoryBuffer, tetrahedrons.data(), sizeof(Tetrahedron) * tetrahedrons.size());
+	memcpy(memoryBuffer, objects.data(), sizeof(T) * objects.size());
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error(
-		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
+		throw new std::runtime_error("createObjectsBuffer - vkMapMemory");
 	}
 
 	vkUnmapMemory(logicalDevice, deviceMemoryHandle);
 
-	return tetrahedronsBufferHandle;
+	return bufferHandle;
 }
 
 inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
@@ -356,16 +357,18 @@ inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
 	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
 	        .pImmutableSamplers = NULL,
 	    },
+	    {
+	        .binding = 6,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
 	};
 
-	std::vector<VkDescriptorBindingFlags> bindingFlags = {
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT,
-	};
+	std::vector<VkDescriptorBindingFlags> bindingFlags = std::vector<VkDescriptorBindingFlags>(
+	    descriptorSetLayoutBindingList.size(), VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT);
 
 	VkDescriptorSetLayoutBindingFlagsCreateInfo layoutBindingFlags = {
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -714,6 +717,12 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo spheresDescriptorInfo = {
+	    .buffer = spheresBufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	std::vector<VkWriteDescriptorSet> writeDescriptorSetList;
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
@@ -804,18 +813,37 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .pTexelBufferView = NULL,
 	});
 
-	writeDescriptorSetList.push_back({
-	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	    .pNext = NULL,
-	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-	    .dstBinding = 5,
-	    .dstArrayElement = 0,
-	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	    .pImageInfo = NULL,
-	    .pBufferInfo = &tetrahedronsDescriptorInfo,
-	    .pTexelBufferView = NULL,
-	});
+	if (tetrahedronsBufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 5,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &tetrahedronsDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
+
+	if (spheresBufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 6,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &spheresDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
 
 	vkUpdateDescriptorSets(logicalDevice,
 	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
@@ -1044,24 +1072,89 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	std::vector<Tetrahedron> tetrahedrons
 	    = {Tetrahedron{glm::vec3(0, 0, 2), glm::vec3(2, 0, 0), glm::vec3(0, 2, 0)}};
 
+	std::vector<Sphere> spheres;
+
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+
+		std::uniform_int_distribution<> positionDist(-20, 20);
+		std::uniform_int_distribution<> sizeDist(-20, 20);
+		for (int i = 0; i < 20; i++)
+		{
+			auto randomX = positionDist(gen);
+			auto randomY = positionDist(gen);
+			auto randomZ = positionDist(gen);
+			if (false)
+			{
+				tetrahedrons.emplace_back(
+				    glm::vec3(randomX, randomY, randomZ),
+				    glm::vec3(
+				        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)),
+				    glm::vec3(
+				        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)));
+			}
+			else
+			{
+				float sphereScaling = 0.1f;
+				spheres.emplace_back(glm::vec3(randomX, randomY, randomZ),
+				                     static_cast<float>(std::abs(sizeDist(gen))) * sphereScaling);
+			}
+		}
+	}
+
 	// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
 	// something like that
-	std::vector<AABB> aabbs;
+	std::vector<AABB> aabbsTetrahedrons;
 	for (auto&& tetrahedron : tetrahedrons)
 	{
-		aabbs.push_back(AABB::fromTetrahedron(tetrahedron));
+		aabbsTetrahedrons.push_back(AABB::fromTetrahedron(tetrahedron));
+	}
+
+	std::vector<AABB> aabbsSpheres;
+	for (auto&& sphere : spheres)
+	{
+		auto a = AABB::fromSphere(sphere);
+		aabbsSpheres.push_back(a);
+	}
+
+	// create vector to hold all BLAS instances
+	std::vector<BLASInstance> blasInstancesData;
+
+	// =========================================================================
+	// Create AABB Buffer and BLAS for Tetrahedrons and Spheres
+	if (tetrahedrons.size() > 0)
+	{
+		tetrahedronsBufferHandle
+		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, tetrahedrons);
+
+		tetrahedronsAABBBufferHandle
+		    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbsTetrahedrons);
+
+		// TODO: Make it possible to have multiple BLAS with their individual AABBs
+		blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
+		    logicalDevice,
+		    tetrahedronsAABBBufferHandle,
+		    ObjectType::t_Tetrahedron,
+		    static_cast<uint32_t>(aabbsTetrahedrons.size())));
+	}
+
+	if (spheres.size() > 0)
+	{
+		spheresBufferHandle
+		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, spheres);
+		spheresAABBBufferHandle
+		    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbsSpheres);
+
+		blasInstancesData.push_back(
+		    createBottomLevelAccelerationStructureAABB(logicalDevice,
+		                                               spheresAABBBufferHandle,
+		                                               ObjectType::t_Sphere,
+		                                               static_cast<uint32_t>(aabbsSpheres.size())));
 	}
 
 	// =========================================================================
-	// AABB Buffer
-	tetrahedronsBufferHandle
-	    = createTetrahedronsBuffer(physicalDevice, logicalDevice, deletionQueue, tetrahedrons);
-	tetrahedronsAABBBufferHandle
-	    = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbs);
-
-	// =========================================================================
 	// convert to bottom level acceleration structure
-	std::vector<BLASInstance> blasInstancesData;
 	for (auto&& obj : meshObjects)
 	{
 		loadAndCreateVertexAndIndexBufferForModel(
@@ -1077,10 +1170,6 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    obj.transform.getTransformMatrix());
 		blasInstancesData.push_back(triangleBLAS);
 	}
-
-	// TODO: Make it possible to have multiple BLAS with their individual AABBs
-	blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
-	    logicalDevice, tetrahedronsAABBBufferHandle, static_cast<uint32_t>(aabbs.size())));
 
 	// =========================================================================
 	// Top Level Acceleration Structure
@@ -1213,25 +1302,19 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		// =========================================================================
 		// Material Buffer
 
-		struct Material
-		{
-			float ambient[4] = {0, 0, 0, 0};
-			float diffuse[4] = {0, 0, 0, 0};
-			float specular[4] = {0, 0, 0, 0};
-			float emission[4] = {0, 0, 0, 0};
-		};
-
 		// TODO: Material list needs to include all possible materials from all objects, for now
 		// we only have one object
 		std::vector<Material> materialList(meshObjects[0].materials.size());
 		for (uint32_t i = 0; i < meshObjects[0].materials.size(); i++)
 		{
-			memcpy(materialList[i].ambient, meshObjects[0].materials[i].ambient, sizeof(float) * 3);
-			memcpy(materialList[i].diffuse, meshObjects[0].materials[i].diffuse, sizeof(float) * 3);
 			memcpy(
-			    materialList[i].specular, meshObjects[0].materials[i].specular, sizeof(float) * 3);
+			    &materialList[i].ambient, meshObjects[0].materials[i].ambient, sizeof(float) * 3);
 			memcpy(
-			    materialList[i].emission, meshObjects[0].materials[i].emission, sizeof(float) * 3);
+			    &materialList[i].diffuse, meshObjects[0].materials[i].diffuse, sizeof(float) * 3);
+			memcpy(
+			    &materialList[i].specular, meshObjects[0].materials[i].specular, sizeof(float) * 3);
+			memcpy(
+			    &materialList[i].emission, meshObjects[0].materials[i].emission, sizeof(float) * 3);
 		}
 
 		VkBuffer materialBufferHandle = VK_NULL_HANDLE;
@@ -1399,7 +1482,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	};
 
 	raytracingInfo.callableShaderBindingTable = {};
-}
+} // namespace rt
 
 inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
                                           RaytracingInfo& raytracingInfo,

@@ -9,17 +9,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference2 : require
 
-#define t_Surface 1
-#define t_Triangle 2
-#define t_Tetrahedron 3
 
+#include "../src/common_types.h"
 
 // TODO; put this in a common file
-struct Tetrahedron {
-	vec3 a;
-	vec3 b;
-	vec3 c;
-};
 
 struct Ray
 {
@@ -27,14 +20,14 @@ struct Ray
 	vec3 direction;
 };
 
-struct Sphere {
-	vec3 center;
-	float radius;
-};
-
 layout(set = 0, binding=5, scalar) buffer Tetrahedrons
 {
 	Tetrahedron[] tetrahedrons;
+};
+
+layout(set = 0, binding=6, scalar) buffer Spheres
+{
+	Sphere[] spheres;
 };
 
 // Ray-Sphere intersection
@@ -119,7 +112,7 @@ void main() {
 	ray.direction = gl_WorldRayDirectionEXT;
 
 
-	int customIdx = gl_InstanceCustomIndexEXT;
+	int objectType = gl_InstanceCustomIndexEXT;
 	// Tetrahedron data
 	Tetrahedron tetrahedron = tetrahedrons[gl_PrimitiveID];
 
@@ -129,7 +122,7 @@ void main() {
 	// debugPrintfEXT("Tetrahedron: c: %f, %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
 	float tHit = -1;
-	if(customIdx == t_Tetrahedron)
+	if(objectType == t_Tetrahedron)
 	{
 		// // AABB intersection
 		// Aabb aabb;
@@ -138,18 +131,18 @@ void main() {
 		// tHit         = hitAabb(aabb, ray);
 		tHit = IntersectTriangle(ray, tetrahedron.a, tetrahedron.b, tetrahedron.c);
 	}
-	else
+	else if (objectType == t_Sphere)
 	{
 		// Sphere intersection
-		Sphere sphere;
-		sphere.center = vec3(0,0,0);
-		sphere.radius = 4;
-
+		Sphere sphere = spheres[gl_PrimitiveID];
 		tHit = hitSphere(sphere, ray);
+	}else{
+		// always mark as hit
+		tHit = 1;
 	}
 
 	// Report hit point
 	if(tHit > 0)
-		reportIntersectionEXT(tHit, customIdx);
+		reportIntersectionEXT(tHit, objectType);
 
 }

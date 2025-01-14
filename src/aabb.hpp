@@ -23,7 +23,6 @@ class AABB
 
 	// Top right corner
 	const glm::vec3 max;
-	const ObjectType objectType;
 
 	VkAabbPositionsKHR getAabb() const
 	{
@@ -51,7 +50,6 @@ class AABB
 				glm::max(tetrahedron.a.y, glm::max(tetrahedron.b.y, tetrahedron.c.y)),
 				glm::max(tetrahedron.a.z, glm::max(tetrahedron.b.z, tetrahedron.c.z)),
 			},
-			.objectType = ObjectType::t_Tetrahedron,
 		};
 	}
 
@@ -69,7 +67,23 @@ class AABB
 				glm::max(triangle.a.y, glm::max(triangle.b.y, triangle.c.y)),
 				glm::max(triangle.a.z, glm::max(triangle.b.z, triangle.c.z)),
 			},
-			.objectType = ObjectType::t_Triangle,
+		};
+	}
+
+	static AABB fromSphere(const Sphere& sphere)
+	{
+		return AABB
+		{
+			.min = {
+				sphere.center.x - sphere.radius,
+				sphere.center.y - sphere.radius,
+				sphere.center.z - sphere.radius,
+			},
+			.max = {
+				sphere.center.x + sphere.radius,
+				sphere.center.y + sphere.radius,
+				sphere.center.z + sphere.radius,
+			},
 		};
 	}
 };

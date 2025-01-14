@@ -12,23 +12,7 @@
 
 #define M_PI 3.1415926535897932384626433832795
 
-#define t_Surface 1
-#define t_Triangle 2
-#define t_Tetrahedron 3
-
-// TODO; put this in a common file
-struct Tetrahedron {
-	vec3 a;
-	vec3 b;
-	vec3 c;
-};
-
-struct Material {
-  vec3 ambient;
-  vec3 diffuse;
-  vec3 specular;
-  vec3 emission;
-};
+#include "../src/common_types.h"
 
 hitAttributeEXT vec2 hitCoordinate;
 
@@ -73,6 +57,11 @@ layout(binding=5, set = 0, scalar) buffer Tetrahedrons
 	Tetrahedron[] tetrahedrons;
 };
 
+layout(set = 0, binding=6, scalar) buffer Spheres
+{
+	Sphere[] spheres;
+};
+
 float random(vec2 uv, float seed) {
   return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
                43758.5453);
@@ -99,13 +88,28 @@ void main() {
     return;
   }
 
+    vec3 lightColor = vec3(0.6, 0.6, 0.6);
+
   if(gl_HitKindEXT == t_Tetrahedron) {
       if (payload.rayDepth == 0) {
         payload.directColor = vec3(1.0, 1.0, 0.0);
       } 
 
        payload.rayActive = 0;
+  }else if(gl_HitKindEXT == t_Sphere) {
+	  vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 
+	  Sphere s = spheres[gl_PrimitiveID];
+
+	  // TODO: make this part of the uniform buffer for a global light
+	  vec3 lightPosition = vec3(20,100,-50);
+	  vec3 positionToLightDirection = normalize(lightPosition - position);
+
+	  vec3 surfaceColor = vec3(1.0,0.6,0.6);
+
+	  vec3 sphereNormal = normalize(position - s.center);
+      payload.directColor = surfaceColor * lightColor *
+                              dot(sphereNormal, positionToLightDirection);
   }else{
 
   ivec3 indices = ivec3(indexBuffer.data[3 * gl_PrimitiveID + 0],
@@ -148,7 +152,6 @@ void main() {
   } else {
     int randomIndex =
         int(random(gl_LaunchIDEXT.xy, camera.frameCount) * 2 + 40);
-    vec3 lightColor = vec3(0.6, 0.6, 0.6);
 
     ivec3 lightIndices = ivec3(indexBuffer.data[3 * randomIndex + 0],
                                indexBuffer.data[3 * randomIndex + 1],
