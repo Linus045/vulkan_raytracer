@@ -53,6 +53,8 @@ include(ExternalProject)
 ExternalProject_Add(
 	glslang
 	PREFIX ${CMAKE_SOURCE_DIR}/3rdparty/glslang
+	TMP_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/tmp
+	STAMP_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/glslang-stamp
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang
 	BINARY_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build
 	STEP_TARGETS glslang_update_sources
