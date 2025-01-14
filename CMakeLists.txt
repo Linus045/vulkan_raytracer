@@ -50,15 +50,16 @@ endif ( MSVC )
 
 # build external project glslang to compile shaders
 include(ExternalProject)
+set(glslang_build_dir ${CMAKE_SOURCE_DIR}/build/glslang_build)
 ExternalProject_Add(
 	glslang
-	PREFIX ${CMAKE_SOURCE_DIR}/3rdparty/glslang
-	TMP_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/tmp
-	STAMP_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/glslang-stamp
+	PREFIX ${glslang_build_dir}
+	TMP_DIR ${glslang_build_dir}/tmp
+	STAMP_DIR ${glslang_build_dir}/stamp
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang
-	BINARY_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build
+	BINARY_DIR ${glslang_build_dir}
 	STEP_TARGETS glslang_update_sources
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <SOURCE_DIR>/build
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
 	INSTALL_COMMAND ""
 	COMMENT "Building glslang to compile shaders"
 )
@@ -100,11 +101,7 @@ set(raytracing_shader_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rmiss.
 set(raytracing_shader_shadow_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_shadow.rmiss.spv)
 set(raytracing_aabb_intersection_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_aabb.rint.spv)
 
-if ( MSVC )
-    set(glslang_executable_path ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/StandAlone/Debug/glslang.exe)
-else ( MSVC )
-    set(glslang_executable_path ${CMAKE_SOURCE_DIR}/3rdparty/glslang/build/StandAlone/glslang)
-endif ( MSVC )
+set(glslang_executable_path ${glslang_build_dir}/StandAlone/glslang)
 
 add_custom_command(
   OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
