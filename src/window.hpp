@@ -85,7 +85,7 @@ class Window
 		else
 		{
 			// Disable resizing the window for now
-			glfwWindowHint(GLFW_FLOATING, GLFW_TRUE);
+			glfwWindowHint(GLFW_FLOATING, GLFW_FALSE);
 			glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
 			glfwWindow = glfwCreateWindow(static_cast<int>(initialWidth),
