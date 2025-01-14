@@ -196,6 +196,7 @@ inline void renderMainPanel(const UIData& uiData)
 	ImGui::Text("Press Q to quit");
 	ImGui::Text("W/A/S/D to move");
 	ImGui::Text("Arrow keys to rotate");
+	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
 
 	ImGui::SeparatorText("Data:");
 	renderGPUProperties(uiData);

@@ -60,6 +60,11 @@ class Window
 		return swapChain;
 	}
 
+	auto& getMouseCursorCaptureEnabled() const
+	{
+		return cursorCaptureEnabled;
+	}
+
 	/// Creates the window using GLFW
 	void initWindow(GLFWframebuffersizefun framebufferResizeCallback)
 	{
@@ -91,7 +96,20 @@ class Window
 		}
 		glfwSetFramebufferSizeCallback(glfwWindow, framebufferResizeCallback);
 
-		// glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		setMouseCursorCapturedEnabled(cursorCaptureEnabled);
+	}
+
+	void setMouseCursorCapturedEnabled(const bool cursorCaptureEnabled)
+	{
+		this->cursorCaptureEnabled = cursorCaptureEnabled;
+		if (this->cursorCaptureEnabled)
+		{
+			glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		}
+		else
+		{
+			glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		}
 	}
 
 	void setWindowUserPointer(void* ptr)
@@ -285,6 +303,8 @@ class Window
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
+
+	bool cursorCaptureEnabled = true;
 };
 
 } // namespace ltracer

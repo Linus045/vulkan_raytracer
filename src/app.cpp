@@ -260,11 +260,40 @@ class HelloTriangleApplication
 
 		glfwSetMouseButtonCallback(window->getGLFWWindow(),
 		                           &HelloTriangleApplication::handleMouseInputCallback);
+
+		glfwSetCursorPosCallback(window->getGLFWWindow(),
+		                         &HelloTriangleApplication::handleMouseMovementCallback);
 	}
 
 	static void handleMouseInputCallback(GLFWwindow* window, int button, int action, int mods)
 	{
 		ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+	}
+
+	static void handleMouseMovementCallback(GLFWwindow* window, double xpos, double ypos)
+	{
+		auto ptr = glfwGetWindowUserPointer(window);
+		HelloTriangleApplication& ref = *(HelloTriangleApplication*)ptr;
+		if (ref.window->getMouseCursorCaptureEnabled())
+		{
+			// TODO: move these into a more fitting space
+			static auto lastMouseX = 0.0;
+			static auto lastMouseY = 0.0;
+			double mouse_sensitivity = 0.1;
+
+			double deltaX = xpos - lastMouseX;
+			double deltaY = ypos - lastMouseY;
+
+			ref.camera->rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
+			ref.camera->rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
+
+			lastMouseX = xpos;
+			lastMouseY = ypos;
+		}
+		else
+		{
+			ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
+		}
 	}
 
 	static void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
@@ -274,7 +303,8 @@ class HelloTriangleApplication
 
 		HelloTriangleApplication* ref1 = (HelloTriangleApplication*)ptr;
 		auto& ref = *ref1;
-		// TODO: don't apply this directly here but rather on the draw call
+		// TODO: maybe use an array to store which key is held down so we can handle multiple keys
+		// at the same time e.g. update on key down and up event respectively
 		if (action == GLFW_PRESS || action == GLFW_REPEAT)
 		{
 			if (key == GLFW_KEY_W)
@@ -317,9 +347,17 @@ class HelloTriangleApplication
 			{
 				ref.camera->rotatePitchX(-10.0f);
 			}
-			else if (key == GLFW_KEY_Q || key == GLFW_KEY_ESCAPE)
+			else if (key == GLFW_KEY_Q)
 			{
 				glfwSetWindowShouldClose(ref.window->getGLFWWindow(), true);
+			}
+			else if (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE)
+			{
+				ref.window->setMouseCursorCapturedEnabled(
+				    !ref.window->getMouseCursorCaptureEnabled());
+				std::cout << "Cursor capture enabled: "
+				          << (ref.window->getMouseCursorCaptureEnabled() ? "True" : "False")
+				          << std::endl;
 			}
 			else
 			{
