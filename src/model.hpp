@@ -132,7 +132,7 @@ class MeshObject : public WorldObject
 	    : WorldObject(position), primitiveCount(primitiveCount), vertices(vertices),
 	      indices(indices), shapes(shapes), materials(materials) {};
 
-	inline static void loadOBJScene(std::string scenePath,
+	inline static void loadOBJScene(std::filesystem::path scenePath,
 	                                uint32_t& primitiveCount,
 	                                std::vector<float>& vertices,
 	                                std::vector<uint32_t>& indexList,
@@ -148,7 +148,7 @@ class MeshObject : public WorldObject
 		tinyobj::ObjReaderConfig reader_config;
 		tinyobj::ObjReader reader;
 
-		if (!reader.ParseFromFile(scenePath, reader_config))
+		if (!reader.ParseFromFile(scenePath.generic_string(), reader_config))
 		{
 			if (!reader.Error().empty())
 			{

@@ -168,8 +168,8 @@ file(GLOB IMGUI_SOURCES
 )
 add_library("imgui" STATIC ${IMGUI_SOURCES})
 
-target_include_directories("imgui" SYSTEM INTERFACE ${IMGUI_PATH})
-target_link_libraries("imgui" INTERFACE glfw)
+target_include_directories("imgui" SYSTEM PRIVATE ${IMGUI_PATH})
+target_link_libraries("imgui" PRIVATE glfw)
 
 
 ###############################################################################
@@ -192,7 +192,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   target_compile_options(vulkan_experiments PRIVATE -pedantic -Wall -Wextra -Wconversion -Wfloat-conversion)
 else()
   message("Using not clang")
-  target_compile_options(vulkan_experiments PRIVATE -pedantic -Wall -Wextra -Wconversion)
+  target_compile_options(vulkan_experiments PRIVATE -Wall)
 endif()
 
 ###############################################################################
