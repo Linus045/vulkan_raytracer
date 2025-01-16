@@ -1582,7 +1582,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
                                           RaytracingInfo& raytracingInfo,
-                                          std::shared_ptr<ltracer::Window> window)
+                                          ltracer::Window& window)
 {
 	VkImageMemoryBarrier rayTraceGeneralMemoryBarrier = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1632,7 +1632,7 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                        0,
 	                        NULL);
 
-	auto currentExtent = window->getSwapChainExtent();
+	auto currentExtent = window.getSwapChainExtent();
 	ltracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
 	                                        &raytracingInfo.rgenShaderBindingTable,
 	                                        &raytracingInfo.rmissShaderBindingTable,
@@ -1671,18 +1671,18 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 // does the raytracing onto the provided image
 inline void updateRaytraceBuffer(VkDevice logicalDevice,
                                  RaytracingInfo& raytracingInfo,
-                                 std::shared_ptr<ltracer::Camera> camera)
+                                 ltracer::Camera& camera)
 {
-	if (camera->isCameraMoved())
+	if (camera.isCameraMoved())
 	{
 		updateUniformStructure(raytracingInfo,
-		                       camera->transform.position,
-		                       camera->transform.getForward(),
-		                       camera->transform.getUp(),
-		                       camera->transform.getRight());
+		                       camera.transform.position,
+		                       camera.transform.getForward(),
+		                       camera.transform.getUp(),
+		                       camera.transform.getRight());
 		resetFrameCount(raytracingInfo);
 
-		camera->resetCameraMoved();
+		camera.resetCameraMoved();
 	}
 	else
 	{
@@ -1852,7 +1852,7 @@ inline void createRaytracingImageView(VkDevice logicalDevice,
 
 inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
                                           VkPhysicalDevice physicalDevice,
-                                          std::shared_ptr<Window> window,
+                                          Window& window,
                                           QueueFamilyIndices queueFamilyIndices,
                                           RaytracingInfo& raytracingInfo)
 {
@@ -1863,13 +1863,13 @@ inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
 
 	createRaytracingImage(physicalDevice,
 	                      logicalDevice,
-	                      window->getSwapChainImageFormat(),
-	                      window->getSwapChainExtent(),
+	                      window.getSwapChainImageFormat(),
+	                      window.getSwapChainExtent(),
 	                      queueFamilyIndices,
 	                      raytracingInfo);
 
 	createRaytracingImageView(logicalDevice,
-	                          window->getSwapChainImageFormat(),
+	                          window.getSwapChainImageFormat(),
 	                          raytracingInfo.rayTraceImageHandle,
 	                          raytracingInfo.rayTraceImageViewHandle);
 

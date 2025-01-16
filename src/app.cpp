@@ -41,8 +41,8 @@ class HelloTriangleApplication
 	{
 		ltracer::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 		int width, height;
-		window->getFramebufferSize(&width, &height);
-		renderer = std::make_shared<ltracer::Renderer>(physicalDevice,
+		window.getFramebufferSize(&width, &height);
+		renderer = std::make_unique<ltracer::Renderer>(physicalDevice,
 		                                               logicalDevice,
 		                                               mainDeletionQueue,
 		                                               window,
@@ -52,7 +52,7 @@ class HelloTriangleApplication
 		                                               raytracingSupported,
 		                                               uiData);
 
-		window->createSwapChain(
+		window.createSwapChain(
 		    physicalDevice,
 		    logicalDevice,
 		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
@@ -66,9 +66,7 @@ class HelloTriangleApplication
 	{
 		// loadModels();
 
-		camera = std::make_shared<ltracer::Camera>();
-
-		const ltracer::ui::UIData uiData = {
+		const ltracer::ui::UIData uiData{
 		    .camera = camera,
 		    .raytracingSupported = raytracingSupported,
 		    .physicalDeviceProperties = physicalDeviceProperties,
@@ -86,20 +84,12 @@ class HelloTriangleApplication
 		cleanupApp();
 	}
 
-	HelloTriangleApplication()
-	{
-		//
-	}
-
-	~HelloTriangleApplication()
-	{
-	}
+	HelloTriangleApplication() = default;
 
 	void createWindow()
 	{
-		window = std::make_shared<ltracer::Window>();
-		window->initWindow(framebufferResizeCallback);
-		window->setWindowUserPointer(this);
+		window.initWindow(framebufferResizeCallback);
+		window.setWindowUserPointer(this);
 	}
 
 	HelloTriangleApplication(const HelloTriangleApplication&) = delete;
@@ -116,9 +106,9 @@ class HelloTriangleApplication
 	VkInstance vulkanInstance;
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 
-	std::shared_ptr<ltracer::Window> window;
-	std::shared_ptr<ltracer::Renderer> renderer;
-	std::shared_ptr<ltracer::Camera> camera;
+	ltracer::Window window;
+	std::unique_ptr<ltracer::Renderer> renderer;
+	ltracer::Camera camera;
 
 	std::vector<ltracer::AABB> AABBs;
 
@@ -254,14 +244,14 @@ class HelloTriangleApplication
 	// 	}
 	// }
 
-	void initInput(std::shared_ptr<ltracer::Window> window)
+	void initInput(ltracer::Window& window)
 	{
-		glfwSetKeyCallback(window->getGLFWWindow(), &HelloTriangleApplication::handleInputCallback);
+		glfwSetKeyCallback(window.getGLFWWindow(), &HelloTriangleApplication::handleInputCallback);
 
-		glfwSetMouseButtonCallback(window->getGLFWWindow(),
+		glfwSetMouseButtonCallback(window.getGLFWWindow(),
 		                           &HelloTriangleApplication::handleMouseInputCallback);
 
-		glfwSetCursorPosCallback(window->getGLFWWindow(),
+		glfwSetCursorPosCallback(window.getGLFWWindow(),
 		                         &HelloTriangleApplication::handleMouseMovementCallback);
 	}
 
@@ -274,7 +264,7 @@ class HelloTriangleApplication
 	{
 		auto ptr = glfwGetWindowUserPointer(window);
 		HelloTriangleApplication& ref = *(HelloTriangleApplication*)ptr;
-		if (ref.window->getMouseCursorCaptureEnabled())
+		if (ref.window.getMouseCursorCaptureEnabled())
 		{
 			// TODO: move these into a more fitting space
 			static auto lastMouseX = 0.0;
@@ -284,8 +274,8 @@ class HelloTriangleApplication
 			double deltaX = xpos - lastMouseX;
 			double deltaY = ypos - lastMouseY;
 
-			ref.camera->rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
-			ref.camera->rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
+			ref.camera.rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
+			ref.camera.rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
 
 			lastMouseX = xpos;
 			lastMouseY = ypos;
@@ -309,60 +299,59 @@ class HelloTriangleApplication
 		{
 			if (key == GLFW_KEY_W)
 			{
-				ref.camera->translate(ref.camera->transform.getForward() * 0.3f);
+				ref.camera.translate(ref.camera.transform.getForward() * 0.3f);
 			}
 			else if (key == GLFW_KEY_S)
 			{
-				ref.camera->translate(ref.camera->transform.getForward() * -0.3f);
+				ref.camera.translate(ref.camera.transform.getForward() * -0.3f);
 			}
 			else if (key == GLFW_KEY_A)
 			{
-				ref.camera->translate(ref.camera->transform.getRight() * -0.3f);
+				ref.camera.translate(ref.camera.transform.getRight() * -0.3f);
 			}
 			else if (key == GLFW_KEY_D)
 			{
-				ref.camera->translate(ref.camera->transform.getRight() * 0.3f);
+				ref.camera.translate(ref.camera.transform.getRight() * 0.3f);
 			}
 			else if (key == GLFW_KEY_SPACE)
 			{
-				ref.camera->translate(ref.camera->globalUp * 0.3f);
+				ref.camera.translate(ref.camera.globalUp * 0.3f);
 			}
 			else if (key == GLFW_KEY_LEFT_SHIFT)
 			{
-				ref.camera->translate(ref.camera->globalUp * -0.3f);
+				ref.camera.translate(ref.camera.globalUp * -0.3f);
 			}
 			else if (key == GLFW_KEY_LEFT)
 			{
-				ref.camera->rotateYawY(10.0f);
+				ref.camera.rotateYawY(10.0f);
 			}
 			else if (key == GLFW_KEY_RIGHT)
 			{
-				ref.camera->rotateYawY(-10.0f);
+				ref.camera.rotateYawY(-10.0f);
 			}
 			else if (key == GLFW_KEY_UP)
 			{
-				ref.camera->rotatePitchX(10.0f);
+				ref.camera.rotatePitchX(10.0f);
 			}
 			else if (key == GLFW_KEY_DOWN)
 			{
-				ref.camera->rotatePitchX(-10.0f);
+				ref.camera.rotatePitchX(-10.0f);
 			}
 			else if (key == GLFW_KEY_Q)
 			{
-				glfwSetWindowShouldClose(ref.window->getGLFWWindow(), true);
+				glfwSetWindowShouldClose(ref.window.getGLFWWindow(), true);
 			}
 			else if (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE)
 			{
-				ref.window->setMouseCursorCapturedEnabled(
-				    !ref.window->getMouseCursorCaptureEnabled());
+				ref.window.setMouseCursorCapturedEnabled(
+				    !ref.window.getMouseCursorCaptureEnabled());
 				std::cout << "Cursor capture enabled: "
-				          << (ref.window->getMouseCursorCaptureEnabled() ? "True" : "False")
+				          << (ref.window.getMouseCursorCaptureEnabled() ? "True" : "False")
 				          << std::endl;
 			}
 			else
 			{
-				ImGui_ImplGlfw_KeyCallback(
-				    ref.window->getGLFWWindow(), key, scancode, action, mods);
+				ImGui_ImplGlfw_KeyCallback(ref.window.getGLFWWindow(), key, scancode, action, mods);
 			}
 
 			// TODO: Add mouse rotation via a virtual trackball e.g.
@@ -381,22 +370,22 @@ class HelloTriangleApplication
 
 		ltracer::SwapChainSupportDetails swapChainSupport
 		    = app.querySwapChainSupport(app.physicalDevice);
-		VkExtent2D extent = app.window->chooseSwapExtent(swapChainSupport.capabilities);
+		VkExtent2D extent = app.window.chooseSwapExtent(swapChainSupport.capabilities);
 		if (extent.height > 0 && extent.width > 0)
 		{
 
 			vkDeviceWaitIdle(app.logicalDevice);
 			app.renderer->cleanupFramebufferAndImageViews();
-			app.window->recreateSwapChain(
+			app.window.recreateSwapChain(
 			    app.physicalDevice, app.logicalDevice, extent, swapChainSupport);
 			app.renderer->createImageViews(app.logicalDevice);
 			app.renderer->createFramebuffers(app.logicalDevice, app.window);
 
 			ltracer::QueueFamilyIndices indices
-			    = ltracer::findQueueFamilies(app.physicalDevice, app.window->getVkSurface());
+			    = ltracer::findQueueFamilies(app.physicalDevice, app.window.getVkSurface());
 
 			app.renderer->recreateRaytracingImageAndImageView(indices);
-			app.camera->updateScreenSize(extent.width, extent.height);
+			app.camera.updateScreenSize(extent.width, extent.height);
 		}
 	}
 
@@ -409,7 +398,7 @@ class HelloTriangleApplication
 	{
 		createInstanceForVulkan();
 		if (enableValidationLayer) setupDebugMessenger();
-		window->createVulkanSurface(vulkanInstance);
+		window.createVulkanSurface(vulkanInstance);
 
 		bool deviceFound = false;
 		const std::vector<const char*>* deviceExtensions = NULL;
@@ -444,7 +433,7 @@ class HelloTriangleApplication
 	{
 		// grab the required queue families
 		ltracer::QueueFamilyIndices indices
-		    = ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+		    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 
 		std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -674,26 +663,26 @@ class HelloTriangleApplication
 		ltracer::SwapChainSupportDetails details;
 
 		vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
-		    physicalDevice, window->getVkSurface(), &details.capabilities);
+		    physicalDevice, window.getVkSurface(), &details.capabilities);
 
 		uint32_t formatCount;
 		vkGetPhysicalDeviceSurfaceFormatsKHR(
-		    physicalDevice, window->getVkSurface(), &formatCount, nullptr);
+		    physicalDevice, window.getVkSurface(), &formatCount, nullptr);
 		if (formatCount != 0)
 		{
 			details.formats.resize(formatCount);
 			vkGetPhysicalDeviceSurfaceFormatsKHR(
-			    physicalDevice, window->getVkSurface(), &formatCount, details.formats.data());
+			    physicalDevice, window.getVkSurface(), &formatCount, details.formats.data());
 		}
 
 		uint32_t presentModeCount;
 		vkGetPhysicalDeviceSurfacePresentModesKHR(
-		    physicalDevice, window->getVkSurface(), &presentModeCount, nullptr);
+		    physicalDevice, window.getVkSurface(), &presentModeCount, nullptr);
 		if (presentModeCount != 0)
 		{
 			details.presentModes.resize(presentModeCount);
 			vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice,
-			                                          window->getVkSurface(),
+			                                          window.getVkSurface(),
 			                                          &presentModeCount,
 			                                          details.presentModes.data());
 		}
@@ -705,7 +694,7 @@ class HelloTriangleApplication
 	                      const std::vector<const char*> requiredDeviceExtensions)
 	{
 		ltracer::QueueFamilyIndices indices
-		    = ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+		    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 
 		bool extensionsSupported
 		    = checkDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions);
@@ -793,7 +782,7 @@ class HelloTriangleApplication
 		double currentFrame = 0;
 		double lastFrame = 0;
 
-		while (!window->shouldClose())
+		while (!window.shouldClose())
 		{
 			glfwPollEvents();
 
@@ -809,30 +798,30 @@ class HelloTriangleApplication
 			//                  currentTime - startTime)
 			//                  .count();
 
-			renderer->updateViewProjectionMatrix(camera->getViewMatrix(),
-			                                     camera->getProjectionMatrix());
+			renderer->updateViewProjectionMatrix(camera.getViewMatrix(),
+			                                     camera.getProjectionMatrix());
 
 			renderer->drawFrame(camera, delta);
 			if (renderer->swapChainOutdated)
 			{
 				ltracer::SwapChainSupportDetails swapChainSupport
 				    = querySwapChainSupport(physicalDevice);
-				VkExtent2D extent = window->chooseSwapExtent(swapChainSupport.capabilities);
+				VkExtent2D extent = window.chooseSwapExtent(swapChainSupport.capabilities);
 
 				if (extent.height > 0 && extent.width > 0)
 				{
 					vkDeviceWaitIdle(logicalDevice);
 					renderer->cleanupFramebufferAndImageViews();
-					window->recreateSwapChain(
+					window.recreateSwapChain(
 					    physicalDevice, logicalDevice, extent, swapChainSupport);
 					renderer->createImageViews(logicalDevice);
 					renderer->createFramebuffers(logicalDevice, window);
 
 					ltracer::QueueFamilyIndices indices
-					    = ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+					    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 					renderer->recreateRaytracingImageAndImageView(indices);
 
-					camera->updateScreenSize(extent.width, extent.height);
+					camera.updateScreenSize(extent.width, extent.height);
 				}
 			}
 			renderer->swapChainOutdated = false;
@@ -848,7 +837,7 @@ class HelloTriangleApplication
 
 		renderer->cleanupRenderer();
 
-		window->cleanupSwapChain(logicalDevice);
+		window.cleanupSwapChain(logicalDevice);
 		mainDeletionQueue.flush();
 
 		vkDestroyDevice(logicalDevice, nullptr);
@@ -858,10 +847,10 @@ class HelloTriangleApplication
 			DestroyDebugUtilsMessengerEXT(vulkanInstance, debugMessenger, nullptr);
 		}
 
-		vkDestroySurfaceKHR(vulkanInstance, window->getVkSurface(), nullptr);
+		vkDestroySurfaceKHR(vulkanInstance, window.getVkSurface(), nullptr);
 		vkDestroyInstance(vulkanInstance, nullptr);
 
-		glfwDestroyWindow(window->getGLFWWindow());
+		glfwDestroyWindow(window.getGLFWWindow());
 
 		glfwTerminate();
 	}

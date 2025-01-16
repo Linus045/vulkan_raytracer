@@ -29,7 +29,7 @@ namespace ui
 // updating the struct regularly
 struct UIData
 {
-	const std::shared_ptr<Camera> camera;
+	const Camera& camera;
 	const bool& raytracingSupported;
 	const VkPhysicalDeviceProperties& physicalDeviceProperties;
 };
@@ -45,7 +45,7 @@ static VkDescriptorPool imguiPool;
 inline void initImgui(VkInstance vulkanInstance,
                       VkDevice logicalDevice,
                       VkPhysicalDevice physicalDevice,
-                      std::shared_ptr<Window> window,
+                      Window& window,
                       VkRenderPass renderPass,
                       VkQueue graphicsQueue,
                       DeletionQueue& deletionQueue)
@@ -80,7 +80,7 @@ inline void initImgui(VkInstance vulkanInstance,
 	// initialize the core structures of imgui
 	ImGui::CreateContext();
 
-	ImGui_ImplGlfw_InitForVulkan(window->getGLFWWindow(), false);
+	ImGui_ImplGlfw_InitForVulkan(window.getGLFWWindow(), false);
 
 	ImGui_ImplVulkan_InitInfo init_info = {};
 
@@ -112,18 +112,18 @@ inline void renderCameraProperties(const UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Camera"))
 	{
-		auto cameraPosition = glm::to_string(uiData.camera->transform.position);
+		auto cameraPosition = glm::to_string(uiData.camera.transform.position);
 		ImGui::Text("Position: %s", cameraPosition.c_str());
 
-		auto cameraLookDirection = glm::to_string(uiData.camera->transform.getForward());
+		auto cameraLookDirection = glm::to_string(uiData.camera.transform.getForward());
 		ImGui::Text("Look Direction: %s", cameraLookDirection.c_str());
-		ImGui::Text("Camera yaw (degrees): %f", glm::degrees(uiData.camera->getYawRadians()));
-		ImGui::Text("Camera pitch (degrees): %f", glm::degrees(uiData.camera->getPitchRadians()));
+		ImGui::Text("Camera yaw (degrees): %f", glm::degrees(uiData.camera.getYawRadians()));
+		ImGui::Text("Camera pitch (degrees): %f", glm::degrees(uiData.camera.getPitchRadians()));
 
 		auto cameraRotationRadians
-		    = glm::to_string(glm::eulerAngles(uiData.camera->transform.rotation));
+		    = glm::to_string(glm::eulerAngles(uiData.camera.transform.rotation));
 		auto cameraRotationDegrees
-		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera->transform.rotation)));
+		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera.transform.rotation)));
 		ImGui::Text("Camera rotation (radians)(pitch,yaw,roll): %s", cameraRotationRadians.c_str());
 		ImGui::Text("Camera rotation (degrees)(pitch,yaw,roll): %s", cameraRotationDegrees.c_str());
 	}

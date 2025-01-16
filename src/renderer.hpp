@@ -34,7 +34,7 @@ class Renderer
 	Renderer(VkPhysicalDevice physicalDevice,
 	         VkDevice logicalDevice,
 	         ltracer::DeletionQueue& deletionQueue,
-	         std::shared_ptr<ltracer::Window> window,
+	         ltracer::Window& window,
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
 	         VkQueue transferQueue,
@@ -50,8 +50,10 @@ class Renderer
 	~Renderer() = default;
 
 	Renderer(const Renderer&) = delete;
-	Renderer(const Renderer&&) = delete;
 	Renderer& operator=(const Renderer&) = delete;
+
+	Renderer(Renderer&&) = delete;
+	Renderer& operator=(Renderer&&) = delete;
 
 	void cleanupFramebufferAndImageViews()
 	{
@@ -108,7 +110,7 @@ class Renderer
 
 		// grab the required queue families
 		ltracer::QueueFamilyIndices queueFamilyIndices
-		    = ltracer::findQueueFamilies(physicalDevice, window->getVkSurface());
+		    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 
 		ltracer::ui::initImgui(vulkanInstance,
 		                       logicalDevice,
@@ -122,13 +124,13 @@ class Renderer
 		{
 			ltracer::rt::createRaytracingImage(physicalDevice,
 			                                   logicalDevice,
-			                                   window->getSwapChainImageFormat(),
-			                                   window->getSwapChainExtent(),
+			                                   window.getSwapChainImageFormat(),
+			                                   window.getSwapChainExtent(),
 			                                   queueFamilyIndices,
 			                                   raytracingInfo);
 
 			ltracer::rt::createRaytracingImageView(logicalDevice,
-			                                       window->getSwapChainImageFormat(),
+			                                       window.getSwapChainImageFormat(),
 			                                       raytracingInfo.rayTraceImageHandle,
 			                                       raytracingInfo.rayTraceImageViewHandle);
 
@@ -168,10 +170,10 @@ class Renderer
 		// retrieve images from the swapchain so we can access them
 		uint32_t swapChainImageCount = 0;
 		vkGetSwapchainImagesKHR(
-		    logicalDevice, window->getSwapChain(), &swapChainImageCount, nullptr);
+		    logicalDevice, window.getSwapChain(), &swapChainImageCount, nullptr);
 		swapChainImages.resize(swapChainImageCount);
 		vkGetSwapchainImagesKHR(
-		    logicalDevice, window->getSwapChain(), &swapChainImageCount, swapChainImages.data());
+		    logicalDevice, window.getSwapChain(), &swapChainImageCount, swapChainImages.data());
 
 		swapChainImageViews.resize(swapChainImages.size());
 
@@ -181,7 +183,7 @@ class Renderer
 			createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 			createInfo.image = swapChainImages[i];
 			createInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-			createInfo.format = window->getSwapChainImageFormat();
+			createInfo.format = window.getSwapChainImageFormat();
 
 			createInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
 			createInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
@@ -202,7 +204,7 @@ class Renderer
 		}
 	}
 
-	void createFramebuffers(VkDevice logicalDevice, std::shared_ptr<Window> window)
+	void createFramebuffers(VkDevice logicalDevice, const Window& window)
 	{
 		swapChainFramebuffers.resize(swapChainImageViews.size());
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)
@@ -216,8 +218,8 @@ class Renderer
 			    .renderPass = renderPass,
 			    .attachmentCount = 1,
 			    .pAttachments = attachments,
-			    .width = window->getSwapChainExtent().width,
-			    .height = window->getSwapChainExtent().height,
+			    .width = window.getSwapChainExtent().width,
+			    .height = window.getSwapChainExtent().height,
 			    .layers = 1,
 			};
 
@@ -252,14 +254,14 @@ class Renderer
 	}
 
 	/// Draws the frame and updates the surface
-	void drawFrame(std::shared_ptr<Camera> camera, [[maybe_unused]] double delta)
+	void drawFrame(Camera& camera, [[maybe_unused]] double delta)
 	{
 
 		vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
 		VkResult result = vkAcquireNextImageKHR(logicalDevice,
-		                                        window->getSwapChain(),
+		                                        window.getSwapChain(),
 		                                        UINT64_MAX,
 		                                        imageAvailableSemaphores[currentFrame],
 		                                        VK_NULL_HANDLE,
@@ -319,7 +321,7 @@ class Renderer
 		VkPresentInfoKHR presentInfo{};
 		presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
 
-		VkSwapchainKHR swapChains[] = {window->getSwapChain()};
+		VkSwapchainKHR swapChains[] = {window.getSwapChain()};
 		presentInfo.swapchainCount = 1;
 		presentInfo.pSwapchains = swapChains;
 		presentInfo.pImageIndices = &imageIndex;
@@ -360,7 +362,7 @@ class Renderer
 	DeletionQueue& deletionQueue;
 	RaytracingInfo raytracingInfo = {};
 
-	std::shared_ptr<ltracer::Window> window;
+	Window& window;
 
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
@@ -487,7 +489,7 @@ class Renderer
 	void createCommandPools()
 	{
 		ltracer::QueueFamilyIndices queueFamilyIndices
-		    = findQueueFamilies(physicalDevice, window->getVkSurface());
+		    = findQueueFamilies(physicalDevice, window.getVkSurface());
 
 		VkCommandPoolCreateInfo poolInfo{};
 		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -727,7 +729,7 @@ class Renderer
 	{
 		VkAttachmentDescription colorAttachment{
 		    .flags = 0,
-		    .format = window->getSwapChainImageFormat(),
+		    .format = window.getSwapChainImageFormat(),
 		    .samples = VK_SAMPLE_COUNT_1_BIT,
 		    .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 		    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -791,7 +793,7 @@ class Renderer
 	{
 
 		ltracer::QueueFamilyIndices queueFamilyIndices
-		    = findQueueFamilies(physicalDevice, window->getVkSurface());
+		    = findQueueFamilies(physicalDevice, window.getVkSurface());
 
 		VkCommandBufferBeginInfo beginInfo{};
 		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -912,8 +914,8 @@ class Renderer
 			region.dstSubresource.layerCount = 1;
 			region.dstOffset = {0, 0, 0}; // Destination start
 			region.extent = {
-			    static_cast<uint32_t>(window->getSwapChainExtent().width),
-			    static_cast<uint32_t>(window->getSwapChainExtent().height),
+			    static_cast<uint32_t>(window.getSwapChainExtent().width),
+			    static_cast<uint32_t>(window.getSwapChainExtent().height),
 			    1,
 			};
 
@@ -987,7 +989,7 @@ class Renderer
 		}
 		//////////////////////////////////////////////////////////////////////////////////////////////////////
 
-		auto swapChainExtent = window->getSwapChainExtent();
+		auto swapChainExtent = window.getSwapChainExtent();
 		// TODO: don't clear image
 
 		VkRenderPassBeginInfo renderPassInfo{};

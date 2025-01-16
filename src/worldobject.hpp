@@ -23,6 +23,13 @@ class WorldObject
 		transform.position = position;
 	}
 
+	virtual ~WorldObject() = default;
+	WorldObject(const WorldObject&) = default;
+	WorldObject& operator=(const WorldObject&) = default;
+
+	WorldObject(WorldObject&&) noexcept = default;
+	WorldObject& operator=(WorldObject&&) noexcept = default;
+
 	// TODO: make this a more generic rotation function
 	void updateRotation(float time)
 	{

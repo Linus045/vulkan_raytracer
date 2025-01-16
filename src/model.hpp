@@ -78,11 +78,11 @@ class MeshObject : public WorldObject
 		return MeshObject(glm::vec3{0, 0, 0}, primitiveCount, vertices, indices, shapes, materials);
 	}
 
+	~MeshObject() = default;
 	MeshObject(MeshObject&&) = default;
 	MeshObject(const MeshObject&) = delete;
 	MeshObject& operator=(MeshObject&&) = delete;
 	MeshObject& operator=(const MeshObject&) = delete;
-	~MeshObject() = default;
 
 	const std::vector<glm::vec3> normals;
 

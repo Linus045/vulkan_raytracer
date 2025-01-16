@@ -29,7 +29,7 @@ class Camera
   public:
 	Transform transform;
 
-	Camera()
+	explicit Camera()
 	{
 		transform.position = glm::vec3(2, 3.5, 6);
 		glm::vec3 up = globalUp;
@@ -44,8 +44,10 @@ class Camera
 	~Camera() = default;
 
 	Camera(const Camera&) = delete;
-	Camera(const Camera&&) = delete;
 	Camera& operator=(const Camera&) = delete;
+
+	Camera(Camera&&) = delete;
+	Camera& operator=(Camera&&) = delete;
 
 	glm::mat4 getProjectionMatrix() const
 	{

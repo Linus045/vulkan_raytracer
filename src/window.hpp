@@ -28,10 +28,12 @@ class Window
 		//
 	}
 
-	~Window()
-	{
-		//
-	}
+	~Window() = default;
+	Window(const Window&) = delete;
+	Window& operator=(const Window&) = delete;
+
+	Window(Window&&) noexcept = delete;
+	Window& operator=(Window&&) noexcept = delete;
 
 	/// Returns the GLFW window
 	GLFWwindow*& getGLFWWindow()
