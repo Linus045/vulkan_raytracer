@@ -235,10 +235,10 @@ class Window
 		swapChainExtent = swapExtent;
 	}
 
-	void recreateSwapChain(VkPhysicalDevice physicalDevice,
-	                       VkDevice logicalDevice,
-	                       VkExtent2D swapExtent,
-	                       ltracer::SwapChainSupportDetails swapChainSupport)
+	void recreateSwapChain(VkPhysicalDevice& physicalDevice,
+	                       VkDevice& logicalDevice,
+	                       VkExtent2D& swapExtent,
+	                       ltracer::SwapChainSupportDetails& swapChainSupport)
 	{
 
 		cleanupSwapChain(logicalDevice);

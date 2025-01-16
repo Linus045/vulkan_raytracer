@@ -1,3 +1,5 @@
+#include "src/input.hpp"
+#include "src/types.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -39,7 +41,6 @@ class HelloTriangleApplication
 
 	void createRenderer(const ltracer::ui::UIData& uiData)
 	{
-		ltracer::SwapChainSupportDetails swapChainSupport = querySwapChainSupport(physicalDevice);
 		int width, height;
 		window.getFramebufferSize(&width, &height);
 		renderer = std::make_unique<ltracer::Renderer>(physicalDevice,
@@ -56,7 +57,7 @@ class HelloTriangleApplication
 		    physicalDevice,
 		    logicalDevice,
 		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
-		    swapChainSupport);
+		    swapChainSupportDetails);
 
 		renderer->initRenderer(vulkanInstance);
 	}
@@ -74,10 +75,20 @@ class HelloTriangleApplication
 
 		createWindow();
 
-		initInput(window);
 		initVulkan();
 
 		createRenderer(uiData);
+
+		customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
+		                                                           window,
+		                                                           camera,
+		                                                           *renderer,
+		                                                           swapChainSupportDetails,
+		                                                           logicalDevice,
+		                                                           physicalDevice);
+
+		window.setWindowUserPointer(customUserData.get());
+		initInputHandlers(window);
 
 		mainLoop();
 
@@ -88,8 +99,7 @@ class HelloTriangleApplication
 
 	void createWindow()
 	{
-		window.initWindow(framebufferResizeCallback);
-		window.setWindowUserPointer(this);
+		window.initWindow(ltracer::framebufferResizeCallback);
 	}
 
 	HelloTriangleApplication(const HelloTriangleApplication&) = delete;
@@ -98,7 +108,10 @@ class HelloTriangleApplication
 	HelloTriangleApplication& operator=(const HelloTriangleApplication&) = delete;
 
   private:
+	std::unique_ptr<ltracer::CustomUserData> customUserData;
 	ltracer::DeletionQueue mainDeletionQueue;
+
+	ltracer::SwapChainSupportDetails swapChainSupportDetails;
 
 	bool raytracingSupported = false;
 	bool vulkan_initialized = false;
@@ -155,8 +168,8 @@ class HelloTriangleApplication
 	    // VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
 	};
 
-	// if no device can be found that supports ray tracing, search for a device to display to the
-	// screen (to show messages, errors etc.)
+	// if no device can be found that supports ray tracing, search for a device to display to
+	// the screen (to show messages, errors etc.)
 	const std::vector<const char*> deviceExtensionsForDisplay = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
@@ -222,9 +235,9 @@ class HelloTriangleApplication
 
 	// 		for (auto& vert : modelLoader.LoadedMeshes[0].Vertices)
 	// 		{
-	// 			vertices.emplace_back(glm::vec3(vert.Position.X, vert.Position.Y, vert.Position.Z),
-	// 			                      color,
-	// 			                      glm::vec3(vert.Normal.X, vert.Normal.Y, vert.Normal.Z));
+	// 			vertices.emplace_back(glm::vec3(vert.Position.X, vert.Position.Y,
+	// vert.Position.Z), 			                      color, glm::vec3(vert.Normal.X,
+	// vert.Normal.Y, vert.Normal.Z));
 	// 		}
 
 	// 		for (auto& index : modelLoader.LoadedMeshes[0].Indices)
@@ -240,153 +253,16 @@ class HelloTriangleApplication
 	// 		          << std::filesystem::absolute(modelPath) << "' file\n"
 	// 		          << TERM_COLOR_RESET;
 	// 		throw std::runtime_error(std::string("ERROR: Failed to load file '")
-	// 		                         + std::filesystem::absolute(modelPath).string() + "' file\n");
+	// 		                         + std::filesystem::absolute(modelPath).string() + "'
+	// file\n");
 	// 	}
 	// }
 
-	void initInput(ltracer::Window& window)
+	void initInputHandlers(ltracer::Window& window)
 	{
-		glfwSetKeyCallback(window.getGLFWWindow(), &HelloTriangleApplication::handleInputCallback);
-
-		glfwSetMouseButtonCallback(window.getGLFWWindow(),
-		                           &HelloTriangleApplication::handleMouseInputCallback);
-
-		glfwSetCursorPosCallback(window.getGLFWWindow(),
-		                         &HelloTriangleApplication::handleMouseMovementCallback);
-	}
-
-	static void handleMouseInputCallback(GLFWwindow* window, int button, int action, int mods)
-	{
-		ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
-	}
-
-	static void handleMouseMovementCallback(GLFWwindow* window, double xpos, double ypos)
-	{
-		auto ptr = glfwGetWindowUserPointer(window);
-		HelloTriangleApplication& ref = *(HelloTriangleApplication*)ptr;
-		if (ref.window.getMouseCursorCaptureEnabled())
-		{
-			// TODO: move these into a more fitting space
-			static auto lastMouseX = 0.0;
-			static auto lastMouseY = 0.0;
-			double mouse_sensitivity = 0.1;
-
-			double deltaX = xpos - lastMouseX;
-			double deltaY = ypos - lastMouseY;
-
-			ref.camera.rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
-			ref.camera.rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
-
-			lastMouseX = xpos;
-			lastMouseY = ypos;
-		}
-		else
-		{
-			ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
-		}
-	}
-
-	static void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-	{
-
-		auto ptr = glfwGetWindowUserPointer(window);
-
-		HelloTriangleApplication* ref1 = (HelloTriangleApplication*)ptr;
-		auto& ref = *ref1;
-		// TODO: maybe use an array to store which key is held down so we can handle multiple keys
-		// at the same time e.g. update on key down and up event respectively
-		if (action == GLFW_PRESS || action == GLFW_REPEAT)
-		{
-			if (key == GLFW_KEY_W)
-			{
-				ref.camera.translate(ref.camera.transform.getForward() * 0.3f);
-			}
-			else if (key == GLFW_KEY_S)
-			{
-				ref.camera.translate(ref.camera.transform.getForward() * -0.3f);
-			}
-			else if (key == GLFW_KEY_A)
-			{
-				ref.camera.translate(ref.camera.transform.getRight() * -0.3f);
-			}
-			else if (key == GLFW_KEY_D)
-			{
-				ref.camera.translate(ref.camera.transform.getRight() * 0.3f);
-			}
-			else if (key == GLFW_KEY_SPACE)
-			{
-				ref.camera.translate(ref.camera.globalUp * 0.3f);
-			}
-			else if (key == GLFW_KEY_LEFT_SHIFT)
-			{
-				ref.camera.translate(ref.camera.globalUp * -0.3f);
-			}
-			else if (key == GLFW_KEY_LEFT)
-			{
-				ref.camera.rotateYawY(10.0f);
-			}
-			else if (key == GLFW_KEY_RIGHT)
-			{
-				ref.camera.rotateYawY(-10.0f);
-			}
-			else if (key == GLFW_KEY_UP)
-			{
-				ref.camera.rotatePitchX(10.0f);
-			}
-			else if (key == GLFW_KEY_DOWN)
-			{
-				ref.camera.rotatePitchX(-10.0f);
-			}
-			else if (key == GLFW_KEY_Q)
-			{
-				glfwSetWindowShouldClose(ref.window.getGLFWWindow(), true);
-			}
-			else if (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE)
-			{
-				ref.window.setMouseCursorCapturedEnabled(
-				    !ref.window.getMouseCursorCaptureEnabled());
-				std::cout << "Cursor capture enabled: "
-				          << (ref.window.getMouseCursorCaptureEnabled() ? "True" : "False")
-				          << std::endl;
-			}
-			else
-			{
-				ImGui_ImplGlfw_KeyCallback(ref.window.getGLFWWindow(), key, scancode, action, mods);
-			}
-
-			// TODO: Add mouse rotation via a virtual trackball e.g.
-			// https://computergraphics.stackexchange.com/questions/151/how-to-implement-a-trackball-in-opengl
-		}
-	}
-
-	static void framebufferResizeCallback(GLFWwindow* window,
-	                                      [[maybe_unused]] int width,
-	                                      [[maybe_unused]] int height)
-	{
-
-		auto& app = *reinterpret_cast<HelloTriangleApplication*>(glfwGetWindowUserPointer(window));
-
-		if (!app.vulkan_initialized) return;
-
-		ltracer::SwapChainSupportDetails swapChainSupport
-		    = app.querySwapChainSupport(app.physicalDevice);
-		VkExtent2D extent = app.window.chooseSwapExtent(swapChainSupport.capabilities);
-		if (extent.height > 0 && extent.width > 0)
-		{
-
-			vkDeviceWaitIdle(app.logicalDevice);
-			app.renderer->cleanupFramebufferAndImageViews();
-			app.window.recreateSwapChain(
-			    app.physicalDevice, app.logicalDevice, extent, swapChainSupport);
-			app.renderer->createImageViews(app.logicalDevice);
-			app.renderer->createFramebuffers(app.logicalDevice, app.window);
-
-			ltracer::QueueFamilyIndices indices
-			    = ltracer::findQueueFamilies(app.physicalDevice, app.window.getVkSurface());
-
-			app.renderer->recreateRaytracingImageAndImageView(indices);
-			app.camera.updateScreenSize(extent.width, extent.height);
-		}
+		glfwSetKeyCallback(window.getGLFWWindow(), &ltracer::handleInputCallback);
+		glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
+		glfwSetCursorPosCallback(window.getGLFWWindow(), &ltracer::handleMouseMovementCallback);
 	}
 
 	void printSelectedGPU()
@@ -414,6 +290,8 @@ class HelloTriangleApplication
 			raytracingSupported = false;
 			deviceExtensions = &deviceExtensionsForDisplay;
 		}
+
+		swapChainSupportDetails = querySwapChainSupport(physicalDevice);
 
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
@@ -804,16 +682,14 @@ class HelloTriangleApplication
 			renderer->drawFrame(camera, delta);
 			if (renderer->swapChainOutdated)
 			{
-				ltracer::SwapChainSupportDetails swapChainSupport
-				    = querySwapChainSupport(physicalDevice);
-				VkExtent2D extent = window.chooseSwapExtent(swapChainSupport.capabilities);
+				VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);
 
 				if (extent.height > 0 && extent.width > 0)
 				{
 					vkDeviceWaitIdle(logicalDevice);
 					renderer->cleanupFramebufferAndImageViews();
 					window.recreateSwapChain(
-					    physicalDevice, logicalDevice, extent, swapChainSupport);
+					    physicalDevice, logicalDevice, extent, swapChainSupportDetails);
 					renderer->createImageViews(logicalDevice);
 					renderer->createFramebuffers(logicalDevice, window);
 
