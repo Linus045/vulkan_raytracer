@@ -2,7 +2,6 @@
 
 #include <cassert>
 #include <cstring>
-#include <memory>
 #include <stdexcept>
 #include <vector>
 
@@ -38,12 +37,10 @@ class Renderer
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
 	         VkQueue transferQueue,
-	         const bool raytracingSupported,
-	         const ltracer::ui::UIData& uiData)
-	    : deletionQueue(deletionQueue), window(window), uiData(uiData),
-	      physicalDevice(physicalDevice), raytracingSupported(raytracingSupported),
-	      logicalDevice(logicalDevice), graphicsQueue(graphicsQueue), presentQueue(presentQueue),
-	      transferQueue(transferQueue) //
+	         const bool raytracingSupported)
+	    : deletionQueue(deletionQueue), window(window), physicalDevice(physicalDevice),
+	      raytracingSupported(raytracingSupported), logicalDevice(logicalDevice),
+	      graphicsQueue(graphicsQueue), presentQueue(presentQueue), transferQueue(transferQueue) //
 	{
 	}
 
@@ -254,7 +251,7 @@ class Renderer
 	}
 
 	/// Draws the frame and updates the surface
-	void drawFrame(Camera& camera, [[maybe_unused]] double delta)
+	void drawFrame(Camera& camera, [[maybe_unused]] double delta, const ui::UIData& uiData)
 	{
 
 		vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
@@ -292,7 +289,7 @@ class Renderer
 			ltracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, camera);
 		}
 		updateUniformBuffer(currentFrame);
-		recordCommandBuffer(commandBuffers[currentFrame], imageIndex);
+		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
 
 		VkSubmitInfo submitInfo{};
 		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -366,8 +363,6 @@ class Renderer
 
 	glm::mat4 viewMatrix;
 	glm::mat4 projectionMatrix;
-
-	const ui::UIData& uiData;
 
 	// physical device handle
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
@@ -789,7 +784,9 @@ class Renderer
 		                            { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
 	}
 
-	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex)
+	void recordCommandBuffer(VkCommandBuffer commandBuffer,
+	                         uint32_t imageIndex,
+	                         const ui::UIData& uiData)
 	{
 
 		ltracer::QueueFamilyIndices queueFamilyIndices

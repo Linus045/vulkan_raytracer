@@ -39,7 +39,7 @@
 class HelloTriangleApplication
 {
 
-	void createRenderer(const ltracer::ui::UIData& uiData)
+	void createRenderer()
 	{
 		int width, height;
 		window.getFramebufferSize(&width, &height);
@@ -50,8 +50,7 @@ class HelloTriangleApplication
 		                                               graphicsQueue,
 		                                               presentQueue,
 		                                               transferQueue,
-		                                               raytracingSupported,
-		                                               uiData);
+		                                               raytracingSupported);
 
 		window.createSwapChain(
 		    physicalDevice,
@@ -67,17 +66,14 @@ class HelloTriangleApplication
 	{
 		// loadModels();
 
-		const ltracer::ui::UIData uiData{
-		    .camera = camera,
-		    .raytracingSupported = raytracingSupported,
-		    .physicalDeviceProperties = physicalDeviceProperties,
-		};
-
 		createWindow();
 
 		initVulkan();
 
-		createRenderer(uiData);
+		createRenderer();
+
+		uiData = std::make_unique<ltracer::ui::UIData>(
+		    camera, raytracingSupported, physicalDeviceProperties);
 
 		customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
 		                                                           window,
@@ -99,7 +95,7 @@ class HelloTriangleApplication
 
 	void createWindow()
 	{
-		window.initWindow(ltracer::framebufferResizeCallback);
+		window.initWindow(&framebufferResizeCallback);
 	}
 
 	HelloTriangleApplication(const HelloTriangleApplication&) = delete;
@@ -108,6 +104,7 @@ class HelloTriangleApplication
 	HelloTriangleApplication& operator=(const HelloTriangleApplication&) = delete;
 
   private:
+	std::unique_ptr<ltracer::ui::UIData> uiData;
 	std::unique_ptr<ltracer::CustomUserData> customUserData;
 	ltracer::DeletionQueue mainDeletionQueue;
 
@@ -263,6 +260,7 @@ class HelloTriangleApplication
 		glfwSetKeyCallback(window.getGLFWWindow(), &ltracer::handleInputCallback);
 		glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
 		glfwSetCursorPosCallback(window.getGLFWWindow(), &ltracer::handleMouseMovementCallback);
+		glfwSetScrollCallback(window.getGLFWWindow(), &ltracer::handleMouseScrollCallback);
 	}
 
 	void printSelectedGPU()
@@ -291,7 +289,7 @@ class HelloTriangleApplication
 			deviceExtensions = &deviceExtensionsForDisplay;
 		}
 
-		swapChainSupportDetails = querySwapChainSupport(physicalDevice);
+		swapChainSupportDetails = updateSwapChainSupportDetails(physicalDevice, window);
 
 		vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
@@ -536,7 +534,58 @@ class HelloTriangleApplication
 		return deviceFound;
 	}
 
-	ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice)
+	static ltracer::SwapChainSupportDetails
+	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, ltracer::Window& window)
+	{
+		return querySwapChainSupport(physicalDevice, window);
+	}
+
+	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
+	                              VkDevice logicalDevice,
+	                              ltracer::Renderer& renderer,
+	                              ltracer::Window& window,
+	                              ltracer::Camera& camera,
+	                              ltracer::SwapChainSupportDetails& swapChainSupportDetails)
+	{
+		VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);
+		if (extent.height > 0 && extent.width > 0)
+		{
+			vkDeviceWaitIdle(logicalDevice);
+			renderer.cleanupFramebufferAndImageViews();
+			window.recreateSwapChain(
+			    physicalDevice, logicalDevice, extent, swapChainSupportDetails);
+			renderer.createImageViews(logicalDevice);
+			renderer.createFramebuffers(logicalDevice, window);
+
+			ltracer::QueueFamilyIndices indices
+			    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
+
+			renderer.recreateRaytracingImageAndImageView(indices);
+			camera.updateScreenSize(extent.width, extent.height);
+		}
+	}
+
+	static void framebufferResizeCallback(GLFWwindow* window,
+	                                      [[maybe_unused]] int width,
+	                                      [[maybe_unused]] int height)
+	{
+		ltracer::CustomUserData& userData
+		    = *reinterpret_cast<ltracer::CustomUserData*>(glfwGetWindowUserPointer(window));
+		if (!userData.vulkan_initialized) return;
+
+		userData.swapChainSupportDetails
+		    = updateSwapChainSupportDetails(userData.physicalDevice, userData.window);
+
+		resizeFramebuffer(userData.physicalDevice,
+		                  userData.logicalDevice,
+		                  userData.renderer,
+		                  userData.window,
+		                  userData.camera,
+		                  userData.swapChainSupportDetails);
+	}
+
+	static ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
+	                                                              ltracer::Window& window)
 	{
 		ltracer::SwapChainSupportDetails details;
 
@@ -581,7 +630,7 @@ class HelloTriangleApplication
 		if (extensionsSupported)
 		{
 			ltracer::SwapChainSupportDetails swapChainSupport
-			    = querySwapChainSupport(physicalDevice);
+			    = querySwapChainSupport(physicalDevice, window);
 			swapChainAdequate
 			    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 		}
@@ -668,6 +717,8 @@ class HelloTriangleApplication
 			delta = glfwGetTime() - lastFrame;
 			lastFrame = currentFrame;
 
+			ltracer::updateMovement(*customUserData, delta);
+
 			// static auto startTime = std::chrono::high_resolution_clock::now();
 
 			// auto currentTime = std::chrono::high_resolution_clock::now();
@@ -679,7 +730,7 @@ class HelloTriangleApplication
 			renderer->updateViewProjectionMatrix(camera.getViewMatrix(),
 			                                     camera.getProjectionMatrix());
 
-			renderer->drawFrame(camera, delta);
+			renderer->drawFrame(camera, delta, *uiData);
 			if (renderer->swapChainOutdated)
 			{
 				VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);

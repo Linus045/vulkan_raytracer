@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <memory>
 #include <string>
 
 #include <backends/imgui_impl_glfw.h>
@@ -18,6 +17,7 @@
 
 #include "src/camera.hpp"
 #include "src/window.hpp"
+#include "src/custom_user_data.hpp"
 
 namespace ltracer
 {
@@ -195,8 +195,12 @@ inline void renderMainPanel(const UIData& uiData)
 	ImGui::SeparatorText("Control:");
 	ImGui::Text("Press Q to quit");
 	ImGui::Text("W/A/S/D to move");
+	ImGui::Text("Scroll up/down to increase/decrease movement speed");
 	ImGui::Text("Arrow keys to rotate");
 	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
+
+	ImGui::Separator();
+	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
 
 	ImGui::SeparatorText("Data:");
 	renderGPUProperties(uiData);

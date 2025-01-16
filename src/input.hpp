@@ -1,5 +1,7 @@
 #pragma once
 
+#include <algorithm>
+#include <vector>
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
@@ -24,6 +26,8 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
 
+	// TODO: Add mouse rotation via a virtual trackball e.g.
+	// https://computergraphics.stackexchange.com/questions/151/how-to-implement-a-trackball-in-opengl
 	if (userData.window.getMouseCursorCaptureEnabled())
 	{
 		// TODO: move these into a more fitting space
@@ -46,56 +50,85 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 	}
 }
 
+inline void updateMovement(CustomUserData& userData, double delta)
+{
+	if (userData.keyStateMap[GLFW_KEY_W])
+	{
+		userData.camera.translate(userData.camera.transform.getForward()
+		                          * userData.camera.getMovementSpeed() * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_S])
+	{
+		userData.camera.translate(userData.camera.transform.getForward()
+		                          * -userData.camera.getMovementSpeed() * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_A])
+	{
+		userData.camera.translate(userData.camera.transform.getRight()
+		                          * -userData.camera.getMovementSpeed() * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_D])
+	{
+		userData.camera.translate(userData.camera.transform.getRight()
+		                          * userData.camera.getMovementSpeed() * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_SPACE])
+	{
+		userData.camera.translate(userData.camera.globalUp * userData.camera.getMovementSpeed()
+		                          * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_LEFT_SHIFT])
+	{
+		userData.camera.translate(userData.camera.globalUp * -userData.camera.getMovementSpeed()
+		                          * delta);
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_LEFT])
+	{
+		userData.camera.rotateYawY(userData.camera.getRotationSpeed() * static_cast<float>(delta));
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_RIGHT])
+	{
+		userData.camera.rotateYawY(-userData.camera.getRotationSpeed() * static_cast<float>(delta));
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_UP])
+	{
+		userData.camera.rotatePitchX(userData.camera.getRotationSpeed()
+		                             * static_cast<float>(delta));
+	}
+
+	if (userData.keyStateMap[GLFW_KEY_DOWN])
+	{
+		userData.camera.rotatePitchX(-userData.camera.getRotationSpeed()
+		                             * static_cast<float>(delta));
+	}
+}
+
 inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
+
+	if (action == GLFW_PRESS || action == GLFW_REPEAT)
+	{
+		userData.keyStateMap[key] = true;
+	}
+	else if (action == GLFW_RELEASE)
+	{
+		userData.keyStateMap[key] = false;
+	}
 
 	// TODO: maybe use an array to store which key is held down so we can handle multiple keys
 	// at the same time e.g. update on key down and up event respectively
 	if (action == GLFW_PRESS || action == GLFW_REPEAT)
 	{
-		if (key == GLFW_KEY_W)
-		{
-			userData.camera.translate(userData.camera.transform.getForward() * 0.3f);
-		}
-		else if (key == GLFW_KEY_S)
-		{
-			userData.camera.translate(userData.camera.transform.getForward() * -0.3f);
-		}
-		else if (key == GLFW_KEY_A)
-		{
-			userData.camera.translate(userData.camera.transform.getRight() * -0.3f);
-		}
-		else if (key == GLFW_KEY_D)
-		{
-			userData.camera.translate(userData.camera.transform.getRight() * 0.3f);
-		}
-		else if (key == GLFW_KEY_SPACE)
-		{
-			userData.camera.translate(userData.camera.globalUp * 0.3f);
-		}
-		else if (key == GLFW_KEY_LEFT_SHIFT)
-		{
-			userData.camera.translate(userData.camera.globalUp * -0.3f);
-		}
-		else if (key == GLFW_KEY_LEFT)
-		{
-			userData.camera.rotateYawY(10.0f);
-		}
-		else if (key == GLFW_KEY_RIGHT)
-		{
-			userData.camera.rotateYawY(-10.0f);
-		}
-		else if (key == GLFW_KEY_UP)
-		{
-			userData.camera.rotatePitchX(10.0f);
-		}
-		else if (key == GLFW_KEY_DOWN)
-		{
-			userData.camera.rotatePitchX(-10.0f);
-		}
-		else if (key == GLFW_KEY_Q)
+		if (key == GLFW_KEY_Q)
 		{
 			glfwSetWindowShouldClose(userData.window.getGLFWWindow(), true);
 		}
@@ -112,39 +145,15 @@ inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int a
 			ImGui_ImplGlfw_KeyCallback(
 			    userData.window.getGLFWWindow(), key, scancode, action, mods);
 		}
-
-		// TODO: Add mouse rotation via a virtual trackball e.g.
-		// https://computergraphics.stackexchange.com/questions/151/how-to-implement-a-trackball-in-opengl
 	}
 }
 
-inline void framebufferResizeCallback(GLFWwindow* window,
-                                      [[maybe_unused]] int width,
-                                      [[maybe_unused]] int height)
+inline void
+handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffset, double yOffset)
 {
-
-	ltracer::CustomUserData& userData
-	    = *reinterpret_cast<ltracer::CustomUserData*>(glfwGetWindowUserPointer(window));
-
-	if (!userData.vulkan_initialized) return;
-
-	ltracer::SwapChainSupportDetails swapChainSupport = userData.swapChainSupportDetails;
-	VkExtent2D extent = userData.window.chooseSwapExtent(swapChainSupport.capabilities);
-	if (extent.height > 0 && extent.width > 0)
-	{
-
-		vkDeviceWaitIdle(userData.logicalDevice);
-		userData.renderer.cleanupFramebufferAndImageViews();
-		userData.window.recreateSwapChain(
-		    userData.physicalDevice, userData.logicalDevice, extent, swapChainSupport);
-		userData.renderer.createImageViews(userData.logicalDevice);
-		userData.renderer.createFramebuffers(userData.logicalDevice, userData.window);
-
-		ltracer::QueueFamilyIndices indices
-		    = ltracer::findQueueFamilies(userData.physicalDevice, userData.window.getVkSurface());
-
-		userData.renderer.recreateRaytracingImageAndImageView(indices);
-		userData.camera.updateScreenSize(extent.width, extent.height);
-	}
+	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
+	userData.camera.setMovementSpeed(userData.camera.getMovementSpeed()
+	                                 + static_cast<float>(yOffset));
 }
+
 } // namespace ltracer

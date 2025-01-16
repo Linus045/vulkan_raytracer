@@ -143,6 +143,26 @@ class Camera
 		return yawRadians;
 	}
 
+	void setMovementSpeed(const float movementSpeed)
+	{
+		this->movementSpeed = glm::clamp(movementSpeed, movementSpeedMin, movementSpeedMax);
+	}
+
+	float getMovementSpeed() const
+	{
+		return movementSpeed;
+	}
+
+	void setRotationSpeed(const float rotationSpeed)
+	{
+		this->rotationSpeed = glm::clamp(rotationSpeed, rotationSpeedMin, rotationSpeedMax);
+	}
+
+	float getRotationSpeed() const
+	{
+		return rotationSpeed;
+	}
+
 	const glm::vec3 globalUp = {0, 1, 0};
 
   private:
@@ -162,6 +182,14 @@ class Camera
 
 	float pitchRadians = 0.0f;
 	float yawRadians = 0.0f;
+
+	float movementSpeedMin = 1.0f;
+	float movementSpeedMax = 30.0f;
+	float movementSpeed = 10.0f;
+
+	float rotationSpeedMin = 1.0f;
+	float rotationSpeedMax = 100.0f;
+	float rotationSpeed = 60.0f;
 
 	void updateProjectionMatrix()
 	{
