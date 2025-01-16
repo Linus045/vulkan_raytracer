@@ -306,7 +306,11 @@ class Window
 	VkFormat swapChainImageFormat;
 	VkExtent2D swapChainExtent;
 
+#ifdef NDEBUG
 	bool cursorCaptureEnabled = true;
+#else
+	bool cursorCaptureEnabled = false;
+#endif
 };
 
 } // namespace ltracer
