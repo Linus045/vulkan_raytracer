@@ -136,8 +136,10 @@ class HelloTriangleApplication
 
 #ifdef NDEBUG
 	const bool enableValidationLayer = false;
+	const bool enableDebugShaderPrintf = false;
 #else
 	const bool enableValidationLayer = true;
+	const bool enableDebugShaderPrintf = true;
 #endif
 
 	const std::vector<const char*> validationLayers = {
@@ -814,6 +816,7 @@ class HelloTriangleApplication
 
 		VkValidationFeatureEnableEXT validationFeatureEnable[]
 		    = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+
 		VkValidationFeaturesEXT features{};
 		features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
 
@@ -825,9 +828,19 @@ class HelloTriangleApplication
 			populateDebugMessengerCreateInfo(debugMessengerCreation);
 
 			features.disabledValidationFeatureCount = 0;
-			features.enabledValidationFeatureCount = 1;
 			features.pDisabledValidationFeatures = nullptr;
-			features.pEnabledValidationFeatures = validationFeatureEnable;
+
+			if (enableDebugShaderPrintf)
+			{
+				features.enabledValidationFeatureCount = 1;
+				features.pEnabledValidationFeatures = validationFeatureEnable;
+			}
+			else
+			{
+				features.enabledValidationFeatureCount = 0;
+				features.pEnabledValidationFeatures = nullptr;
+			}
+
 			features.pNext = (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreation;
 
 			createInfo.enabledLayerCount = static_cast<uint32_t>(validationLayers.size());
