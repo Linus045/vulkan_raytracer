@@ -27,6 +27,7 @@
 #include "src/shader_module.hpp"
 #include "src/tlas.hpp"
 #include "src/types.hpp"
+#include "src/visualizations.hpp"
 #include "src/window.hpp"
 #include "src/device_procedures.hpp"
 
@@ -1125,53 +1126,68 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	// create aabbs (temporary)
 
 	std::vector<Tetrahedron> tetrahedrons
-	    = {Tetrahedron{glm::vec3(0, 0, 2), glm::vec3(2, 0, 0), glm::vec3(0, 2, 0)}};
+	    = {Tetrahedron{glm::vec3(0, 0, 0), glm::vec3(2, 0, 0), glm::vec3(0, 0, 2)}};
 
-	std::vector<Sphere> spheres;
+	std::vector<Sphere> spheres{
+	    // show origin
+	    Sphere{glm::vec3(), 0.3f},
+	};
 
-	{
-		std::random_device rd;
-		std::mt19937 gen(rd());
+	// {
+	// 	std::random_device rd;
+	// 	std::mt19937 gen(rd());
 
-		std::uniform_int_distribution<> positionDist(-20, 20);
-		std::uniform_int_distribution<> sizeDist(-20, 20);
-		for (int i = 0; i < 20; i++)
-		{
-			auto randomX = positionDist(gen);
-			auto randomY = positionDist(gen);
-			auto randomZ = positionDist(gen);
-			if (false)
-			{
-				tetrahedrons.emplace_back(
-				    glm::vec3(randomX, randomY, randomZ),
-				    glm::vec3(
-				        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)),
-				    glm::vec3(
-				        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)));
-			}
-			else
-			{
-				float sphereScaling = 0.1f;
-				spheres.emplace_back(glm::vec3(randomX, randomY, randomZ),
-				                     static_cast<float>(std::abs(sizeDist(gen))) * sphereScaling);
-			}
-		}
-	}
+	// 	std::uniform_int_distribution<> positionDist(-20, 20);
+	// 	std::uniform_int_distribution<> sizeDist(-20, 20);
+	// 	for (int i = 0; i < 20; i++)
+	// 	{
+	// 		auto randomX = positionDist(gen);
+	// 		auto randomY = positionDist(gen);
+	// 		auto randomZ = positionDist(gen);
+	// 		if (false)
+	// 		{
+	// 			tetrahedrons.emplace_back(
+	// 			    glm::vec3(randomX, randomY, randomZ),
+	// 			    glm::vec3(
+	// 			        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)),
+	// 			    glm::vec3(
+	// 			        randomX + sizeDist(gen), randomY + sizeDist(gen), randomZ + sizeDist(gen)));
+	// 		}
+	// 		else
+	// 		{
+	// 			float sphereScaling = 0.1f;
+	// 			spheres.emplace_back(glm::vec3(randomX, randomY, randomZ),
+	// 			                     static_cast<float>(std::abs(sizeDist(gen))) * sphereScaling);
+	// 		}
+	// 	}
+	// }
+
+	auto surfaceTest = RectangularBezierSurface(3,
+	                                            3,
+	                                            {
+	                                                glm::vec3(0, 0, 0),
+	                                                glm::vec3(5, 0, 0),
+	                                                glm::vec3(10, 0, 0),
+	                                                glm::vec3(15, 0, 0),
+
+	                                                glm::vec3(0, 0, 5),
+	                                                glm::vec3(5, 0, 5),
+	                                                glm::vec3(10, 0, 5),
+	                                                glm::vec3(15, 0, 5),
+
+	                                                glm::vec3(0, 0, 10),
+	                                                glm::vec3(5, 0, 10),
+	                                                glm::vec3(10, 0, 10),
+	                                                glm::vec3(15, 0, 10),
+
+	                                                glm::vec3(0, 5, 15),
+	                                                glm::vec3(5, 5, 15),
+	                                                glm::vec3(10, 5, 15),
+	                                                glm::vec3(15, 5, 15),
+	                                            });
 
 	std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
-	    RectangularBezierSurface(2,
-	                             2,
-	                             {
-	                                 glm::vec3(0, 0, 0),
-	                                 glm::vec3(5, 0, 0),
-	                                 glm::vec3(10, 0, 0),
-	                                 glm::vec3(0, 5, 0),
-	                                 glm::vec3(5, 5, 3),
-	                                 glm::vec3(10, 5, 0),
-	                                 glm::vec3(0, 10, 0),
-	                                 glm::vec3(5, 10, 0),
-	                                 glm::vec3(10, 10, 0),
-	                             }),
+	    // surfaceTest,
 	};
 
 	// create vector to hold all BLAS instances
@@ -1201,23 +1217,15 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    tetrahedronsAABBBufferHandle);
 	}
 
-	if (spheres.size() > 0)
 	{
-		std::vector<AABB> aabbsSpheres;
-		for (auto&& sphere : spheres)
+		// Visualize surface using spheres
+		std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
+		if (!surfaceTest.tryConvertToRectangularSurfaces2x2(rectangularBezierSurfaces2x2))
 		{
-			aabbsSpheres.push_back(AABB::fromSphere(sphere));
+			throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
 		}
 
-		createBottomLevelAccelerationStructuresForObjects<Sphere>(physicalDevice,
-		                                                          logicalDevice,
-		                                                          deletionQueue,
-		                                                          spheres,
-		                                                          ObjectType::t_Sphere,
-		                                                          aabbsSpheres,
-		                                                          blasInstancesData,
-		                                                          spheresBufferHandle,
-		                                                          spheresAABBBufferHandle);
+		visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
 	}
 
 	if (rectangularBezierSurfaces.size() > 0)
@@ -1247,6 +1255,25 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    blasInstancesData,
 		    rectangularBezierSurfaces2x2BufferHandle,
 		    rectangularBezierSurfacesAABB2x2BufferHandle);
+	}
+
+	if (spheres.size() > 0)
+	{
+		std::vector<AABB> aabbsSpheres;
+		for (auto&& sphere : spheres)
+		{
+			aabbsSpheres.push_back(AABB::fromSphere(sphere));
+		}
+
+		createBottomLevelAccelerationStructuresForObjects<Sphere>(physicalDevice,
+		                                                          logicalDevice,
+		                                                          deletionQueue,
+		                                                          spheres,
+		                                                          ObjectType::t_Sphere,
+		                                                          aabbsSpheres,
+		                                                          blasInstancesData,
+		                                                          spheresBufferHandle,
+		                                                          spheresAABBBufferHandle);
 	}
 
 	// =========================================================================

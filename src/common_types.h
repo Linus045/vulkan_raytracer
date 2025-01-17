@@ -81,10 +81,9 @@ struct Triangle
 	vec3 c;
 };
 
-
 struct RectangularBezierSurface2x2
 {
-	vec3 controlPoints[9];
+	vec3 controlPoints[16];
 };
 
 struct Material

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
@@ -36,10 +37,11 @@ class RectangularBezierSurface
 		// TODO: figure out how to split a bigger surface into smaller ones
 		// for now just we just work with 2x2 surfaces so we can just copy the values
 		auto surface = RectangularBezierSurface2x2{};
-		assert(std::size(surface.controlPoints) == 9 && "Amount of control points is not 9???");
+		assert(std::size(surface.controlPoints) == 16 && "Amount of control points is not 16???");
 		if (std::size(surface.controlPoints) == controlPoints.size())
 		{
-			std::copy_n(controlPoints.begin(), std::size(surface.controlPoints), surface.controlPoints);
+			std::copy_n(
+			    controlPoints.begin(), std::size(surface.controlPoints), surface.controlPoints);
 			rectangularBezierSurfaces2x2.push_back(std::move(surface));
 			return true;
 		}
