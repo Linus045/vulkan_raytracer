@@ -152,8 +152,19 @@ inline void
 handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffset, double yOffset)
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
-	userData.camera.setMovementSpeed(userData.camera.getMovementSpeed()
-	                                 + static_cast<float>(yOffset));
+	float change = static_cast<float>(glm::sign(yOffset) * 1.0f);
+
+	// if movement speed is less than 1.0f, slow down even more
+	if (userData.camera.getMovementSpeed() + change * 0.01f <= 0.1f)
+	{
+		change *= 0.01f;
+	}
+	else if (userData.camera.getMovementSpeed() + change * 0.1f <= 1.0f)
+	{
+		change *= 0.1f;
+	}
+
+	userData.camera.setMovementSpeed(userData.camera.getMovementSpeed() + change);
 }
 
 } // namespace ltracer

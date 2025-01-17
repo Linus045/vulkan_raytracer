@@ -183,8 +183,8 @@ class Camera
 	float pitchRadians = 0.0f;
 	float yawRadians = 0.0f;
 
-	float movementSpeedMin = 1.0f;
-	float movementSpeedMax = 30.0f;
+	float movementSpeedMin = 0.01f;
+	float movementSpeedMax = 60.0f;
 	float movementSpeed = 10.0f;
 
 	float rotationSpeedMin = 1.0f;
