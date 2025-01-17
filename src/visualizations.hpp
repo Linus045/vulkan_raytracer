@@ -150,7 +150,8 @@ inline glm::vec2 f(const glm::vec3 controlPoints[16],
 	};
 }
 
-inline bool newtonsMethod(glm::vec3& intersectionPoint,
+inline bool newtonsMethod(std::vector<Sphere>& spheres,
+                          glm::vec3& intersectionPoint,
                           const glm::vec2 initialGuess,
                           const glm::vec3 origin,
                           const glm::vec3 controlPoints[16],
@@ -170,7 +171,7 @@ inline bool newtonsMethod(glm::vec3& intersectionPoint,
 	const int max_iterations = 20;
 	glm::vec2 u[max_iterations + 1];
 
-	const auto tolerance = glm::vec2(1.0f, 1.0f);
+	const auto tolerance = glm::vec2(0.2f, 0.2f);
 
 	u[0] = initialGuess;
 
@@ -178,13 +179,21 @@ inline bool newtonsMethod(glm::vec3& intersectionPoint,
 
 	for (int c = 0; c < max_iterations; c++)
 	{
-		// WARN: IDK if jacobian is calculated correctly
+		{
+			auto cPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
+			spheres.emplace_back(cPoint, 0.3, 7);
+			std::cout << "Current point on surface for UV: " << "(" << u[c].x << "," << u[c].y
+			          << ")"
+			          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
+		}
+
 		auto j = jacobian(controlPoints, n, m, n1, n2, u[c].x, u[c].y);
 		auto inv_j = inverseJacobian(j);
 		auto f_value = f(controlPoints, origin, n, m, n1, n2, u[c].x, u[c].y);
 
 		auto differenceInUV = (inv_j * f_value);
 		u[c + 1] = u[c] - differenceInUV;
+
 		previousError = error;
 		error = abs(f_value);
 
@@ -230,7 +239,7 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	{
 		for (double v = 0; v <= 1; v += stepSize)
 		{
-			spheres.emplace_back(bezierSurfacePoint(surface.controlPoints, 3, 3, u, v), 0.05);
+			spheres.emplace_back(bezierSurfacePoint(surface.controlPoints, 3, 3, u, v), 0.05, 1);
 		}
 	}
 
@@ -239,7 +248,7 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 
 	for (float v = 0; v <= 15; v += static_cast<float>(stepSize))
 	{
-		spheres.emplace_back(rayOrigin + rayDirection * v, 0.01);
+		spheres.emplace_back(rayOrigin + rayDirection * v, 0.01, 4);
 	}
 
 	auto n1 = glm::vec3(1, 0, 0);
@@ -248,26 +257,26 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	for (int i = 0; i < 16; i++)
 	{
 		auto projectedPoint = projectPoint(surface.controlPoints[i], rayOrigin, n1, n2);
-		spheres.emplace_back(glm::vec3(projectedPoint.x, projectedPoint.y, 0), 0.4);
+		spheres.emplace_back(glm::vec3(projectedPoint.x, projectedPoint.y, 0), 0.4, 5);
 	}
 
 	glm::vec3 intersectionPoint;
-	int tries = 0;
+	glm::vec2 initialGuess = glm::vec2(1, 1);
 
-	while (true)
+	// glm::vec2 initialGuess = projectPoint(surface.controlPoints[10], rayOrigin, n1, n2);
+	std::cout << "Initial guess: " << initialGuess.x << " " << initialGuess.y << std::endl;
+	if (newtonsMethod(spheres,
+	                  intersectionPoint,
+	                  initialGuess,
+	                  rayOrigin,
+	                  surface.controlPoints,
+	                  3,
+	                  3,
+	                  n1,
+	                  n2))
 	{
-		glm::vec2 initialGuess = glm::vec2(1, 1);
-		if (newtonsMethod(
-		        intersectionPoint, initialGuess, rayOrigin, surface.controlPoints, 3, 3, n1, n2))
-		{
-			std::cout << "HIT!" << std::endl;
-			spheres.emplace_back(intersectionPoint, 2);
-		}
-
-		if (tries++ > 10)
-		{
-			break;
-		}
+		std::cout << "HIT!" << std::endl;
+		spheres.emplace_back(intersectionPoint, 1, 6);
 	}
 }
 

@@ -53,6 +53,18 @@ START_BINDING(ObjectType)
 	t_RectangularBezierSurface2x2 = 4
 END_BINDING();
 
+// TODO: add proper materials, this is just temporary to make debugging easier
+START_BINDING(ColorIdx)
+	t_white = 1,
+	t_red = 2,
+	t_blue = 3,
+	t_green = 4,
+	t_yellow = 5,
+	t_orange = 6,
+	t_pink = 7,
+	t_purple = 8,
+	t_black = 9
+END_BINDING();
 // clang-format on
 
 struct Aabb
@@ -65,6 +77,7 @@ struct Sphere
 {
 	vec3 center;
 	float radius;
+	int colorIdx;
 };
 
 struct Tetrahedron

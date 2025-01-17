@@ -1130,7 +1130,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	std::vector<Sphere> spheres{
 	    // show origin
-	    Sphere{glm::vec3(), 0.3f},
+	    Sphere{glm::vec3(), 0.3f, 1},
 	};
 
 	// {
@@ -1187,7 +1187,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	                                            });
 
 	std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
-	    // surfaceTest,
+	    surfaceTest,
 	};
 
 	// create vector to hold all BLAS instances

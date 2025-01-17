@@ -105,17 +105,38 @@ void main() {
 	  vec3 lightPosition = vec3(20,100,-50);
 	  vec3 positionToLightDirection = normalize(lightPosition - position);
 
-	  vec3 surfaceColor = vec3(1.0,0.6,0.6);
+
+	  // see ColorIdx in common_types.h
+	  vec3 colorlist[9] = {
+		  vec3(1.0, 1.0, 1.0),
+		  vec3(1.0, 0.0, 0.0),
+		  vec3(0.0, 0.0, 1.0),
+		  vec3(0.0, 1.0, 0.0),
+		  vec3(1.0, 1.0, 0.0),
+		  vec3(1.0, 0.5, 0.0),
+		  vec3(1.0, 0.0, 1.0),
+		  vec3(0.5, 0.0, 1.0),
+		  vec3(0.0, 0.0, 0.0)
+	  };
+	  vec3 surfaceColor = colorlist[s.colorIdx - 1];
 
 	  vec3 sphereNormal = normalize(position - s.center);
-      payload.directColor = surfaceColor * lightColor *
-                              dot(sphereNormal, positionToLightDirection);
-       payload.rayActive = 0;
+	  payload.directColor = surfaceColor * lightColor *
+		  dot(sphereNormal, positionToLightDirection);
+	  payload.rayActive = 0;
   }else if(gl_HitKindEXT == t_RectangularBezierSurface2x2) {
-      if (payload.rayDepth == 0) {
-          payload.directColor = lightColor;
-          payload.rayActive = 0;
-      } 
+	  vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+	  vec3 lightPosition = vec3(20,100,-50);
+	  vec3 positionToLightDirection = normalize(lightPosition - position);
+	  vec3 surfaceColor = vec3(0.6,1.0,0.6);
+
+	  // TODO: do some light calculations via the normals?
+	  // maybe subdivide into smaller patches that have normals defined 
+	  // or add normals to the control points OR somehow calculate the normals
+	  vec3 surfaceNormal = vec3(0,1,0);
+	  payload.directColor = surfaceColor * lightColor *
+		  dot(surfaceNormal, positionToLightDirection);
+	  payload.rayActive = 0;
   }else{
 
   ivec3 indices = ivec3(indexBuffer.data[3 * gl_PrimitiveID + 0],
