@@ -36,7 +36,7 @@ struct UIData
 
 struct UIStatus
 {
-	bool mainPanelOpen = true;
+	bool mainPanelOpen = false;
 };
 
 static UIStatus uiStatus;
@@ -183,6 +183,7 @@ inline void renderMainPanel(const UIData& uiData)
 	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 100),
 	                        ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
 	if (!ImGui::Begin("Status", &uiStatus.mainPanelOpen, window_flags))
