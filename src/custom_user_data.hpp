@@ -7,6 +7,11 @@ namespace ltracer
 {
 
 // forward declarations
+namespace ui
+{
+	struct UIData;
+}
+
 class Window;
 class Camera;
 class Renderer;
@@ -21,6 +26,7 @@ struct CustomUserData
 	Window& window;
 	Camera& camera;
 	Renderer& renderer;
+	ui::UIData& uiData;
 	SwapChainSupportDetails& swapChainSupportDetails;
 
 	VkDevice& logicalDevice;

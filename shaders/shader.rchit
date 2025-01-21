@@ -42,6 +42,11 @@ layout(binding = 1, set = 0) uniform Camera {
 }
 camera;
 
+layout( push_constant ) uniform RaytracingDataConstants
+{
+	float newtonErrorTolerance;
+} raytracingDataConstants;
+
 layout(binding = 2, set = 0) buffer IndexBuffer { uint data[]; }
 indexBuffer;
 layout(binding = 3, set = 0) buffer VertexBuffer { float data[]; }

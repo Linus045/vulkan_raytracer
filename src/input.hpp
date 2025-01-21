@@ -13,6 +13,7 @@
 #include "src/camera.hpp"
 #include "src/window.hpp"
 #include "src/renderer.hpp"
+#include "src/ui.hpp"
 
 namespace ltracer
 {
@@ -114,20 +115,18 @@ inline void updateMovement(CustomUserData& userData, double delta)
 inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
-
-	if (action == GLFW_PRESS || action == GLFW_REPEAT)
-	{
-		userData.keyStateMap[key] = true;
-	}
-	else if (action == GLFW_RELEASE)
-	{
-		userData.keyStateMap[key] = false;
-	}
-
+	
 	// TODO: maybe use an array to store which key is held down so we can handle multiple keys
 	// at the same time e.g. update on key down and up event respectively
-	if (action == GLFW_PRESS || action == GLFW_REPEAT)
+	if (!userData.uiData.mainPanelCollapsed)
 	{
+		ImGui_ImplGlfw_KeyCallback(userData.window.getGLFWWindow(), key, scancode, action, mods);
+	}
+	else if (action == GLFW_PRESS || action == GLFW_REPEAT)
+	{
+		// only update the key state map when the UI is collapsed
+		userData.keyStateMap[key] = true;
+
 		if (key == GLFW_KEY_Q)
 		{
 			glfwSetWindowShouldClose(userData.window.getGLFWWindow(), true);
@@ -135,16 +134,15 @@ inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int a
 		else if (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE)
 		{
 			userData.window.setMouseCursorCapturedEnabled(
-			    !userData.window.getMouseCursorCaptureEnabled());
+				!userData.window.getMouseCursorCaptureEnabled());
 			std::cout << "Cursor capture enabled: "
-			          << (userData.window.getMouseCursorCaptureEnabled() ? "True" : "False")
-			          << std::endl;
+						<< (userData.window.getMouseCursorCaptureEnabled() ? "True" : "False")
+						<< std::endl;
 		}
-		else
-		{
-			ImGui_ImplGlfw_KeyCallback(
-			    userData.window.getGLFWWindow(), key, scancode, action, mods);
-		}
+	} 
+	else if (action == GLFW_RELEASE)
+	{
+		userData.keyStateMap[key] = false;
 	}
 }
 
@@ -152,19 +150,27 @@ inline void
 handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffset, double yOffset)
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
-	float change = static_cast<float>(glm::sign(yOffset) * 1.0f);
 
-	// if movement speed is less than 1.0f, slow down even more
-	if (userData.camera.getMovementSpeed() + change * 0.01f <= 0.1f)
+	if (!userData.uiData.mainPanelCollapsed)
 	{
-		change *= 0.01f;
+		ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
 	}
-	else if (userData.camera.getMovementSpeed() + change * 0.1f <= 1.0f)
+	else
 	{
-		change *= 0.1f;
-	}
+		float change = static_cast<float>(glm::sign(yOffset) * 1.0f);
 
-	userData.camera.setMovementSpeed(userData.camera.getMovementSpeed() + change);
+		// if movement speed is less than 1.0f, slow down even more
+		if (userData.camera.getMovementSpeed() + change * 0.01f <= 0.1f)
+		{
+			change *= 0.01f;
+		}
+		else if (userData.camera.getMovementSpeed() + change * 0.1f <= 1.0f)
+		{
+			change *= 0.1f;
+		}
+
+		userData.camera.setMovementSpeed(userData.camera.getMovementSpeed() + change);
+	}
 }
 
 } // namespace ltracer

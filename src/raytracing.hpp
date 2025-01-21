@@ -476,14 +476,23 @@ inline void createPipelineLayout(DeletionQueue& deletionQueue,
                                  std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList,
                                  VkDevice logicalDevice)
 {
+	std::vector<VkPushConstantRange> pushConstantRanges{
+	    {
+	        .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+	                      | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .offset = 0,
+	        .size = sizeof(RaytracingDataConstants),
+	    },
+	};
+
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 	    .pNext = NULL,
 	    .flags = 0,
 	    .setLayoutCount = static_cast<uint32_t>(descriptorSetLayoutHandleList.size()),
 	    .pSetLayouts = descriptorSetLayoutHandleList.data(),
-	    .pushConstantRangeCount = 0,
-	    .pPushConstantRanges = NULL,
+	    .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+	    .pPushConstantRanges = pushConstantRanges.data(),
 	};
 
 	VkResult result = vkCreatePipelineLayout(
@@ -1659,6 +1668,15 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                        0,
 	                        NULL);
 
+	// upload the matrix to the GPU via push constants
+	vkCmdPushConstants(commandBuffer,
+	                   raytracingInfo.pipelineLayoutHandle,
+	                   VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+	                       | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	                   0,
+	                   sizeof(RaytracingDataConstants),
+	                   &raytracingInfo.raytracingConstants);
+
 	auto currentExtent = window.getSwapChainExtent();
 	ltracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
 	                                        &raytracingInfo.rgenShaderBindingTable,
@@ -1698,9 +1716,10 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 // does the raytracing onto the provided image
 inline void updateRaytraceBuffer(VkDevice logicalDevice,
                                  RaytracingInfo& raytracingInfo,
-                                 ltracer::Camera& camera)
+                                 ltracer::Camera& camera,
+                                 const bool resetFrameCountRequested)
 {
-	if (camera.isCameraMoved())
+	if (resetFrameCountRequested)
 	{
 		updateUniformStructure(raytracingInfo,
 		                       camera.transform.position,
@@ -1708,8 +1727,6 @@ inline void updateRaytraceBuffer(VkDevice logicalDevice,
 		                       camera.transform.getUp(),
 		                       camera.transform.getRight());
 		resetFrameCount(raytracingInfo);
-
-		camera.resetCameraMoved();
 	}
 	else
 	{

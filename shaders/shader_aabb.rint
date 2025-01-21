@@ -35,6 +35,11 @@ layout(set = 0, binding=7, scalar) buffer RectangularBezierSurfaces
 	RectangularBezierSurface2x2[] rectangularBezierSurfaces2x2;
 };
 
+layout( push_constant ) uniform RaytracingDataConstants
+{
+	float newtonErrorTolerance;
+} raytracingDataConstants;
+
 // Ray-Sphere intersection
 // http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
 float hitSphere(const Sphere s, const Ray r)
@@ -269,7 +274,7 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 	const int max_iterations = 10;
 	vec2 u[max_iterations + 1];
 
-	vec2 tolerance = vec2(0.002f, 0.002f);
+	vec2 tolerance = vec2(raytracingDataConstants.newtonErrorTolerance, raytracingDataConstants.newtonErrorTolerance);
 
 	u[0] = initialGuess;
 

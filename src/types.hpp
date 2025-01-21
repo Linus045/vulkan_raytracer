@@ -52,6 +52,11 @@ struct UniformBufferObject
 	alignas(16) std::vector<glm::vec3> modelNormals;
 };
 
+struct RaytracingDataConstants
+{
+	alignas(16) float newtonErrorTolerance;
+};
+
 struct SharedInfo
 {
 	alignas(16) glm::mat4 view;
@@ -113,6 +118,8 @@ struct RaytracingInfo
 	uint32_t hitGroupSize = 0;
 	uint32_t rayGenGroupSize = 0;
 	uint32_t missGroupSize = 0;
+
+	RaytracingDataConstants raytracingConstants;
 };
 
 inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,

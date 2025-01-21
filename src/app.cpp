@@ -73,13 +73,18 @@ class HelloTriangleApplication
 		createRenderer();
 
 		uiData = std::make_unique<ltracer::ui::UIData>(
-		    camera, raytracingSupported, physicalDeviceProperties);
+			false,
+		    camera,
+		    raytracingSupported,
+		    physicalDeviceProperties,
+		    renderer->getRaytracingDataConstants());
 
 		customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
 		                                                           window,
 		                                                           camera,
 		                                                           *renderer,
-		                                                           swapChainSupportDetails,
+																   *uiData,
+																   swapChainSupportDetails,
 		                                                           logicalDevice,
 		                                                           physicalDevice);
 
@@ -263,6 +268,12 @@ class HelloTriangleApplication
 		glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
 		glfwSetCursorPosCallback(window.getGLFWWindow(), &ltracer::handleMouseMovementCallback);
 		glfwSetScrollCallback(window.getGLFWWindow(), &ltracer::handleMouseScrollCallback);
+		
+		// additional callbacks only needed by Imgui
+		glfwSetWindowFocusCallback(window.getGLFWWindow(), ImGui_ImplGlfw_WindowFocusCallback);
+		glfwSetCursorEnterCallback(window.getGLFWWindow(), ImGui_ImplGlfw_CursorEnterCallback);
+		glfwSetCharCallback(window.getGLFWWindow(), ImGui_ImplGlfw_CharCallback);
+		glfwSetMonitorCallback(ImGui_ImplGlfw_MonitorCallback);
 	}
 
 	void printSelectedGPU()
@@ -733,6 +744,13 @@ class HelloTriangleApplication
 			                                     camera.getProjectionMatrix());
 
 			renderer->drawFrame(camera, delta, *uiData);
+
+			if (uiData->configurationChanged || camera.isCameraMoved())
+			{
+				camera.resetCameraMoved();
+				renderer->requestResetFrameCount();
+			}
+
 			if (renderer->swapChainOutdated)
 			{
 				VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);

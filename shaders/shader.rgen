@@ -30,6 +30,11 @@ camera;
 
 layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 
+layout( push_constant ) uniform RaytracingDataConstants
+{
+	float newtonErrorTolerance;
+} raytracingDataConstants;
+
 float random(vec2 uv, float seed) {
   return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
                43758.5453);

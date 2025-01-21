@@ -137,6 +137,10 @@ class Renderer
 			    physicalDevice, logicalDevice, deletionQueue, raytracingInfo);
 		}
 
+		raytracingInfo.raytracingConstants = {
+			.newtonErrorTolerance = 0.0001f,
+		};
+
 		// auto& cameraTransform = camera->transform;
 		// ltracer::updateUniformStructure(
 		//     cameraTransform.position, cameraTransform.getRight(),
@@ -229,7 +233,7 @@ class Renderer
 		}
 	}
 
-	void renderImguiFrame(const VkCommandBuffer commandBuffer, const ltracer::ui::UIData& uiData)
+	void renderImguiFrame(const VkCommandBuffer commandBuffer, ltracer::ui::UIData& uiData)
 	{
 		ltracer::ui::beginFrame();
 		ltracer::ui::renderMainPanel(uiData);
@@ -250,10 +254,13 @@ class Renderer
 		// }
 	}
 
-	/// Draws the frame and updates the surface
-	void drawFrame(Camera& camera, [[maybe_unused]] double delta, const ui::UIData& uiData)
-	{
+	void requestResetFrameCount() {
+		resetFrameCountRequested = true;
+	}
 
+	/// Draws the frame and updates the surface
+	void drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIData& uiData)
+	{
 		vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
 
 		uint32_t imageIndex;
@@ -286,7 +293,8 @@ class Renderer
 
 		if (raytracingSupported)
 		{
-			ltracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, camera);
+			ltracer::rt::updateRaytraceBuffer(
+			    logicalDevice, raytracingInfo, camera, resetFrameCountRequested);
 		}
 		updateUniformBuffer(currentFrame);
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
@@ -352,6 +360,12 @@ class Renderer
 		return raytracingInfo;
 	}
 
+	RaytracingDataConstants* getRaytracingDataConstants()
+	{
+		return &raytracingInfo.raytracingConstants;
+	}
+
+
   private:
 	// How many frames can be recorded at the same time
 	const int MAX_FRAMES_IN_FLIGHT = 3;
@@ -377,6 +391,7 @@ class Renderer
 	// TODO: maybe utilize this queue for transfer operations
 	[[maybe_unused]] VkQueue transferQueue = VK_NULL_HANDLE;
 
+	bool resetFrameCountRequested = false;
 	uint32_t currentFrame = 0;
 
 	std::vector<VkFramebuffer> swapChainFramebuffers;
@@ -786,7 +801,7 @@ class Renderer
 
 	void recordCommandBuffer(VkCommandBuffer commandBuffer,
 	                         uint32_t imageIndex,
-	                         const ui::UIData& uiData)
+	                         ui::UIData& uiData)
 	{
 
 		ltracer::QueueFamilyIndices queueFamilyIndices

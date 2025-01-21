@@ -29,17 +29,14 @@ namespace ui
 // updating the struct regularly
 struct UIData
 {
+	bool configurationChanged = false;
 	const Camera& camera;
 	const bool& raytracingSupported;
 	const VkPhysicalDeviceProperties& physicalDeviceProperties;
+	RaytracingDataConstants* raytracingDataConstants;
+	bool mainPanelCollapsed = true;
 };
 
-struct UIStatus
-{
-	bool mainPanelOpen = false;
-};
-
-static UIStatus uiStatus;
 static VkDescriptorPool imguiPool;
 
 inline void initImgui(VkInstance vulkanInstance,
@@ -175,7 +172,35 @@ inline void renderErrors(const UIData& uiData)
 	}
 }
 
-inline void renderMainPanel(const UIData& uiData)
+inline void renderRaytracingOptions(UIData& uiData)
+{
+	bool valueChanged = false;
+	if (ImGui::CollapsingHeader("Raytracing - Configuration"))
+	{
+		valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
+		                   &uiData.raytracingDataConstants->newtonErrorTolerance,
+		                   0.0f,
+		                   1.0f,
+		                   "%.7f",
+						   ImGuiSliderFlags_AlwaysClamp);
+		uiData.configurationChanged = uiData.configurationChanged || valueChanged;
+	}
+}
+
+inline void renderHelpInfo(const ltracer::ui::UIData& uiData)
+{
+	ImGui::SeparatorText("Control:");
+	ImGui::Text("Press Q to quit");
+	ImGui::Text("W/A/S/D to move");
+	ImGui::Text("Scroll up/down to increase/decrease movement speed");
+	ImGui::Text("Arrow keys to rotate");
+	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
+
+	ImGui::Separator();
+	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
+}
+
+inline void renderMainPanel(UIData& uiData)
 {
 	// ImGui::ShowDemoWindow();
 
@@ -186,26 +211,24 @@ inline void renderMainPanel(const UIData& uiData)
 	ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
-	if (!ImGui::Begin("Status", &uiStatus.mainPanelOpen, window_flags))
+	if (!ImGui::Begin("Status", nullptr, window_flags))
 	{
+		uiData.mainPanelCollapsed = true;
 		// Early out if the window is collapsed, as an optimization.
 		ImGui::End();
 		return;
 	}
+	uiData.mainPanelCollapsed = false;
 
-	ImGui::SeparatorText("Control:");
-	ImGui::Text("Press Q to quit");
-	ImGui::Text("W/A/S/D to move");
-	ImGui::Text("Scroll up/down to increase/decrease movement speed");
-	ImGui::Text("Arrow keys to rotate");
-	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
+	renderHelpInfo(uiData);
 
-	ImGui::Separator();
-	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
-
-	ImGui::SeparatorText("Data:");
+	ImGui::SeparatorText("Properties:");
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
+
+	ImGui::SeparatorText("Configuration");
+	renderRaytracingOptions(uiData);
+
 	renderErrors(uiData);
 	ImGui::End();
 }
