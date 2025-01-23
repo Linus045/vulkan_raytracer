@@ -138,7 +138,7 @@ class Renderer
 		}
 
 		raytracingInfo.raytracingConstants = {
-			.newtonErrorTolerance = 0.0001f,
+		    .newtonErrorTolerance = 0.0001f,
 		};
 
 		// auto& cameraTransform = camera->transform;
@@ -164,6 +164,11 @@ class Renderer
 	std::vector<VkFramebuffer>& getSwapChainFramebuffers()
 	{
 		return swapChainFramebuffers;
+	}
+
+	const uint32_t& getFrameCount() const
+	{
+		return raytracingInfo.uniformStructure.frameCount;
 	}
 
 	void createImageViews(VkDevice logicalDevice)
@@ -254,7 +259,8 @@ class Renderer
 		// }
 	}
 
-	void requestResetFrameCount() {
+	void requestResetFrameCount()
+	{
 		resetFrameCountRequested = true;
 	}
 
@@ -295,6 +301,7 @@ class Renderer
 		{
 			ltracer::rt::updateRaytraceBuffer(
 			    logicalDevice, raytracingInfo, camera, resetFrameCountRequested);
+			resetFrameCountRequested = false;
 		}
 		updateUniformBuffer(currentFrame);
 		recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
@@ -360,11 +367,10 @@ class Renderer
 		return raytracingInfo;
 	}
 
-	RaytracingDataConstants* getRaytracingDataConstants()
+	RaytracingDataConstants& getRaytracingDataConstants()
 	{
-		return &raytracingInfo.raytracingConstants;
+		return raytracingInfo.raytracingConstants;
 	}
-
 
   private:
 	// How many frames can be recorded at the same time
@@ -799,9 +805,7 @@ class Renderer
 		                            { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
 	}
 
-	void recordCommandBuffer(VkCommandBuffer commandBuffer,
-	                         uint32_t imageIndex,
-	                         ui::UIData& uiData)
+	void recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, ui::UIData& uiData)
 	{
 
 		ltracer::QueueFamilyIndices queueFamilyIndices

@@ -72,19 +72,18 @@ class HelloTriangleApplication
 
 		createRenderer();
 
-		uiData = std::make_unique<ltracer::ui::UIData>(
-			false,
-		    camera,
-		    raytracingSupported,
-		    physicalDeviceProperties,
-		    renderer->getRaytracingDataConstants());
+		uiData = std::make_unique<ltracer::ui::UIData>(camera,
+		                                               raytracingSupported,
+		                                               physicalDeviceProperties,
+		                                               renderer->getRaytracingDataConstants(),
+		                                               renderer->getFrameCount());
 
 		customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
 		                                                           window,
 		                                                           camera,
 		                                                           *renderer,
-																   *uiData,
-																   swapChainSupportDetails,
+		                                                           *uiData,
+		                                                           swapChainSupportDetails,
 		                                                           logicalDevice,
 		                                                           physicalDevice);
 
@@ -268,7 +267,7 @@ class HelloTriangleApplication
 		glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
 		glfwSetCursorPosCallback(window.getGLFWWindow(), &ltracer::handleMouseMovementCallback);
 		glfwSetScrollCallback(window.getGLFWWindow(), &ltracer::handleMouseScrollCallback);
-		
+
 		// additional callbacks only needed by Imgui
 		glfwSetWindowFocusCallback(window.getGLFWWindow(), ImGui_ImplGlfw_WindowFocusCallback);
 		glfwSetCursorEnterCallback(window.getGLFWWindow(), ImGui_ImplGlfw_CursorEnterCallback);

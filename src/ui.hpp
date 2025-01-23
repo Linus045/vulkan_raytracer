@@ -33,8 +33,20 @@ struct UIData
 	const Camera& camera;
 	const bool& raytracingSupported;
 	const VkPhysicalDeviceProperties& physicalDeviceProperties;
-	RaytracingDataConstants* raytracingDataConstants;
+	RaytracingDataConstants& raytracingDataConstants;
 	bool mainPanelCollapsed = true;
+	const uint32_t& frameCount;
+
+	UIData(const Camera& camera,
+	       const bool& raytracingSupported,
+	       const VkPhysicalDeviceProperties& physicalDeviceProperties,
+	       RaytracingDataConstants& raytracingDataConstants,
+	       const uint32_t& frameCount)
+	    : camera(camera), raytracingSupported(raytracingSupported),
+	      physicalDeviceProperties(physicalDeviceProperties),
+	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount)
+	{
+	}
 };
 
 static VkDescriptorPool imguiPool;
@@ -178,13 +190,13 @@ inline void renderRaytracingOptions(UIData& uiData)
 	if (ImGui::CollapsingHeader("Raytracing - Configuration"))
 	{
 		valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
-		                   &uiData.raytracingDataConstants->newtonErrorTolerance,
-		                   0.0f,
-		                   1.0f,
-		                   "%.7f",
-						   ImGuiSliderFlags_AlwaysClamp);
-		uiData.configurationChanged = uiData.configurationChanged || valueChanged;
+		                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
+		                                  0.0f,
+		                                  1.0f,
+		                                  "%.7f",
+		                                  ImGuiSliderFlags_AlwaysClamp);
 	}
+	uiData.configurationChanged = valueChanged;
 }
 
 inline void renderHelpInfo(const ltracer::ui::UIData& uiData)
@@ -198,6 +210,12 @@ inline void renderHelpInfo(const ltracer::ui::UIData& uiData)
 
 	ImGui::Separator();
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
+}
+
+inline void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
+{
+	ImGui::SeparatorText("Raytracing Properties:");
+	ImGui::Text("Frame Count: %d", uiData.frameCount);
 }
 
 inline void renderMainPanel(UIData& uiData)
@@ -225,6 +243,7 @@ inline void renderMainPanel(UIData& uiData)
 	ImGui::SeparatorText("Properties:");
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
+	renderRaytracingProperties(uiData);
 
 	ImGui::SeparatorText("Configuration");
 	renderRaytracingOptions(uiData);
