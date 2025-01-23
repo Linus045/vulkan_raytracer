@@ -1,19 +1,22 @@
 #pragma once
 
-#include <algorithm>
-#include <vector>
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/ext.hpp"
+
+#include <imgui.h>
 #include "backends/imgui_impl_glfw.h"
 
 #include "src/custom_user_data.hpp"
 #include "src/camera.hpp"
 #include "src/window.hpp"
-#include "src/renderer.hpp"
-#include "src/ui.hpp"
 
 namespace ltracer
 {
@@ -32,24 +35,25 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 	if (userData.window.getMouseCursorCaptureEnabled())
 	{
 		// TODO: move these into a more fitting space
-		static auto lastMouseX = 0.0;
-		static auto lastMouseY = 0.0;
 		// TODO: move this into the UI
 		double mouse_sensitivity = 0.1;
 
-		double deltaX = xpos - lastMouseX;
-		double deltaY = ypos - lastMouseY;
+		double deltaX = xpos - userData.lastMouseX;
+		double deltaY = ypos - userData.lastMouseY;
 
+		// TODO: for some reason sometimes after capturing the mouse cursor (pressing G) the delta
+		// values are huge which results in weird camera snapping
 		userData.camera.rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
 		userData.camera.rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
-
-		lastMouseX = xpos;
-		lastMouseY = ypos;
 	}
 	else
 	{
 		ImGui_ImplGlfw_CursorPosCallback(window, xpos, ypos);
 	}
+
+	// always store the last mouse position which prevents the snapping problems a bit
+	userData.lastMouseX = static_cast<float>(xpos);
+	userData.lastMouseY = static_cast<float>(ypos);
 }
 
 inline void updateMovement(CustomUserData& userData, double delta)

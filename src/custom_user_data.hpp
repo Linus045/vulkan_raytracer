@@ -9,7 +9,7 @@ namespace ltracer
 // forward declarations
 namespace ui
 {
-	struct UIData;
+struct UIData;
 }
 
 class Window;
@@ -33,6 +33,8 @@ struct CustomUserData
 	VkPhysicalDevice& physicalDevice;
 
 	std::map<GLFWKEY, GLFW_KEY_STATE> keyStateMap;
+	float lastMouseX = 0.0;
+	float lastMouseY = 0.0;
 };
 
 } // namespace ltracer
