@@ -34,6 +34,7 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 		// TODO: move these into a more fitting space
 		static auto lastMouseX = 0.0;
 		static auto lastMouseY = 0.0;
+		// TODO: move this into the UI
 		double mouse_sensitivity = 0.1;
 
 		double deltaX = xpos - lastMouseX;
@@ -115,32 +116,34 @@ inline void updateMovement(CustomUserData& userData, double delta)
 inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
-	
-	// TODO: maybe use an array to store which key is held down so we can handle multiple keys
-	// at the same time e.g. update on key down and up event respectively
-	if (!userData.uiData.mainPanelCollapsed)
+
+	// always detect Q and ESC/G key
+	if (action == GLFW_PRESS && key == GLFW_KEY_Q)
+	{
+		glfwSetWindowShouldClose(userData.window.getGLFWWindow(), true);
+	}
+	else if (action == GLFW_PRESS && (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE))
+	{
+		userData.window.setMouseCursorCapturedEnabled(
+		    !userData.window.getMouseCursorCaptureEnabled());
+		std::cout << "Cursor capture enabled: "
+		          << (userData.window.getMouseCursorCaptureEnabled() ? "True" : "False")
+		          << std::endl;
+	}
+
+	if (!userData.window.getMouseCursorCaptureEnabled())
 	{
 		ImGui_ImplGlfw_KeyCallback(userData.window.getGLFWWindow(), key, scancode, action, mods);
 	}
 	else if (action == GLFW_PRESS || action == GLFW_REPEAT)
 	{
-		// only update the key state map when the UI is collapsed
+		// only update the key state map when not using Imgui UI
 		userData.keyStateMap[key] = true;
+	}
 
-		if (key == GLFW_KEY_Q)
-		{
-			glfwSetWindowShouldClose(userData.window.getGLFWWindow(), true);
-		}
-		else if (key == GLFW_KEY_G || key == GLFW_KEY_ESCAPE)
-		{
-			userData.window.setMouseCursorCapturedEnabled(
-				!userData.window.getMouseCursorCaptureEnabled());
-			std::cout << "Cursor capture enabled: "
-						<< (userData.window.getMouseCursorCaptureEnabled() ? "True" : "False")
-						<< std::endl;
-		}
-	} 
-	else if (action == GLFW_RELEASE)
+	// always reset the key state map when the key is released to prevent issues with a key being
+	// 'stuck' in the down position
+	if (action == GLFW_RELEASE)
 	{
 		userData.keyStateMap[key] = false;
 	}
@@ -151,7 +154,7 @@ handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffset, d
 {
 	CustomUserData& userData = *reinterpret_cast<CustomUserData*>(glfwGetWindowUserPointer(window));
 
-	if (!userData.uiData.mainPanelCollapsed)
+	if (!userData.window.getMouseCursorCaptureEnabled())
 	{
 		ImGui_ImplGlfw_ScrollCallback(window, xOffset, yOffset);
 	}
