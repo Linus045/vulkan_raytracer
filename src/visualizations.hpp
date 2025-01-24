@@ -231,6 +231,19 @@ inline bool newtonsMethod(std::vector<Sphere>& spheres,
 	return false;
 }
 
+inline void visualizeVector(std::vector<Sphere>& spheres,
+                       const glm::vec3& startPos,
+                       const glm::vec3& direction,
+                       const float length)
+{
+	float stepSize = 0.01f;
+	for (float s = 0; s <= length; s += stepSize)
+	{
+		auto pos = startPos + direction * s;
+		spheres.emplace_back(pos, 0.06f, 2);
+	}
+}
+
 inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
                                    RectangularBezierSurface2x2 surface)
 {
@@ -254,11 +267,11 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	auto n1 = glm::vec3(1, 0, 0);
 	auto n2 = glm::vec3(0, 1, 0);
 
-	for (int i = 0; i < 16; i++)
-	{
-		auto projectedPoint = projectPoint(surface.controlPoints[i], rayOrigin, n1, n2);
-		spheres.emplace_back(glm::vec3(projectedPoint.x, projectedPoint.y, 0), 0.4, 5);
-	}
+	//for (int i = 0; i < 16; i++)
+	//{
+	//	auto projectedPoint = projectPoint(surface.controlPoints[i], rayOrigin, n1, n2);
+	//	spheres.emplace_back(glm::vec3(projectedPoint.x, projectedPoint.y, 0), 0.4, 5);
+	//}
 
 	glm::vec3 intersectionPoint;
 	glm::vec2 initialGuess = glm::vec2(1, 1);
@@ -277,6 +290,58 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	{
 		std::cout << "HIT!" << std::endl;
 		spheres.emplace_back(intersectionPoint, 1, 6);
+	}
+
+	for (int i = 0; i < 16; i++)
+	{
+		auto controlPointPos = surface.controlPoints[i];
+		spheres.emplace_back(controlPointPos, 0.1f, 2);
+	}
+
+	// Visualize Normals in corners
+	{
+		int i = 0, j = 0;
+		auto dirA = surface.controlPoints[convert2Dto1D_index(4, i + 1, j)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto dirB = surface.controlPoints[convert2Dto1D_index(4, i, j + 1)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto normal = glm::cross(dirA, dirB);
+
+		auto controlPointPos = surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		visualizeVector(spheres, controlPointPos, normal, 0.1f);
+	}
+	{
+		int i = 3, j = 0;
+		auto dirA = surface.controlPoints[convert2Dto1D_index(4, i, j + 1)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto dirB = surface.controlPoints[convert2Dto1D_index(4, i - 1, j)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto normal = glm::cross(dirA, dirB);
+
+		auto controlPointPos = surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		visualizeVector(spheres, controlPointPos, normal, 0.1f);
+	}
+	{
+		int i = 0, j = 3;
+		auto dirA = surface.controlPoints[convert2Dto1D_index(4, i, j - 1)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto dirB = surface.controlPoints[convert2Dto1D_index(4, i + 1, j)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto normal = glm::cross(dirA, dirB);
+
+		auto controlPointPos = surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		visualizeVector(spheres, controlPointPos, normal, 0.1f);
+	}
+	{
+		int i = 3, j = 3;
+		auto dirA = surface.controlPoints[convert2Dto1D_index(4, i - 1, j)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto dirB = surface.controlPoints[convert2Dto1D_index(4, i, j - 1)]
+		            - surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		auto normal = glm::cross(dirA, dirB);
+
+		auto controlPointPos = surface.controlPoints[convert2Dto1D_index(4, i, j)];
+		visualizeVector(spheres, controlPointPos, normal, 0.1f);
 	}
 }
 
