@@ -189,12 +189,47 @@ inline void renderRaytracingOptions(UIData& uiData)
 	bool valueChanged = false;
 	if (ImGui::CollapsingHeader("Raytracing - Configuration"))
 	{
-		valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
-		                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
-		                                  0.0f,
-		                                  1.0f,
-		                                  "%.7f",
-		                                  ImGuiSliderFlags_AlwaysClamp);
+		ImGui::SeparatorText("Debug");
+		{
+			// passing a boolean in a storage buffer directly didn't work probably due to alignment
+			// issues, so we just send 0 or 1 instead
+			bool debugShowAABBs = uiData.raytracingDataConstants.debugShowAABBs > 0;
+			valueChanged = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes", &debugShowAABBs)
+			               || valueChanged;
+			uiData.raytracingDataConstants.debugShowAABBs = debugShowAABBs ? 1 : 0;
+
+			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
+			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
+			                                  0.0f,
+			                                  1.0f,
+			                                  "%.7f",
+			                                  ImGuiSliderFlags_AlwaysClamp);
+		}
+
+		ImGui::SeparatorText("Environment");
+		{
+			valueChanged = ImGui::ColorPicker3("Environment Color",
+			                                   &uiData.raytracingDataConstants.environmentColor.x,
+			                                   0)
+			               || valueChanged;
+		}
+
+		ImGui::SeparatorText("Light");
+		{
+			valueChanged
+			    = ImGui::SliderFloat3("Global Light Position",
+
+			                          &uiData.raytracingDataConstants.globalLightPosition.x,
+			                          -1000.0f,
+			                          1000.0f,
+			                          "%.1f",
+			                          0)
+			      || valueChanged;
+			valueChanged = ImGui::ColorPicker3("Global Light Color",
+			                                   &uiData.raytracingDataConstants.globalLightColor.x,
+			                                   0)
+			               || valueChanged;
+		}
 	}
 	uiData.configurationChanged = valueChanged;
 }

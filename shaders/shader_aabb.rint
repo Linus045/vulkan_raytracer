@@ -38,6 +38,9 @@ layout(set = 0, binding=7, scalar) buffer RectangularBezierSurfaces
 layout( push_constant ) uniform RaytracingDataConstants
 {
 	float newtonErrorTolerance;
+    vec3 globalLightPosition;
+    vec3 globalLightColor;
+	float debugShowAABBs;
 } raytracingDataConstants;
 
 // Ray-Sphere intersection
@@ -315,6 +318,12 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 
 
 void main() {
+	// Debugging, display aabb boxes
+	if(raytracingDataConstants.debugShowAABBs > 0.0) {
+		reportIntersectionEXT(0.2, t_AABBDebug);
+		return;
+	}
+	
 	Ray ray;
 	ray.origin    = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;

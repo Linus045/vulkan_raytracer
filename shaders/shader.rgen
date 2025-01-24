@@ -33,6 +33,10 @@ layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 layout( push_constant ) uniform RaytracingDataConstants
 {
 	float newtonErrorTolerance;
+    vec3 globalLightPosition;
+    vec3 globalLightColor;
+    vec3 environmentColor;
+    float debugShowAABBs;
 } raytracingDataConstants;
 
 float random(vec2 uv, float seed) {
@@ -52,7 +56,7 @@ void main() {
       normalize(uv.x * camera.right + uv.y * camera.up + camera.forward).xyz;
   payload.previousNormal = vec3(0.0, 0.0, 0.0);
 
-  payload.directColor= vec3(0.58,0.81,0.92);
+  payload.directColor= raytracingDataConstants.environmentColor;
   payload.indirectColor = vec3(0.0, 0.0, 0.0);
   payload.rayDepth = 0;
 

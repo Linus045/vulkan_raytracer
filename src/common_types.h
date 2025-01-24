@@ -50,7 +50,8 @@ START_BINDING(ObjectType)
 	t_Sphere = 1,
 	t_Triangle = 2,
 	t_Tetrahedron = 3,
-	t_RectangularBezierSurface2x2 = 4
+	t_RectangularBezierSurface2x2 = 4,
+	t_AABBDebug = 1000
 END_BINDING();
 
 // TODO: add proper materials, this is just temporary to make debugging easier

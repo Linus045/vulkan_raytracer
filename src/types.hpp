@@ -54,7 +54,11 @@ struct UniformBufferObject
 
 struct RaytracingDataConstants
 {
-	alignas(16) float newtonErrorTolerance;
+	alignas(4) float newtonErrorTolerance;
+	alignas(16) glm::vec3 globalLightPosition;
+	alignas(16) glm::vec3 globalLightColor;
+	alignas(16) glm::vec3 environmentColor;
+	alignas(4) float debugShowAABBs;
 };
 
 struct SharedInfo
