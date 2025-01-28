@@ -137,7 +137,7 @@ file(COPY "3d-models" DESTINATION ${3d_models_output_parent})
 #   COMMENT "Copying 3D models to output directory"
 # )
 
-include_directories(${target_name} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 ###############################################################################
 ## IMGUI  #####################################################################
@@ -183,14 +183,47 @@ add_executable(${target_name} ${sources}
     ${raytracing_shader_shadow_rmiss_output}
 )
 
+
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-  # using Clang
-  message("Using Clang")
-  target_compile_options(vulkan_experiments PRIVATE -pedantic -Wall -Wextra -Wconversion -Wfloat-conversion)
+	# using Clang
+	message("Using Clang")
+	target_compile_options(${target_name} PRIVATE 
+		-pedantic
+		-pedantic-errors
+		-Wall
+		-Wconversion
+		-Wshadow
+		-Wfloat-conversion
+		-Wextra
+		-Weffc++
+		-Werror
+		-Wno-error=shadow
+	)
+elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+	# using GCC/G++
+	target_compile_options(${target_name} PRIVATE
+		-pedantic
+		-pedantic-errors
+		-Wall
+		-Wextra
+		-Wshadow
+		-Wfloat-equal
+		-Wundef
+		-Werror
+		-Wno-error=shadow
+	)
+elseif( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+	# using MSVC
+	target_compile_options(${target_name} PRIVATE
+		-Wall
+		-WX
+	)
 else()
-  message("Using not clang")
-  target_compile_options(vulkan_experiments PRIVATE -Wall)
+	message("Warning: Undefined compiler, setting no compiler flags")
 endif()
+
+# TODO: this is not working? we manually set -Werror
+set_property(TARGET ${target_name} PROPERTY CMAKE_COMPILE_WARNING_AS_ERROR ON)
 
 ###############################################################################
 ## dependencies ###############################################################
