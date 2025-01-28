@@ -569,10 +569,7 @@ class HelloTriangleApplication
 			renderer.createImageViews(logicalDevice);
 			renderer.createFramebuffers(logicalDevice, window);
 
-			ltracer::QueueFamilyIndices indices
-			    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
-
-			renderer.recreateRaytracingImageAndImageView(indices);
+			renderer.recreateRaytracingImageAndImageView();
 			camera.updateScreenSize(extent.width, extent.height);
 		}
 	}
@@ -763,9 +760,7 @@ class HelloTriangleApplication
 					renderer->createImageViews(logicalDevice);
 					renderer->createFramebuffers(logicalDevice, window);
 
-					ltracer::QueueFamilyIndices indices
-					    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
-					renderer->recreateRaytracingImageAndImageView(indices);
+					renderer->recreateRaytracingImageAndImageView();
 
 					camera.updateScreenSize(extent.width, extent.height);
 				}

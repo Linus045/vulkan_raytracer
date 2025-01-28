@@ -123,13 +123,12 @@ class Renderer
 			                                   logicalDevice,
 			                                   window.getSwapChainImageFormat(),
 			                                   window.getSwapChainExtent(),
-			                                   queueFamilyIndices,
 			                                   raytracingInfo);
 
-			ltracer::rt::createRaytracingImageView(logicalDevice,
-			                                       window.getSwapChainImageFormat(),
-			                                       raytracingInfo.rayTraceImageHandle,
-			                                       raytracingInfo.rayTraceImageViewHandle);
+			raytracingInfo.rayTraceImageViewHandle
+			    = ltracer::rt::createRaytracingImageView(logicalDevice,
+			                                             window.getSwapChainImageFormat(),
+			                                             raytracingInfo.rayTraceImageHandle);
 
 			raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
@@ -151,12 +150,15 @@ class Renderer
 		//     cameraTransform.getUp(), cameraTransform.getForward());
 	}
 
-	void recreateRaytracingImageAndImageView(const ltracer::QueueFamilyIndices& queueFamilyIndices)
+	void recreateRaytracingImageAndImageView()
 	{
 		if (raytracingSupported)
 		{
-			ltracer::rt::recreateRaytracingImageBuffer(
-			    logicalDevice, physicalDevice, window, queueFamilyIndices, raytracingInfo);
+			ltracer::rt::recreateRaytracingImageBuffer(physicalDevice,
+			                                           logicalDevice,
+			                                           window.getSwapChainImageFormat(),
+			                                           window.getSwapChainExtent(),
+			                                           raytracingInfo);
 		}
 	}
 
@@ -861,7 +863,8 @@ class Renderer
 
 		if (raytracingSupported)
 		{
-			ltracer::rt::recordRaytracingCommandBuffer(commandBuffer, raytracingInfo, window);
+			ltracer::rt::recordRaytracingCommandBuffer(
+			    commandBuffer, window.getSwapChainExtent(), raytracingInfo);
 
 			//////////////////////////////////////////////////////////////////////////////////////////////////////
 

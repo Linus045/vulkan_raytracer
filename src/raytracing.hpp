@@ -1,5 +1,3 @@
-
-
 #pragma once
 
 #include <cassert>
@@ -7,8 +5,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <memory>
-#include <random>
 #include <stdexcept>
 #include <string>
 #include <sys/types.h>
@@ -28,7 +24,6 @@
 #include "src/tlas.hpp"
 #include "src/types.hpp"
 #include "src/visualizations.hpp"
-#include "src/window.hpp"
 #include "src/device_procedures.hpp"
 
 #include "tiny_obj_loader.h"
@@ -56,6 +51,15 @@ static VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
 static VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
 static VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
 
+/**
+ * @brief Updates the camera position, forward, up and right vectors in the uniform structure.
+ *
+ * @param raytracingInfo The raytracingInfo object that should be updated
+ * @param position camera position
+ * @param forward camera forward
+ * @param up camera up
+ * @param right camera right
+ */
 inline void updateUniformStructure(RaytracingInfo& raytracingInfo,
                                    const glm::vec3& position,
                                    const glm::vec3& forward,
@@ -79,11 +83,21 @@ inline void updateUniformStructure(RaytracingInfo& raytracingInfo,
 	raytracingInfo.uniformStructure.cameraRight[2] = right[2];
 }
 
+/**
+ * @brief resets the frameCount forcing the ray tracing to start anew
+ *
+ * @param raytracingInfo The raytracing info object that should be reset
+ */
 inline void resetFrameCount(RaytracingInfo& raytracingInfo)
 {
 	raytracingInfo.uniformStructure.frameCount = 0;
 }
 
+/**
+ * @brief Constructs the ray tracing pipeline features needed to create the logical device
+ *
+ * @return Physical device ray tracing pipeline features
+ */
 inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatures()
 {
 	// =========================================================================
@@ -125,6 +139,17 @@ inline VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatur
 	return physicalDeviceRayTracingPipelineFeatures;
 }
 
+/**
+ * @brief create a buffer for a vector of objects, used to create buffers for the spheres,
+ * tetrahedrons and other geometry objects that will be converted to AABBs
+ *
+ * @tparam T The geometry type, e.g. Sphere, Tetrahedron, etc..
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue The buffer will be added to the deletion queue
+ * @param objects List of objects of Type <T> that will be copied into the buffer
+ * @return VkBuffer The buffer handle
+ */
 template <typename T>
 inline VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
                                     VkDevice logicalDevice,
@@ -159,6 +184,15 @@ inline VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
 	return bufferHandle;
 }
 
+/**
+ * @brief Creates a buffer for the VkAabbPositionsKHR objects from a vector of AABB objects
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue The buffer will be added to the deletion queue
+ * @param aabbs Vector of AABB objects to copy to the buffer
+ * @return VkBuffer The buffer handle
+ */
 inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
                                  VkDevice logicalDevice,
                                  DeletionQueue& deletionQueue,
@@ -205,10 +239,17 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 	return tetrahedronsAABBBufferHandle;
 }
 
-inline void createCommandPool(VkDevice logicalDevice,
-                              DeletionQueue& deletionQueue,
-                              RaytracingInfo& raytracingInfo,
-                              VkCommandPool& commandBufferPoolHandle)
+/**
+ * @brief Creates the command pool used for the ray tracing operations
+ *
+ * @param logicalDevice
+ * @param deletionQueue the command pool will be added to the deletion queue
+ * @param raytracingInfo the ray tracing info object
+ * @param commandBufferPoolHandle The handle will be stored in
+ */
+inline VkCommandPool createCommandPool(VkDevice logicalDevice,
+                                       DeletionQueue& deletionQueue,
+                                       RaytracingInfo& raytracingInfo)
 {
 	VkCommandPoolCreateInfo commandPoolCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -217,6 +258,7 @@ inline void createCommandPool(VkDevice logicalDevice,
 	    .queueFamilyIndex = raytracingInfo.queueFamilyIndices.graphicsFamily.value(),
 	};
 
+	VkCommandPool commandBufferPoolHandle = VK_NULL_HANDLE;
 	VkResult result = vkCreateCommandPool(
 	    logicalDevice, &commandPoolCreateInfo, NULL, &commandBufferPoolHandle);
 
@@ -227,8 +269,17 @@ inline void createCommandPool(VkDevice logicalDevice,
 
 	deletionQueue.push_function(
 	    [=]() { vkDestroyCommandPool(logicalDevice, commandBufferPoolHandle, nullptr); });
+
+	return commandBufferPoolHandle;
 }
 
+/**
+ * @brief Retrieves the raytracing properties from the physical device and stores them in the
+ * physicalDeviceRayTracingPipelineProperties reference
+ *
+ * @param physicalDevice
+ * @param physicalDeviceRayTracingPipelineProperties the properties object to be filled
+ */
 inline void requestRaytracingProperties(
     VkPhysicalDevice physicalDevice,
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties)
@@ -246,9 +297,27 @@ inline void requestRaytracingProperties(
 	    .properties = physicalDeviceProperties,
 	};
 
+	// TODO: The VkPhysicalDeviceRayTracingPipelinePropertiesKHR object is passed in via pNext and
+	// gets filled.
+	// Because we are only interested in the VkPhysicalDeviceRayTracingPipelinePropertiesKHR
+	// object it is fine that the VkPhysicalDeviceProperties2 object gets deleted when this
+	// function scope ends.
+	// However, maybe we wanna instead pass in the VkPhysicalDeviceProperties2
+	// object as a reference as well and fill it, for now though its not needed
 	vkGetPhysicalDeviceProperties2(physicalDevice, &physicalDeviceProperties2);
 }
 
+/**
+ * @brief Creates the command buffer for the top and bottom level acceleration structure creation
+ * and stores it inside the raytracingInfo object
+ * (raytracingInfo.commandBufferBuildTopAndBottomLevel)
+ *
+ * @param logicalDevice
+ * @param deletionQueue the command buffer is added to the deletion queue
+ * @param raytracingInfo
+ * @param commandBufferPoolHandle
+ * @return VkCommandPool The command pool handle
+ */
 inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
                                                       DeletionQueue& deletionQueue,
                                                       RaytracingInfo& raytracingInfo,
@@ -262,6 +331,8 @@ inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 	    .commandBufferCount = 1,
 	};
 
+	// TODO: make this function return the command buffer instead and store it inside the
+	// raytracingInfo object outside of this function
 	VkResult result = vkAllocateCommandBuffers(logicalDevice,
 	                                           &commandBufferAllocateInfo,
 	                                           &raytracingInfo.commandBufferBuildTopAndBottomLevel);
@@ -281,10 +352,17 @@ inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 	    });
 }
 
-inline void createDescriptorPool(DeletionQueue& deletionQueue,
-                                 VkDevice logicalDevice,
-                                 VkDescriptorPool& descriptorPoolHandle)
+/**
+ * @brief Creates the descriptor pool used for the raytracing, containing the various buffers used
+ * in the shaders
+ *
+ * @param logicalDevice
+ * @param deletionQueue the descriptor pool is added to the deletion queue
+ * @return VkDescriptorPool The descriptor pool handle
+ */
+inline VkDescriptorPool createDescriptorPool(VkDevice logicalDevice, DeletionQueue& deletionQueue)
 {
+	VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
 	std::vector<VkDescriptorPoolSize> descriptorPoolSizeList = {
 	    {.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, .descriptorCount = 1},
 	    {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1},
@@ -297,7 +375,7 @@ inline void createDescriptorPool(DeletionQueue& deletionQueue,
 	    .pNext = NULL,
 	    .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
 	    .maxSets = 2,
-	    .poolSizeCount = (uint32_t)descriptorPoolSizeList.size(),
+	    .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizeList.size()),
 	    .pPoolSizes = descriptorPoolSizeList.data(),
 	};
 
@@ -311,12 +389,23 @@ inline void createDescriptorPool(DeletionQueue& deletionQueue,
 
 	deletionQueue.push_function(
 	    [=]() { vkDestroyDescriptorPool(logicalDevice, descriptorPoolHandle, NULL); });
+
+	return descriptorPoolHandle;
 }
 
-inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
-                                      VkDevice logicalDevice,
-                                      VkDescriptorSetLayout& descriptorSetLayoutHandle)
+/**
+ * @brief Creates the descriptor set layout for the ray tracing pipeline
+ * The layout defines the various buffer types and at what stage they are used in the shader
+ *
+ * @param logicalDevice
+ * @param deletionQueue the descriptor set layout is added to the deletion queue
+ * @return VkDescriptorSetLayout The descriptor set layout handle
+ */
+inline VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
+                                                       DeletionQueue& deletionQueue)
+
 {
+	VkDescriptorSetLayout descriptorSetLayoutHandle = VK_NULL_HANDLE;
 	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindingList = {
 	    {
 	        .binding = 0,
@@ -407,24 +496,33 @@ inline void createDescriptorSetLayout(DeletionQueue& deletionQueue,
 
 	deletionQueue.push_function(
 	    [=]() { vkDestroyDescriptorSetLayout(logicalDevice, descriptorSetLayoutHandle, NULL); });
+
+	return descriptorSetLayoutHandle;
 }
 
-inline void
-createMaterialDescriptorSetLayout(DeletionQueue& deletionQueue,
-                                  VkDevice logicalDevice,
-                                  VkDescriptorSetLayout& materialDescriptorSetLayoutHandle)
+/**
+ * @brief Creates the descriptor set layout for the materials
+ *
+ * @param logicalDevice
+ * @param deletionQueue the descriptor set layout is added to the deletion queue
+ * @return the descriptor set layout handle
+ */
+inline VkDescriptorSetLayout createMaterialDescriptorSetLayout(VkDevice logicalDevice,
+                                                               DeletionQueue& deletionQueue)
 {
-	std::vector<VkDescriptorSetLayoutBinding> materialDescriptorSetLayoutBindingList
-	    = {{.binding = 0,
-	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	        .descriptorCount = 1,
-	        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	        .pImmutableSamplers = NULL},
-	       {.binding = 1,
-	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-	        .descriptorCount = 1,
-	        .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-	        .pImmutableSamplers = NULL}};
+	VkDescriptorSetLayout materialDescriptorSetLayoutHandle = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSetLayoutBinding> materialDescriptorSetLayoutBindingList = {
+	    {.binding = 0,
+	     .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	     .descriptorCount = 1,
+	     .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	     .pImmutableSamplers = NULL},
+	    {.binding = 1,
+	     .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	     .descriptorCount = 1,
+	     .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
+	     .pImmutableSamplers = NULL},
+	};
 
 	VkDescriptorSetLayoutCreateInfo materialDescriptorSetLayoutCreateInfo
 	    = {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -446,19 +544,30 @@ createMaterialDescriptorSetLayout(DeletionQueue& deletionQueue,
 	deletionQueue.push_function(
 	    [=]()
 	    { vkDestroyDescriptorSetLayout(logicalDevice, materialDescriptorSetLayoutHandle, NULL); });
+
+	return materialDescriptorSetLayoutHandle;
 }
 
+/**
+ * @brief Allocates the descriptor sets from the pool
+ *
+ * @param logicalDevice
+ * @param descriptorPoolHandle the pool to allocate the descriptor sets from
+ * @param raytracingInfo the descriptor set handles are stored in the raytracingInfo object
+ * (raytracingInfo.descriptorSetHandleList)
+ * @param descriptorSetLayoutHandleList the list of descriptor set layouts to allocate
+ */
 inline void
-allocateDescriptorSetLayouts(std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList,
-                             VkDevice logicalDevice,
+allocateDescriptorSetLayouts(VkDevice logicalDevice,
+                             VkDescriptorPool& descriptorPoolHandle,
                              RaytracingInfo& raytracingInfo,
-                             VkDescriptorPool& descriptorPoolHandle)
+                             std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList)
 {
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
 	    .pNext = NULL,
 	    .descriptorPool = descriptorPoolHandle,
-	    .descriptorSetCount = (uint32_t)descriptorSetLayoutHandleList.size(),
+	    .descriptorSetCount = static_cast<uint32_t>(descriptorSetLayoutHandleList.size()),
 	    .pSetLayouts = descriptorSetLayoutHandleList.data(),
 	};
 
@@ -471,10 +580,21 @@ allocateDescriptorSetLayouts(std::vector<VkDescriptorSetLayout>& descriptorSetLa
 	}
 }
 
-inline void createPipelineLayout(DeletionQueue& deletionQueue,
-                                 RaytracingInfo& raytracingInfo,
-                                 std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList,
-                                 VkDevice logicalDevice)
+/**
+ * @brief creates the pipeline layout for the ray tracing pipeline
+ *
+ * @param logicalDevice
+ * @param deletionQueue the pipeline layout is added to the deletion queue
+ * @param raytracingInfo the pipeline layout handle is stored in the raytracingInfo object
+ * @param descriptorSetLayoutHandleList the list of descriptor set layouts to use in the pipeline,
+ * see allocateDescriptorSetLayouts, createMaterialDescriptorSetLayout and
+ * createDescriptorSetLayout
+ */
+inline void
+createPipelineLayout(VkDevice logicalDevice,
+                     DeletionQueue& deletionQueue,
+                     RaytracingInfo& raytracingInfo,
+                     const std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList)
 {
 	std::vector<VkPushConstantRange> pushConstantRanges{
 	    {
@@ -495,6 +615,9 @@ inline void createPipelineLayout(DeletionQueue& deletionQueue,
 	    .pPushConstantRanges = pushConstantRanges.data(),
 	};
 
+	// TODO: consider returning the pipeline layout handle instead of storing it in the
+	// raytracingInfo directly and assigning it to the raytracingInfo object outside of this
+	// function
 	VkResult result = vkCreatePipelineLayout(
 	    logicalDevice, &pipelineLayoutCreateInfo, NULL, &raytracingInfo.pipelineLayoutHandle);
 
@@ -508,8 +631,16 @@ inline void createPipelineLayout(DeletionQueue& deletionQueue,
 	    { vkDestroyPipelineLayout(logicalDevice, raytracingInfo.pipelineLayoutHandle, NULL); });
 }
 
-inline void loadShaderModules(DeletionQueue& deletionQueue,
-                              VkDevice logicalDevice,
+/**
+ * @brief creates the shader module instances for the shaders used in ray tracing, e.g. closed hit
+ * shader, intersection shader, etc.
+ *
+ * @param logicalDevice
+ * @param deletionQueue the modules are added to the deletion queue
+ * @param raytracingInfo the modules are stored inside the raytracingInfo object
+ */
+inline void loadShaderModules(VkDevice logicalDevice,
+                              DeletionQueue& deletionQueue,
                               RaytracingInfo& raytracingInfo)
 {
 
@@ -551,9 +682,16 @@ inline void loadShaderModules(DeletionQueue& deletionQueue,
 	                                    raytracingInfo.rayAABBIntersectionModuleHandle);
 }
 
-inline void createRaytracingPipeline(DeletionQueue& deletionQueue,
-                                     RaytracingInfo& raytracingInfo,
-                                     VkDevice logicalDevice)
+/**
+ * @brief Creates the ray tracing pipeline
+ *
+ * @param logicalDevice
+ * @param deletionQueue the pipeline is added to the deletion queue
+ * @param raytracingInfo the pipeline handle is stored in the raytracingInfo object
+ */
+inline void createRaytracingPipeline(VkDevice logicalDevice,
+                                     DeletionQueue& deletionQueue,
+                                     RaytracingInfo& raytracingInfo)
 {
 	enum shaderIndices
 	{
@@ -715,6 +853,15 @@ inline void createRaytracingPipeline(DeletionQueue& deletionQueue,
 	    [=]() { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
 }
 
+/**
+ * @brief Updates the buffers used in the ray tracing shaders, e.g. acceleration structure handle,
+ * image handle, etc.
+ *
+ * @param logicalDevice
+ * @param raytracingInfo
+ * @param meshObjects list of mesh objects that are used in the ray tracing shaders, if not using
+ * AABBs with intersection shader
+ */
 inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
                                                      RaytracingInfo& raytracingInfo,
                                                      const std::vector<MeshObject>& meshObjects)
@@ -895,6 +1042,16 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	                       NULL);
 }
 
+/**
+ * @brief creates the vertex and index buffer for the model and copies the data from the meshObject
+ * into it
+ *
+ * @param logicalDevice
+ * @param physicalDevice
+ * @param deletionQueue the buffers are added to the deletion queue
+ * @param meshObject the mesh object containing the vertices and indices that will be copies into
+ * the buffers
+ */
 inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
                                                       VkPhysicalDevice physicalDevice,
                                                       DeletionQueue& deletionQueue,
@@ -985,17 +1142,33 @@ inline void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 	    logicalDevice, &indexBufferDeviceAddressInfo);
 }
 
+/**
+ * @brief creates the bottom level acceleration structure for the model
+ *
+ * @tparam T the type of the objects, e.g. Sphere, Tetrahedron, etc.
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue the acceleration structure is added to the deletion queue
+ * @param objects the list of objects that will be stored in the acceleration structure
+ * @param objectType the type of the objects, this is passed to the shader to determine what
+ * intersection calculation to use
+ * @param aabbs the list of Axis Aligned Bounding Boxes for the objects, see AABB::from* method, it
+ * extracts the aabb from the object
+ * @param blasInstancesData the vector that holds all BLAS (Bottom Level Acceleration Structure)
+ * instances, to which the acceleration structure is added
+ * @param objectsBufferHandle the buffer handle of the objects
+ * @param aabbObjectsBufferHandle the buffer handle of the AABBs for the objects
+ */
 template <typename T>
-inline void createBottomLevelAccelerationStructuresForObjects(
-    VkPhysicalDevice physicalDevice,
-    VkDevice logicalDevice,
-    ltracer::DeletionQueue& deletionQueue,
-    const std::vector<T>& objects,
-    const ObjectType objectType,
-    std::vector<ltracer::AABB>& aabbs,
-    std::vector<ltracer::rt::BLASInstance>& blasInstancesData,
-    VkBuffer& objectsBufferHandle,
-    VkBuffer& aabbObjectsBufferHandle)
+void createBottomLevelAccelerationStructuresForObjects(VkPhysicalDevice physicalDevice,
+                                                       VkDevice logicalDevice,
+                                                       DeletionQueue& deletionQueue,
+                                                       const std::vector<T>& objects,
+                                                       const ObjectType objectType,
+                                                       std::vector<AABB>& aabbs,
+                                                       std::vector<BLASInstance>& blasInstancesData,
+                                                       VkBuffer& objectsBufferHandle,
+                                                       VkBuffer& aabbObjectsBufferHandle)
 {
 	objectsBufferHandle
 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, objects);
@@ -1007,13 +1180,19 @@ inline void createBottomLevelAccelerationStructuresForObjects(
 	    logicalDevice, aabbObjectsBufferHandle, objectType, static_cast<uint32_t>(aabbs.size())));
 }
 
-// TODO: Split into multiple functions for each step
+/**
+ * @brief Initializes the ray tracing pipeline, including the command buffers, command pool, etc.
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue the objects are added to the deletion queue
+ * @param raytracingInfo the ray tracing info object that holds all the handles and data
+ */
 inline void initRayTracing(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
                            DeletionQueue& deletionQueue,
                            RaytracingInfo& raytracingInfo)
 {
-
 	// Requesting ray tracing properties
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties{};
 	requestRaytracingProperties(physicalDevice, physicalDeviceRayTracingPipelineProperties);
@@ -1055,8 +1234,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// Command Pool
 
-	VkCommandPool commandBufferPoolHandle = VK_NULL_HANDLE;
-	createCommandPool(logicalDevice, deletionQueue, raytracingInfo, commandBufferPoolHandle);
+	VkCommandPool commandBufferPoolHandle{
+	    createCommandPool(logicalDevice, deletionQueue, raytracingInfo)};
 
 	// =========================================================================
 	// Command Buffers
@@ -1078,42 +1257,42 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// Descriptor Pool
 
-	VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
-	createDescriptorPool(deletionQueue, logicalDevice, descriptorPoolHandle);
+	VkDescriptorPool descriptorPoolHandle{createDescriptorPool(logicalDevice, deletionQueue)};
 
 	// =========================================================================
 	// Descriptor Set Layout
 
-	VkDescriptorSetLayout descriptorSetLayoutHandle = VK_NULL_HANDLE;
-	createDescriptorSetLayout(deletionQueue, logicalDevice, descriptorSetLayoutHandle);
+	VkDescriptorSetLayout descriptorSetLayoutHandle{
+	    createDescriptorSetLayout(logicalDevice, deletionQueue)};
 
 	// =========================================================================
 	// Material Descriptor Set Layout
 
-	VkDescriptorSetLayout materialDescriptorSetLayoutHandle = VK_NULL_HANDLE;
-	createMaterialDescriptorSetLayout(
-	    deletionQueue, logicalDevice, materialDescriptorSetLayoutHandle);
+	VkDescriptorSetLayout materialDescriptorSetLayoutHandle{
+	    createMaterialDescriptorSetLayout(logicalDevice, deletionQueue)};
 
 	// =========================================================================
 	// Allocate Descriptor Sets
 
+	// TODO: currently we hardcoded that we use 2 descriptor set layouts, make this more dynamic or
+	// at least dont hardcode it
 	std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList
 	    = {descriptorSetLayoutHandle, materialDescriptorSetLayoutHandle};
 
 	allocateDescriptorSetLayouts(
-	    descriptorSetLayoutHandleList, logicalDevice, raytracingInfo, descriptorPoolHandle);
+	    logicalDevice, descriptorPoolHandle, raytracingInfo, descriptorSetLayoutHandleList);
 
 	// =========================================================================
 	// Pipeline Layout
 	createPipelineLayout(
-	    deletionQueue, raytracingInfo, descriptorSetLayoutHandleList, logicalDevice);
+	    logicalDevice, deletionQueue, raytracingInfo, descriptorSetLayoutHandleList);
 	// =========================================================================
 	// Shader Modules
-	loadShaderModules(deletionQueue, logicalDevice, raytracingInfo);
+	loadShaderModules(logicalDevice, deletionQueue, raytracingInfo);
 
 	// =========================================================================
 	// Ray Tracing Pipeline
-	createRaytracingPipeline(deletionQueue, raytracingInfo, logicalDevice);
+	createRaytracingPipeline(logicalDevice, deletionQueue, raytracingInfo);
 
 	// =========================================================================
 	// load OBJ Models
@@ -1616,9 +1795,17 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	raytracingInfo.callableShaderBindingTable = {};
 } // namespace rt
 
+/**
+ * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,
+ * copying to the image, etc.
+ *
+ * @param currentExtent the current extent of the window
+ * @param commandBuffer the command buffer to record to
+ * @param raytracingInfo
+ */
 inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
-                                          RaytracingInfo& raytracingInfo,
-                                          ltracer::Window& window)
+                                          VkExtent2D currentExtent,
+                                          RaytracingInfo& raytracingInfo)
 {
 	VkImageMemoryBarrier rayTraceGeneralMemoryBarrier = {
       .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -1677,7 +1864,6 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                   sizeof(RaytracingDataConstants),
 	                   &raytracingInfo.raytracingConstants);
 
-	auto currentExtent = window.getSwapChainExtent();
 	ltracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
 	                                        &raytracingInfo.rgenShaderBindingTable,
 	                                        &raytracingInfo.rmissShaderBindingTable,
@@ -1713,10 +1899,19 @@ inline void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImage);
 }
 
-// does the raytracing onto the provided image
+/**
+ * @brief updates the ray tracing buffer: updates the uniform structure (holding camera transform
+ * data, etc.) and increments the frame count or resets it
+ *
+ * @param logicalDevice
+ * @param raytracingInfo
+ * @param camera
+ * @param resetFrameCountRequested if true, the frame count is reset to 0 causing it to redraw the
+ * scene (e.g. after moving the camera, resizing the window, changing light colors, etc.)
+ */
 inline void updateRaytraceBuffer(VkDevice logicalDevice,
                                  RaytracingInfo& raytracingInfo,
-                                 ltracer::Camera& camera,
+                                 const ltracer::Camera& camera,
                                  const bool resetFrameCountRequested)
 {
 	if (resetFrameCountRequested)
@@ -1752,6 +1947,15 @@ inline void updateRaytraceBuffer(VkDevice logicalDevice,
 	vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
 }
 
+/**
+ * @brief frees the image and image view and image device memory that is used for ray tracing, this
+ * is needed for example when resizing the window
+ *
+ * @param logicalDevice
+ * @param rayTraceImageHandle
+ * @param rayTraceImageViewHandle
+ * @param rayTraceImageDeviceMemoryHandle
+ */
 inline void freeRaytraceImageAndImageView(VkDevice logicalDevice,
                                           VkImage& rayTraceImageHandle,
                                           VkImageView& rayTraceImageViewHandle,
@@ -1770,11 +1974,19 @@ inline void freeRaytraceImageAndImageView(VkDevice logicalDevice,
 	vkFreeMemory(logicalDevice, rayTraceImageDeviceMemoryHandle, nullptr);
 }
 
+/**
+ * @brief Creates the image that is used for ray tracing
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param swapChainFormat the format of the swap chain
+ * @param currentExtent the current window size
+ * @param raytracingInfo the handles will be stored in the raytracingInfo struct
+ */
 inline void createRaytracingImage(VkPhysicalDevice physicalDevice,
                                   VkDevice logicalDevice,
                                   VkFormat swapChainFormat,
                                   VkExtent2D currentExtent,
-                                  ltracer::QueueFamilyIndices queueFamilyIndices,
                                   RaytracingInfo& raytracingInfo)
 {
 	VkImageCreateInfo rayTraceImageCreateInfo = {
@@ -1796,11 +2008,12 @@ inline void createRaytracingImage(VkPhysicalDevice physicalDevice,
         .usage = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
                  VK_IMAGE_USAGE_TRANSFER_DST_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &queueFamilyIndices.graphicsFamily.value(),
+        .queueFamilyIndexCount = 0,
+        .pQueueFamilyIndices = nullptr,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
+	// TODO: return this image instead of storing it in the raytracingInfo struct directly
 	VkResult result = vkCreateImage(
 	    logicalDevice, &rayTraceImageCreateInfo, NULL, &raytracingInfo.rayTraceImageHandle);
 
@@ -1856,11 +2069,19 @@ inline void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	}
 }
 
-inline void createRaytracingImageView(VkDevice logicalDevice,
-                                      VkFormat swapChainFormat,
-                                      VkImage& rayTraceImageHandle,
-                                      VkImageView& rayTraceImageViewHandle)
+/**
+ * @brief creates the image view object for the ray tracing image
+ *
+ * @param logicalDevice
+ * @param swapChainFormat
+ * @param rayTraceImageHandle
+ * @return VkImageView the image view for the image
+ */
+inline VkImageView createRaytracingImageView(VkDevice logicalDevice,
+                                             VkFormat swapChainFormat,
+                                             const VkImage& rayTraceImageHandle)
 {
+	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
 	VkImageViewCreateInfo rayTraceImageViewCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
         .pNext = NULL,
@@ -1892,12 +2113,22 @@ inline void createRaytracingImageView(VkDevice logicalDevice,
 	{
 		throw new std::runtime_error("initRayTraci - vkCreateImageView");
 	}
+	return rayTraceImageViewHandle;
 }
 
-inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
-                                          VkPhysicalDevice physicalDevice,
-                                          Window& window,
-                                          QueueFamilyIndices queueFamilyIndices,
+/**
+ * @brief frees the current ray tracing image and recreates it with the new window dimensions, this
+ * is needed for example after resizing the window
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param window
+ * @param raytracingInfo
+ */
+inline void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
+                                          VkDevice logicalDevice,
+                                          VkFormat swapChainImageFormat,
+                                          VkExtent2D windowExtent,
                                           RaytracingInfo& raytracingInfo)
 {
 	freeRaytraceImageAndImageView(logicalDevice,
@@ -1905,17 +2136,11 @@ inline void recreateRaytracingImageBuffer(VkDevice logicalDevice,
 	                              raytracingInfo.rayTraceImageViewHandle,
 	                              raytracingInfo.rayTraceImageDeviceMemoryHandle);
 
-	createRaytracingImage(physicalDevice,
-	                      logicalDevice,
-	                      window.getSwapChainImageFormat(),
-	                      window.getSwapChainExtent(),
-	                      queueFamilyIndices,
-	                      raytracingInfo);
+	createRaytracingImage(
+	    physicalDevice, logicalDevice, swapChainImageFormat, windowExtent, raytracingInfo);
 
-	createRaytracingImageView(logicalDevice,
-	                          window.getSwapChainImageFormat(),
-	                          raytracingInfo.rayTraceImageHandle,
-	                          raytracingInfo.rayTraceImageViewHandle);
+	raytracingInfo.rayTraceImageViewHandle = createRaytracingImageView(
+	    logicalDevice, swapChainImageFormat, raytracingInfo.rayTraceImageHandle);
 
 	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
 
