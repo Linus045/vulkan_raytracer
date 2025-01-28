@@ -205,7 +205,7 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
 	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
 
-	VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
+	VkBuffer bufferHandle = VK_NULL_HANDLE;
 	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
@@ -215,7 +215,7 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
-	             tetrahedronsAABBBufferHandle,
+	             bufferHandle,
 	             aabbDeviceMemoryHandle);
 
 	void* aabbPositionsMemoryBuffer;
@@ -236,7 +236,7 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 
 	vkUnmapMemory(logicalDevice, aabbDeviceMemoryHandle);
 
-	return tetrahedronsAABBBufferHandle;
+	return bufferHandle;
 }
 
 /**
