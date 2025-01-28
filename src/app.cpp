@@ -1,5 +1,3 @@
-#include "src/input.hpp"
-#include "src/types.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -7,11 +5,9 @@
 #include <exception>
 #include <iostream>
 #include <memory>
-#include <ostream>
 #include <set>
 #include <stdexcept>
 #include <string>
-#include <sys/types.h>
 #include <vector>
 
 #include <vulkan/vk_enum_string_helper.h>
@@ -27,41 +23,29 @@
 #include "src/logger.hpp"
 #include "src/renderer.hpp"
 #include "src/window.hpp"
-#include "src/aabb.hpp"
 #include "src/deletion_queue.hpp"
 #include "src/ui.hpp"
+#include "src/input.hpp"
+#include "src/types.hpp"
+#include "src/custom_user_data.hpp"
 
-#include "tiny_obj_loader.h"
+// #include "tiny_obj_loader.h"
 
 #define TERM_COLOR_RED "\033[31m"
 #define TERM_COLOR_RESET "\033[0m"
 
 class HelloTriangleApplication
 {
-
-	void createRenderer()
-	{
-		int width, height;
-		window.getFramebufferSize(&width, &height);
-		renderer = std::make_unique<ltracer::Renderer>(physicalDevice,
-		                                               logicalDevice,
-		                                               mainDeletionQueue,
-		                                               window,
-		                                               graphicsQueue,
-		                                               presentQueue,
-		                                               transferQueue,
-		                                               raytracingSupported);
-
-		window.createSwapChain(
-		    physicalDevice,
-		    logicalDevice,
-		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
-		    swapChainSupportDetails);
-
-		renderer->initRenderer(vulkanInstance);
-	}
-
   public:
+	HelloTriangleApplication() = default;
+	~HelloTriangleApplication() = default;
+
+	HelloTriangleApplication(const HelloTriangleApplication&) = delete;
+	HelloTriangleApplication& operator=(const HelloTriangleApplication&) = delete;
+
+	HelloTriangleApplication(HelloTriangleApplication&&) noexcept = delete;
+	HelloTriangleApplication& operator=(HelloTriangleApplication&&) = delete;
+
 	void run()
 	{
 		// loadModels();
@@ -95,45 +79,45 @@ class HelloTriangleApplication
 		cleanupApp();
 	}
 
-	HelloTriangleApplication() = default;
-
-	void createWindow()
-	{
-		window.initWindow(&framebufferResizeCallback);
-	}
-
-	HelloTriangleApplication(const HelloTriangleApplication&) = delete;
-	HelloTriangleApplication(const HelloTriangleApplication&&) = delete;
-
-	HelloTriangleApplication& operator=(const HelloTriangleApplication&) = delete;
-
   private:
+	// stores the data displayed in the ui
 	std::unique_ptr<ltracer::ui::UIData> uiData;
+
+	// stores the data needed for the window callback events, e.g. mouse move, keyboard input, etc.
 	std::unique_ptr<ltracer::CustomUserData> customUserData;
+
+	// the deletion queue used for the deinitialization of vulkan objects on exit
 	ltracer::DeletionQueue mainDeletionQueue;
 
 	ltracer::SwapChainSupportDetails swapChainSupportDetails;
 
+	// whether the GPU supports ray tracing, if false, only the ui is renderer
 	bool raytracingSupported = false;
+
+	// whether vulkan has been initialized, to make sure window events don't trigger beforehand,
+	// e.g. window resize
 	bool vulkan_initialized = false;
+
 	// vulkan instance
 	VkInstance vulkanInstance;
+
+	// properties of the selected GPU (info is displayed via the UI)
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 
 	ltracer::Window window;
 	std::unique_ptr<ltracer::Renderer> renderer;
 	ltracer::Camera camera;
 
-	std::vector<ltracer::AABB> AABBs;
-
+	// Handle for the debug message callback
 	VkDebugUtilsMessengerEXT debugMessenger;
 
 	// physical device handle
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 
 	// Logical device to interact with
-	VkDevice logicalDevice;
+	VkDevice logicalDevice = VK_NULL_HANDLE;
 
+	// TODO: these can probably be moved into the Renderer class
 	VkQueue graphicsQueue = VK_NULL_HANDLE;
 	VkQueue presentQueue = VK_NULL_HANDLE;
 	VkQueue transferQueue = VK_NULL_HANDLE;
@@ -172,7 +156,7 @@ class HelloTriangleApplication
 	};
 
 	// if no device can be found that supports ray tracing, search for a device to display to
-	// the screen (to show messages, errors etc.)
+	// the screen (to show messages, errors etc.) (when raytracingSupported is false)
 	const std::vector<const char*> deviceExtensionsForDisplay = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
@@ -180,6 +164,33 @@ class HelloTriangleApplication
 
 	// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects
 	//     = std::make_shared<std::vector<ltracer::WorldObject>>();
+
+	void createWindow()
+	{
+		window.initWindow(&framebufferResizeCallback);
+	}
+
+	void createRenderer()
+	{
+		int width, height;
+		window.getFramebufferSize(&width, &height);
+		renderer = std::make_unique<ltracer::Renderer>(physicalDevice,
+		                                               logicalDevice,
+		                                               mainDeletionQueue,
+		                                               window,
+		                                               graphicsQueue,
+		                                               presentQueue,
+		                                               transferQueue,
+		                                               raytracingSupported);
+
+		window.createSwapChain(
+		    physicalDevice,
+		    logicalDevice,
+		    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
+		    swapChainSupportDetails);
+
+		renderer->initRenderer(vulkanInstance);
+	}
 
 	bool checkValidationLayerSupport()
 	{
@@ -675,7 +686,7 @@ class HelloTriangleApplication
 		// this data pointer will then be provided inside the callback
 		createInfo.pUserData = nullptr;
 
-		if (CreateDebugUtilsMessengerEXT(vulkanInstance, &createInfo, nullptr, &debugMessenger)
+		if (createDebugUtilsMessengerEXT(vulkanInstance, &createInfo, nullptr, &debugMessenger)
 		    != VK_SUCCESS)
 		{
 			throw std::runtime_error("failed to set up debug messenger!");
@@ -683,7 +694,7 @@ class HelloTriangleApplication
 	}
 
 	static VkResult
-	CreateDebugUtilsMessengerEXT(VkInstance instance,
+	createDebugUtilsMessengerEXT(VkInstance instance,
 	                             const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
 	                             const VkAllocationCallbacks* pAllocator,
 	                             VkDebugUtilsMessengerEXT* pDebugMessenger)
@@ -816,7 +827,7 @@ class HelloTriangleApplication
 		createInfo.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
 		createInfo.pApplicationInfo = &appInfo;
 
-		auto glfwExtensions = getRequiredINSTANCEExtensions();
+		auto glfwExtensions = getRequiredInstanceExtensions();
 
 		// debug_print("%s\n", "Used extensions:");
 		// for (const auto &extension : glfwExtensions) {
@@ -871,7 +882,7 @@ class HelloTriangleApplication
 		}
 	}
 
-	std::vector<const char*> getRequiredINSTANCEExtensions()
+	std::vector<const char*> getRequiredInstanceExtensions()
 	{
 		uint32_t glfwExtensionsCount = 0;
 		const char** glfwExtensions;
