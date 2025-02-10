@@ -8,6 +8,7 @@
 #include "src/deletion_queue.hpp"
 #include "src/types.hpp"
 #include "src/device_procedures.hpp"
+#include "src/vk_utils.hpp"
 
 namespace ltracer
 {

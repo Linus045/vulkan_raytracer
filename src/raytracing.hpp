@@ -25,6 +25,7 @@
 #include "src/types.hpp"
 #include "src/visualizations.hpp"
 #include "src/device_procedures.hpp"
+#include "src/vk_utils.hpp"
 
 #include "tiny_obj_loader.h"
 
