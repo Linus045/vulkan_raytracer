@@ -1319,7 +1319,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	std::vector<Sphere> spheres{
 	    // show origin
-	    Sphere{glm::vec3(), 0.3f, 1},
+	    Sphere{glm::vec3(), 0.3f, static_cast<int>(ColorIdx::t_white)},
 	};
 
 	// {

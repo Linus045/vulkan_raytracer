@@ -115,15 +115,15 @@ void main() {
 
 	  // see ColorIdx in common_types.h
 	  vec3 colorlist[9] = {
-		  vec3(1.0, 1.0, 1.0),
-		  vec3(1.0, 0.0, 0.0),
-		  vec3(0.0, 0.0, 1.0),
-		  vec3(0.0, 1.0, 0.0),
-		  vec3(1.0, 1.0, 0.0),
-		  vec3(1.0, 0.5, 0.0),
-		  vec3(1.0, 0.0, 1.0),
-		  vec3(0.5, 0.0, 1.0),
-		  vec3(0.0, 0.0, 0.0)
+		  vec3(1.0, 1.0, 1.0), // t_white
+		  vec3(1.0, 0.0, 0.0), // t_red
+		  vec3(0.0, 0.0, 1.0), // t_blue
+		  vec3(0.0, 1.0, 0.0), // t_green
+		  vec3(1.0, 1.0, 0.0), // t_yellow
+		  vec3(1.0, 0.5, 0.0), // t_orange
+		  vec3(1.0, 0.5, 0.8), // t_pink
+		  vec3(0.5, 0.0, 1.0), // t_purple
+		  vec3(0.0, 0.0, 0.0)  // t_black
 	  };
 	  vec3 surfaceColor = colorlist[s.colorIdx - 1];
 
