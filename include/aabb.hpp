@@ -8,8 +8,8 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/common.hpp"
 
-#include "src/tetrahedron.hpp"
-#include "src/common_types.h"
+#include "tetrahedron.hpp"
+#include "common_types.h"
 
 namespace ltracer
 {

@@ -7,7 +7,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/vector_float3.hpp"
 
-#include "src/common_types.h"
+#include "common_types.h"
 
 namespace ltracer
 {

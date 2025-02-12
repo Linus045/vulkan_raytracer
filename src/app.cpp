@@ -1,4 +1,3 @@
-#include "src/input.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -18,15 +17,15 @@
 #define GLM_FORCE_RADIANS
 #define GLM_ENABLE_EXPERIMENTAL
 
-#include "src/app.hpp"
-
-#include "src/camera.hpp"
-#include "src/logger.hpp"
-#include "src/renderer.hpp"
-#include "src/window.hpp"
-#include "src/ui.hpp"
-#include "src/types.hpp"
-#include "src/custom_user_data.hpp"
+#include "app.hpp"
+#include "logger.hpp"
+#include "camera.hpp"
+#include "renderer.hpp"
+#include "window.hpp"
+#include "ui.hpp"
+#include "types.hpp"
+#include "custom_user_data.hpp"
+#include "input.hpp"
 
 // #include "tiny_obj_loader.h"
 

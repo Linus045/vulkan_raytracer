@@ -137,7 +137,7 @@ file(COPY "3d-models" DESTINATION ${3d_models_output_parent})
 #   COMMENT "Copying 3D models to output directory"
 # )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories("include")
 
 ###############################################################################
 ## IMGUI  #####################################################################

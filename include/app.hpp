@@ -1,8 +1,11 @@
+#pragma once
+
 #include <memory>
 
-#include "src/deletion_queue.hpp"
-#include "src/ui.hpp"
-#include "src/renderer.hpp"
+#include "custom_user_data.hpp"
+#include "deletion_queue.hpp"
+#include "ui.hpp"
+#include "renderer.hpp"
 
 class Application
 {

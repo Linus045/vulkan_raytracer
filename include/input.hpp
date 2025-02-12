@@ -14,9 +14,9 @@
 #include <imgui.h>
 #include "backends/imgui_impl_glfw.h"
 
-#include "src/custom_user_data.hpp"
-#include "src/camera.hpp"
-#include "src/window.hpp"
+#include "custom_user_data.hpp"
+#include "camera.hpp"
+#include "window.hpp"
 
 namespace ltracer
 {

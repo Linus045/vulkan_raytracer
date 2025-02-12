@@ -1,7 +1,5 @@
 #pragma once
 
-#include "src/common_types.h"
-#include "src/model.hpp"
 #include <cstdint>
 #include <optional>
 
@@ -12,6 +10,9 @@
 #define GLM_FORCE_RADIANS
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/matrix_float4x4.hpp"
+
+#include "common_types.h"
+#include "model.hpp"
 
 namespace ltracer
 {

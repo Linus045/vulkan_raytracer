@@ -1,11 +1,7 @@
-#pragma once
-
 #include <array>
 #include <string>
 
-#include <backends/imgui_impl_glfw.h>
-#include <backends/imgui_impl_vulkan.h>
-#include <imgui.h>
+#include "ui.hpp"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
@@ -13,11 +9,10 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext.hpp"
 
-#include <vulkan/vk_enum_string_helper.h>
-
-#include "src/camera.hpp"
-#include "src/window.hpp"
-#include "src/custom_user_data.hpp"
+#include "common_types.h"
+#include "camera.hpp"
+#include "deletion_queue.hpp"
+#include "window.hpp"
 
 namespace ltracer
 {
@@ -25,39 +20,13 @@ namespace ltracer
 namespace ui
 {
 
-// TODO: consider storing the raw data values instead of pointers/references and
-// updating the struct regularly
-struct UIData
-{
-	bool configurationChanged = false;
-	const Camera& camera;
-	const bool& raytracingSupported;
-	const VkPhysicalDeviceProperties& physicalDeviceProperties;
-	RaytracingDataConstants& raytracingDataConstants;
-	bool mainPanelCollapsed = true;
-	const uint32_t& frameCount;
-
-	UIData(const Camera& camera,
-	       const bool& raytracingSupported,
-	       const VkPhysicalDeviceProperties& physicalDeviceProperties,
-	       RaytracingDataConstants& raytracingDataConstants,
-	       const uint32_t& frameCount)
-	    : camera(camera), raytracingSupported(raytracingSupported),
-	      physicalDeviceProperties(physicalDeviceProperties),
-	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount)
-	{
-	}
-};
-
-static VkDescriptorPool imguiPool;
-
-inline void initImgui(VkInstance vulkanInstance,
-                      VkDevice logicalDevice,
-                      VkPhysicalDevice physicalDevice,
-                      Window& window,
-                      VkRenderPass renderPass,
-                      VkQueue graphicsQueue,
-                      DeletionQueue& deletionQueue)
+void initImgui(VkInstance vulkanInstance,
+               VkDevice logicalDevice,
+               VkPhysicalDevice physicalDevice,
+               Window& window,
+               VkRenderPass renderPass,
+               VkQueue graphicsQueue,
+               DeletionQueue& deletionQueue)
 {
 	// oversized but whatever
 	VkDescriptorPoolSize pool_sizes[] = {{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
@@ -117,7 +86,7 @@ inline void initImgui(VkInstance vulkanInstance,
 	deletionQueue.push_function([]() { ImGui_ImplVulkan_Shutdown(); });
 }
 
-inline void renderCameraProperties(const UIData& uiData)
+void renderCameraProperties(const UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Camera"))
 	{
@@ -138,17 +107,7 @@ inline void renderCameraProperties(const UIData& uiData)
 	}
 }
 
-// inline std::string getPipelineUUIDAsString(const UIData& uiData)
-// {
-// 	auto pipelineCacheUUID = std::string();
-// 	std::for_each(std::begin(uiData.physicalDeviceProperties.pipelineCacheUUID),
-// 	              std::end(uiData.physicalDeviceProperties.pipelineCacheUUID),
-// 	              [&pipelineCacheUUID](const uint8_t n)
-// 	              { pipelineCacheUUID.append(std::format("{:x}", n)); });
-// 	return pipelineCacheUUID;
-// }
-
-inline void renderGPUProperties(const UIData& uiData)
+void renderGPUProperties(const UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("PhysicalDevice - GPU - Properties"))
 	{
@@ -175,7 +134,7 @@ inline void renderGPUProperties(const UIData& uiData)
 	}
 }
 
-inline void renderErrors(const UIData& uiData)
+void renderErrors(const UIData& uiData)
 {
 	ImGui::SeparatorText("ERRORS:");
 	if (!uiData.raytracingSupported)
@@ -184,7 +143,7 @@ inline void renderErrors(const UIData& uiData)
 	}
 }
 
-inline void renderRaytracingOptions(UIData& uiData)
+void renderRaytracingOptions(UIData& uiData)
 {
 	bool valueChanged = false;
 	if (ImGui::CollapsingHeader("Raytracing - Configuration"))
@@ -237,7 +196,7 @@ inline void renderRaytracingOptions(UIData& uiData)
 	uiData.configurationChanged = valueChanged;
 }
 
-inline void renderHelpInfo(const ltracer::ui::UIData& uiData)
+void renderHelpInfo(const ltracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Control:");
 	ImGui::Text("Press Q to quit");
@@ -250,13 +209,13 @@ inline void renderHelpInfo(const ltracer::ui::UIData& uiData)
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
 }
 
-inline void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
+void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Raytracing Properties:");
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
 }
 
-inline void renderMainPanel(UIData& uiData)
+void renderMainPanel(UIData& uiData)
 {
 	// ImGui::ShowDemoWindow();
 
@@ -290,14 +249,14 @@ inline void renderMainPanel(UIData& uiData)
 	ImGui::End();
 }
 
-inline void beginFrame()
+void beginFrame()
 {
 	ImGui_ImplVulkan_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
 }
 
-inline void endFrame()
+void endFrame()
 {
 	ImGui::EndFrame();
 	ImGui::Render();

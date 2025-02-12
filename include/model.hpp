@@ -15,7 +15,7 @@
 
 #include "tiny_obj_loader.h"
 
-#include "src/worldobject.hpp"
+#include "worldobject.hpp"
 
 namespace ltracer
 {

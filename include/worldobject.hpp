@@ -8,7 +8,7 @@
 #include "glm/ext/matrix_transform.hpp"
 #include "glm/ext/vector_float3.hpp"
 
-#include "src/transform.hpp"
+#include "transform.hpp"
 
 namespace ltracer
 {

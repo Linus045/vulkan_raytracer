@@ -5,10 +5,10 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include "src/deletion_queue.hpp"
-#include "src/device_procedures.hpp"
-#include "src/types.hpp"
-#include "src/vk_utils.hpp"
+#include "deletion_queue.hpp"
+#include "device_procedures.hpp"
+#include "types.hpp"
+#include "vk_utils.hpp"
 
 namespace ltracer
 {

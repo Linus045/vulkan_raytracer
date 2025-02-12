@@ -3,12 +3,11 @@
 #include <cstring>
 #include <vulkan/vulkan_core.h>
 
-#include "src/aabb.hpp"
-#include "src/common_types.h"
-#include "src/deletion_queue.hpp"
-#include "src/types.hpp"
-#include "src/device_procedures.hpp"
-#include "src/vk_utils.hpp"
+#include "common_types.h"
+#include "deletion_queue.hpp"
+#include "types.hpp"
+#include "device_procedures.hpp"
+#include "vk_utils.hpp"
 
 namespace ltracer
 {

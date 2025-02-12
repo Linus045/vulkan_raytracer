@@ -8,13 +8,8 @@
 #include <glm/matrix.hpp>
 #include <iostream>
 #include <ostream>
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-#define GLM_FORCE_LEFT_HANDED
-#define GLM_FORCE_RADIANS
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/ext/matrix_float4x4.hpp"
 
-#include "src/common_types.h"
+#include "common_types.h"
 
 namespace ltracer
 {
@@ -232,9 +227,9 @@ inline bool newtonsMethod(std::vector<Sphere>& spheres,
 }
 
 inline void visualizeVector(std::vector<Sphere>& spheres,
-                       const glm::vec3& startPos,
-                       const glm::vec3& direction,
-                       const float length)
+                            const glm::vec3& startPos,
+                            const glm::vec3& direction,
+                            const float length)
 {
 	float stepSize = 0.01f;
 	for (float s = 0; s <= length; s += stepSize)
@@ -267,11 +262,11 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	auto n1 = glm::vec3(1, 0, 0);
 	auto n2 = glm::vec3(0, 1, 0);
 
-	//for (int i = 0; i < 16; i++)
+	// for (int i = 0; i < 16; i++)
 	//{
 	//	auto projectedPoint = projectPoint(surface.controlPoints[i], rayOrigin, n1, n2);
 	//	spheres.emplace_back(glm::vec3(projectedPoint.x, projectedPoint.y, 0), 0.4, 5);
-	//}
+	// }
 
 	glm::vec3 intersectionPoint;
 	glm::vec2 initialGuess = glm::vec2(1, 1);

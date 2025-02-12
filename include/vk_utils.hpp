@@ -5,8 +5,8 @@
 
 #include <vulkan/vulkan_core.h>
 
-#include "src/deletion_queue.hpp"
-#include "src/types.hpp"
+#include "deletion_queue.hpp"
+#include "types.hpp"
 
 namespace ltracer
 {

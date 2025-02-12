@@ -10,8 +10,8 @@
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
 
-#include "src/types.hpp"
-#include "src/vk_utils.hpp"
+#include "types.hpp"
+#include "vk_utils.hpp"
 
 namespace ltracer
 {
