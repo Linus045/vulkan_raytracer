@@ -35,6 +35,12 @@ layout(set = 0, binding=7, scalar) buffer RectangularBezierSurfaces
 	RectangularBezierSurface2x2[] rectangularBezierSurfaces2x2;
 };
 
+layout(set = 0, binding=8, scalar) buffer SlicingPlanes
+{
+	SlicingPlane[] slicingPlanes;
+};
+
+
 layout( push_constant ) uniform RaytracingDataConstants
 {
 	float newtonErrorTolerance;
@@ -317,13 +323,26 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 }
 
 
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
+bool intersectWithPlane(const vec3 planeNormal,const vec3 planeOrigin,const vec3 rayOrigin,const vec3 rayDirection, out float t) {
+	// debugPrintfEXT("Test intesection with Plane: RayOrigin: (%v3f) rayDirection: (%v3f) PlaneNormal(%v3f) PlanePosition:(%v3f)",rayOrigin, rayDirection, planeNormal, planeOrigin);
+  float denom = dot(planeNormal, rayDirection);
+  if (denom > 1e-6) {
+	vec3 rayToPlanePoint = planeOrigin - rayOrigin;
+	t = dot(rayToPlanePoint, planeNormal) / denom;
+	return t >= 0;
+  }
+  return false;
+}
+
+
 void main() {
 	// Debugging, display aabb boxes
 	if(raytracingDataConstants.debugShowAABBs > 0.0) {
 		reportIntersectionEXT(0.2, t_AABBDebug);
 		return;
 	}
-	
+
 	Ray ray;
 	ray.origin    = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;
@@ -384,6 +403,16 @@ void main() {
 	{
 		// always mark as hit
 		tHit = 1;
+	}
+
+	// if we still hit no object, check if we hit a slicing plane
+	SlicingPlane plane = slicingPlanes[0];
+	float t = 0;
+	if(intersectWithPlane(plane.normal, plane.planeOrigin, ray.origin, ray.direction, t)) {
+		if(t < tHit) {
+			tHit = t;
+			objectType = int(t_SlicingPlane);
+		}
 	}
 
 	// Report hit point

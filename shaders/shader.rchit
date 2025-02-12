@@ -96,15 +96,17 @@ void main() {
     return;
   }
 
-  if(gl_HitKindEXT == t_AABBDebug) {
+  if(gl_HitKindEXT == t_SlicingPlane) {
+	  payload.rayActive = 0;
+  } else if(gl_HitKindEXT == t_AABBDebug) {
     // we hit a AABB
-    payload.directColor = vec3(0.8, 0.8, 0.8);
-    payload.indirectColor = vec3(0,0,0);
-    payload.rayActive = 0;
+		payload.directColor = vec3(0.8, 0.8, 0.8);
+		payload.indirectColor = vec3(0,0,0);
+		payload.rayActive = 0;
   }else if(gl_HitKindEXT == t_Tetrahedron) {
       if (payload.rayDepth == 0) {
         payload.directColor = vec3(1.0, 1.0, 0.0);
-      } 
+      }
       payload.rayActive = 0;
   }else if(gl_HitKindEXT == t_Sphere) {
 	  vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;

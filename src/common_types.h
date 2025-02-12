@@ -51,6 +51,7 @@ START_BINDING(ObjectType)
 	t_Triangle = 2,
 	t_Tetrahedron = 3,
 	t_RectangularBezierSurface2x2 = 4,
+	t_SlicingPlane = 5,
 	t_AABBDebug = 1000
 END_BINDING();
 
@@ -93,6 +94,12 @@ struct Triangle
 	vec3 a;
 	vec3 b;
 	vec3 c;
+};
+
+struct SlicingPlane
+{
+	vec3 planeOrigin;
+	vec3 normal;
 };
 
 struct RectangularBezierSurface2x2

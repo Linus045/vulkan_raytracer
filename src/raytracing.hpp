@@ -14,6 +14,12 @@
 #include <vulkan/vk_platform.h>
 #include <vulkan/vulkan_core.h>
 
+#define GLM_FORCE_DEPTH_ZERO_TO_ONE
+#define GLM_FORCE_LEFT_HANDED
+#define GLM_FORCE_RADIANS
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/ext/vector_float3.hpp>
+
 #include "src/aabb.hpp"
 #include "src/blas.hpp"
 #include "src/camera.hpp"
@@ -52,6 +58,7 @@ static VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
 static VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
 static VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
 
+static VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
 /**
  * @brief Updates the camera position, forward, up and right vectors in the uniform structure.
  *
@@ -461,6 +468,14 @@ inline VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 	    },
 	    {
 	        .binding = 7,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 8,
 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 	        .descriptorCount = 1,
 	        .stageFlags
@@ -898,6 +913,12 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo slicingPlanesDescriptorInfo = {
+	    .buffer = slicingPlanesBufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	std::vector<VkWriteDescriptorSet> writeDescriptorSetList;
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
@@ -1036,6 +1057,21 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
+	if (slicingPlanesBufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 8,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &slicingPlanesDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
 	vkUpdateDescriptorSets(logicalDevice,
 	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
 	                       writeDescriptorSetList.data(),
@@ -1415,6 +1451,19 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		}
 
 		visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
+	}
+
+	{
+		// Visualize slicing planes
+		auto slicingPlanes = std::vector<SlicingPlane>{
+		    {
+		        glm::vec3(5, 0, 0),
+		        glm::vec3(-1, 0, 0),
+		    },
+		};
+
+		slicingPlanesBufferHandle
+		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
 	}
 
 	if (rectangularBezierSurfaces.size() > 0)
