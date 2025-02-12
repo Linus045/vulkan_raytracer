@@ -61,16 +61,18 @@ class AABB
 	static AABB
 	fromRectangularBezierSurface(const RectangularBezierSurface& rectangularBezierSurface)
 	{
-		glm::vec3 min, max;
+		glm::vec3 min = rectangularBezierSurface.getControlPoints()[0];
+		glm::vec3 max = rectangularBezierSurface.getControlPoints()[0];
+
 		for (const glm::vec3& point : rectangularBezierSurface.getControlPoints())
 		{
 			min.x = glm::min(min.x, point.x);
 			min.y = glm::min(min.y, point.y);
 			min.z = glm::min(min.z, point.z);
 
-			max.x = glm::min(max.x, point.x);
-			max.y = glm::min(max.y, point.y);
-			max.z = glm::min(max.z, point.z);
+			max.x = glm::max(max.x, point.x);
+			max.y = glm::max(max.y, point.y);
+			max.z = glm::max(max.z, point.z);
 		}
 
 		return AABB{
@@ -79,20 +81,25 @@ class AABB
 		};
 	}
 
-	static AABB fromTetrahedron(const Tetrahedron& tetrahedron)
+	static AABB fromTetrahedron(const Tetrahedron1& tetrahedron)
 	{
-		return AABB
+		glm::vec3 min = tetrahedron.controlPoints[0];
+		glm::vec3 max = tetrahedron.controlPoints[0];
+
+		for (const glm::vec3& point : tetrahedron.controlPoints)
 		{
-			.min = {
-				glm::min(tetrahedron.a.x, glm::min(tetrahedron.b.x, tetrahedron.c.x)),
-				glm::min(tetrahedron.a.y, glm::min(tetrahedron.b.y, tetrahedron.c.y)),
-				glm::min(tetrahedron.a.z, glm::min(tetrahedron.b.z, tetrahedron.c.z)),
-			},
-			.max = {
-				glm::max(tetrahedron.a.x, glm::max(tetrahedron.b.x, tetrahedron.c.x)),
-				glm::max(tetrahedron.a.y, glm::max(tetrahedron.b.y, tetrahedron.c.y)),
-				glm::max(tetrahedron.a.z, glm::max(tetrahedron.b.z, tetrahedron.c.z)),
-			},
+			min.x = glm::min(min.x, point.x);
+			min.y = glm::min(min.y, point.y);
+			min.z = glm::min(min.z, point.z);
+
+			max.x = glm::max(max.x, point.x);
+			max.y = glm::max(max.y, point.y);
+			max.z = glm::max(max.z, point.z);
+		}
+
+		return AABB{
+		    .min = min,
+		    .max = max,
 		};
 	}
 

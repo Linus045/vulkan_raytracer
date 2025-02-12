@@ -51,10 +51,12 @@ using uint = unsigned int;
 START_BINDING(ObjectType)
 	t_Sphere = 1,
 	t_Triangle = 2,
-	t_Tetrahedron = 3,
-	t_RectangularBezierSurface2x2 = 4,
-	t_SlicingPlane = 5,
-	t_AABBDebug = 6
+	t_Tetrahedron1 = 3,
+	t_Tetrahedron2 = 4,
+	t_Tetrahedron3 = 5,
+	t_RectangularBezierSurface2x2 = 6,
+	t_SlicingPlane = 80,
+	t_AABBDebug = 100
 END_BINDING();
 
 // TODO: add proper materials, this is just temporary to make debugging easier
@@ -102,11 +104,19 @@ struct Sphere
 	int colorIdx;
 };
 
-struct Tetrahedron
+struct Tetrahedron1
 {
-	vec3 a;
-	vec3 b;
-	vec3 c;
+	vec3 controlPoints[4];
+};
+
+struct Tetrahedron2
+{
+	vec3 controlPoints[10];
+};
+
+struct Tetrahedron3
+{
+	vec3 controlPoints[20];
 };
 
 struct Triangle

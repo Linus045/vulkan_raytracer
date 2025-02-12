@@ -54,4 +54,14 @@ class RectangularBezierSurface
 	const std::vector<glm::vec3> controlPoints;
 };
 
+inline Tetrahedron1 createTetrahedron1(const glm::vec3 points[4])
+{
+	auto tetrahedron = Tetrahedron1();
+	tetrahedron.controlPoints[0] = points[0];
+	tetrahedron.controlPoints[1] = points[1];
+	tetrahedron.controlPoints[2] = points[2];
+	tetrahedron.controlPoints[3] = points[3];
+	return tetrahedron;
+}
+
 } // namespace ltracer

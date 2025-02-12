@@ -22,7 +22,7 @@ struct Ray
 
 layout(set = 0, binding=5, scalar) buffer Tetrahedrons
 {
-	Tetrahedron[] tetrahedrons;
+	Tetrahedron1[] tetrahedrons;
 };
 
 layout(set = 0, binding=6, scalar) buffer Spheres
@@ -107,7 +107,7 @@ vec3 IntersectPlane(Ray ray, vec3 p0, vec3 p1, vec3 p2)
 }
 
 
-float IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2)
+bool IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2, out float t)
 {
     vec3 X = IntersectPlane(ray, p0, p1, p2);
 
@@ -115,9 +115,10 @@ float IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2)
 		// debugPrintfEXT("IntersectPlane: %f, %f, %f", X.x,X.y,X.z);
 		float dist = distance(ray.origin, X);
 		// debugPrintfEXT("Dist: %f", dist);
-		return dist;
+		t = dist;
+		return dist > 0;
 	}
-	return -1;
+	return false;
 }
 
 
@@ -349,8 +350,9 @@ void main() {
 
 
 	int objectType = gl_InstanceCustomIndexEXT;
+	// debugPrintfEXT("objectType: %d", objectType);
+
 	// Tetrahedron data
-	Tetrahedron tetrahedron = tetrahedrons[gl_PrimitiveID];
 
 	// debugPrintfEXT("gl_InstanceCustomIndexEXT: %d", gl_InstanceCustomIndexEXT);
 	// debugPrintfEXT("Tetrahedron: a: %f, %f, %f", tetrahedron.a.x,tetrahedron.a.y,tetrahedron.a.z);
@@ -358,14 +360,68 @@ void main() {
 	// debugPrintfEXT("Tetrahedron: c: %f, %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
 	float tHit = -1;
-	if(objectType == t_Tetrahedron)
+	if(objectType == t_Tetrahedron1)
 	{
-		// // AABB intersection
-		// Aabb aabb;
-		// aabb.minimum = sphere.center - vec3(sphere.radius);
-		// aabb.maximum = sphere.center + vec3(sphere.radius);
-		// tHit         = hitAabb(aabb, ray);
-		tHit = IntersectTriangle(ray, tetrahedron.a, tetrahedron.b, tetrahedron.c);
+		// TODO: i dont know if this is the best approach, here we are checking 4 sides, since the degree is 1
+		// this is the simplest method
+		// intersect test with tetrahedron of degree 1
+		Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
+
+		float t =-1;
+		if(IntersectTriangle(ray,
+				tetrahedron.controlPoints[2],
+				tetrahedron.controlPoints[0],
+				tetrahedron.controlPoints[3], t))
+		{
+			if(t < tHit || tHit < 0) {
+				tHit = t;
+			}
+		}
+
+		if(IntersectTriangle(ray,
+				tetrahedron.controlPoints[0],
+				tetrahedron.controlPoints[1],
+				tetrahedron.controlPoints[3],t))
+		{
+			if(t < tHit || tHit < 0) {
+				tHit = t;
+			}
+		}
+
+		if(IntersectTriangle(ray,
+				tetrahedron.controlPoints[1],
+				tetrahedron.controlPoints[2],
+				tetrahedron.controlPoints[3],t))
+		{
+			if(t < tHit || tHit < 0) {
+				tHit = t;
+			}
+		}
+
+		if(IntersectTriangle(ray,
+				tetrahedron.controlPoints[0],
+				tetrahedron.controlPoints[1],
+				tetrahedron.controlPoints[2],t))
+		{
+			if(t < tHit || tHit < 0) {
+				tHit = t;
+			}
+		}
+
+
+	 // debugPrintfEXT("tHit: %f", tHit);
+	 // debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
+		// 	 tHit,
+		// 	 tetrahedron.controlPoints[0],
+		// 	 tetrahedron.controlPoints[1],
+		// 	 tetrahedron.controlPoints[2],
+		// 	 tetrahedron.controlPoints[3]
+		// 	 );
+	}
+	else if(objectType == t_Triangle)
+	{
+		// Triangle triangle = triangles[gl_PrimitiveID];
+		// tHit = IntersectTriangle(ray, triangle.a, triangle.b, triangle.c);
 	}
 	else if (objectType == t_Sphere)
 	{

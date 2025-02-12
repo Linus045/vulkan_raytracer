@@ -1072,14 +1072,14 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// load OBJ Models
 	std::string scenePath = "3d-models/cube_scene.obj";
 	{
-		MeshObject meshObject = MeshObject::loadFromPath(scenePath);
-		meshObject.translate(20, 0, 0);
-		raytracingInfo.meshObjects.push_back(std::move(meshObject));
+		// MeshObject meshObject = MeshObject::loadFromPath(scenePath);
+		// meshObject.translate(20, 0, 0);
+		// raytracingInfo.meshObjects.push_back(std::move(meshObject));
 	}
 	{
-		MeshObject meshObject2 = MeshObject::loadFromPath(scenePath);
-		// TODO: figure out why this movement causes artifacts
-		meshObject2.translate(-5, 0, 0);
+		// MeshObject meshObject2 = MeshObject::loadFromPath(scenePath);
+		// // TODO: figure out why this movement causes artifacts
+		// meshObject2.translate(-5, 0, 0);
 		// meshObject2.transform.scale = glm::vec3(1, 1, 1);
 		// meshObjects.push_back(std::move(meshObject2));
 	}
@@ -1087,12 +1087,24 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// create aabbs (temporary)
 
-	std::vector<Tetrahedron> tetrahedrons
-	    = {Tetrahedron{glm::vec3(0, 0, 0), glm::vec3(2, 0, 0), glm::vec3(0, 0, 2)}};
+	const glm::vec3 points[4] = {
+	    glm::vec3(0.0f, 0.0f, 0.5f),
+	    glm::vec3(0.5f, 0.0f, -0.5f),
+	    glm::vec3(-0.5f, 0.0f, -0.5f),
+	    glm::vec3(0.0f, 0.5f, 0.0f),
+	};
+	;
+
+	std::vector<Tetrahedron1> tetrahedrons = {
+	    createTetrahedron1(points),
+	};
 
 	std::vector<Sphere> spheres{
 	    // show origin
-	    Sphere{glm::vec3(), 0.3f, static_cast<int>(ColorIdx::t_white)},
+	    // Sphere{glm::vec3(), 0.15f, static_cast<int>(ColorIdx::t_black)},
+	    // Sphere{glm::vec3(1, 0, 0), 0.1f, static_cast<int>(ColorIdx::t_red)},
+	    // Sphere{glm::vec3(0, 0, 1), 0.1f, static_cast<int>(ColorIdx::t_green)},
+	    // Sphere{glm::vec3(0, 1, 0), 0.1f, static_cast<int>(ColorIdx::t_blue)},
 	};
 
 	// {
@@ -1149,7 +1161,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	                                            });
 
 	std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
-	    surfaceTest,
+	    // surfaceTest,
 	};
 
 	// create vector to hold all BLAS instances
@@ -1167,41 +1179,41 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 			aabbsTetrahedrons.push_back(AABB::fromTetrahedron(tetrahedron));
 		}
 
-		createBottomLevelAccelerationStructuresForObjects<Tetrahedron>(
+		createBottomLevelAccelerationStructuresForObjects<Tetrahedron1>(
 		    physicalDevice,
 		    logicalDevice,
 		    deletionQueue,
 		    tetrahedrons,
-		    ObjectType::t_Tetrahedron,
+		    ObjectType::t_Tetrahedron1,
 		    aabbsTetrahedrons,
 		    blasInstancesData,
 		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
 		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
 	}
 
-	{
-		// Visualize surface using spheres
-		std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
-		if (!surfaceTest.tryConvertToRectangularSurfaces2x2(rectangularBezierSurfaces2x2))
-		{
-			throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
-		}
+	// {
+	// 	// Visualize surface using spheres
+	// 	std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
+	// 	if (!surfaceTest.tryConvertToRectangularSurfaces2x2(rectangularBezierSurfaces2x2))
+	// 	{
+	// 		throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
+	// 	}
 
-		visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
-	}
+	// 	visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
+	// }
 
-	{
-		// Visualize slicing planes
-		auto slicingPlanes = std::vector<SlicingPlane>{
-		    {
-		        glm::vec3(5, 0, 0),
-		        glm::vec3(-1, 0, 0),
-		    },
-		};
+	// {
+	// 	// Visualize slicing planes
+	// 	auto slicingPlanes = std::vector<SlicingPlane>{
+	// 	    {
+	// 	        glm::vec3(5, 0, 0),
+	// 	        glm::vec3(-1, 0, 0),
+	// 	    },
+	// 	};
 
-		raytracingInfo.objectBuffers.slicingPlanesBufferHandle
-		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
-	}
+	// 	raytracingInfo.objectBuffers.slicingPlanesBufferHandle
+	// 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
+	// }
 
 	if (rectangularBezierSurfaces.size() > 0)
 	{
