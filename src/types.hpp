@@ -1,6 +1,7 @@
 #pragma once
 
 #include "src/common_types.h"
+#include "src/model.hpp"
 #include <cstdint>
 #include <optional>
 
@@ -57,6 +58,21 @@ struct UniformStructure
 	uint32_t frameCount;
 };
 
+struct RaytracingObjectBuffers
+{
+	// TODO: convert into a list for the aabbs per blas
+	VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
+	VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
+
+	VkBuffer spheresBufferHandle = VK_NULL_HANDLE;
+	VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
+
+	VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
+	VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
+
+	VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
+};
+
 // TODO: split this up a bit into more sensible structs
 struct RaytracingInfo
 {
@@ -104,6 +120,12 @@ struct RaytracingInfo
 	uint32_t missGroupSize = 0;
 
 	RaytracingDataConstants raytracingConstants;
+
+	// the mesh objects that are shown in the scene (loaded obj files)
+	std::vector<MeshObject> meshObjects;
+
+	// the objects that are rendered using ray tracing (with an intersection shader)
+	RaytracingObjectBuffers objectBuffers;
 };
 
 } // namespace ltracer

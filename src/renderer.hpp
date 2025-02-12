@@ -137,11 +137,11 @@ class Renderer
 		}
 
 		raytracingInfo.raytracingConstants = {
-			.newtonErrorTolerance = 0.0001f,
+		    .newtonErrorTolerance = 0.0001f,
 		    .globalLightPosition = glm::vec3(20, 100, -50),
 		    .globalLightColor = vec3(0.6, 0.6, 0.6),
 		    .environmentColor = vec3(0.58, 0.81, 0.92),
-			.debugShowAABBs = 0.0f,
+		    .debugShowAABBs = 0.0f,
 		};
 
 		// auto& cameraTransform = camera->transform;
@@ -368,7 +368,7 @@ class Renderer
 		updateSharedInfoBuffer();
 	}
 
-	const RaytracingInfo getRaytracingInfo()
+	const RaytracingInfo& getRaytracingInfo()
 	{
 		return raytracingInfo;
 	}

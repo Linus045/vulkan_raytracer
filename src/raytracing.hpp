@@ -46,19 +46,6 @@ namespace rt
 // TODO: figure out a better way to handle this
 static VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
 
-static std::vector<MeshObject> meshObjects;
-
-// TODO: convert into a list for the aabbs per blas
-static VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
-static VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
-
-static VkBuffer spheresBufferHandle = VK_NULL_HANDLE;
-static VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
-
-static VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
-static VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
-
-static VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
 /**
  * @brief Updates the camera position, forward, up and right vectors in the uniform structure.
  *
@@ -351,7 +338,7 @@ inline void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 	}
 
 	deletionQueue.push_function(
-	    [=]()
+	    [=, &raytracingInfo]()
 	    {
 		    vkFreeCommandBuffers(logicalDevice,
 		                         commandBufferPoolHandle,
@@ -643,7 +630,7 @@ createPipelineLayout(VkDevice logicalDevice,
 	}
 
 	deletionQueue.push_function(
-	    [=]()
+	    [=, &raytracingInfo]()
 	    { vkDestroyPipelineLayout(logicalDevice, raytracingInfo.pipelineLayoutHandle, NULL); });
 }
 
@@ -866,7 +853,8 @@ inline void createRaytracingPipeline(VkDevice logicalDevice,
 	}
 
 	deletionQueue.push_function(
-	    [=]() { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
+	    [=, &raytracingInfo]()
+	    { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
 }
 
 /**
@@ -896,25 +884,25 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	};
 
 	VkDescriptorBufferInfo tetrahedronsDescriptorInfo = {
-	    .buffer = tetrahedronsBufferHandle,
+	    .buffer = raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo spheresDescriptorInfo = {
-	    .buffer = spheresBufferHandle,
+	    .buffer = raytracingInfo.objectBuffers.spheresBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo rectangularBezierSurfaces2x2DescriptorInfo = {
-	    .buffer = rectangularBezierSurfaces2x2BufferHandle,
+	    .buffer = raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo slicingPlanesDescriptorInfo = {
-	    .buffer = slicingPlanesBufferHandle,
+	    .buffer = raytracingInfo.objectBuffers.slicingPlanesBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
@@ -1009,7 +997,7 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .pTexelBufferView = NULL,
 	});
 
-	if (tetrahedronsBufferHandle != VK_NULL_HANDLE)
+	if (raytracingInfo.objectBuffers.tetrahedronsBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1025,7 +1013,7 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (spheresBufferHandle != VK_NULL_HANDLE)
+	if (raytracingInfo.objectBuffers.spheresBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1041,7 +1029,7 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (rectangularBezierSurfaces2x2BufferHandle != VK_NULL_HANDLE)
+	if (raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1057,7 +1045,7 @@ inline void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (slicingPlanesBufferHandle != VK_NULL_HANDLE)
+	if (raytracingInfo.objectBuffers.slicingPlanesBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -1337,7 +1325,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 	{
 		MeshObject meshObject = MeshObject::loadFromPath(scenePath);
 		meshObject.translate(20, 0, 0);
-		meshObjects.push_back(std::move(meshObject));
+		raytracingInfo.meshObjects.push_back(std::move(meshObject));
 	}
 	{
 		MeshObject meshObject2 = MeshObject::loadFromPath(scenePath);
@@ -1438,8 +1426,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    ObjectType::t_Tetrahedron,
 		    aabbsTetrahedrons,
 		    blasInstancesData,
-		    tetrahedronsBufferHandle,
-		    tetrahedronsAABBBufferHandle);
+		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
+		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
 	}
 
 	{
@@ -1462,7 +1450,7 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    },
 		};
 
-		slicingPlanesBufferHandle
+		raytracingInfo.objectBuffers.slicingPlanesBufferHandle
 		    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
 	}
 
@@ -1491,8 +1479,8 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 		    ObjectType::t_RectangularBezierSurface2x2,
 		    aabbsRectangularSurfaces2x2,
 		    blasInstancesData,
-		    rectangularBezierSurfaces2x2BufferHandle,
-		    rectangularBezierSurfacesAABB2x2BufferHandle);
+		    raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
+		    raytracingInfo.objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandle);
 	}
 
 	if (spheres.size() > 0)
@@ -1503,20 +1491,21 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 			aabbsSpheres.push_back(AABB::fromSphere(sphere));
 		}
 
-		createBottomLevelAccelerationStructuresForObjects<Sphere>(physicalDevice,
-		                                                          logicalDevice,
-		                                                          deletionQueue,
-		                                                          spheres,
-		                                                          ObjectType::t_Sphere,
-		                                                          aabbsSpheres,
-		                                                          blasInstancesData,
-		                                                          spheresBufferHandle,
-		                                                          spheresAABBBufferHandle);
+		createBottomLevelAccelerationStructuresForObjects<Sphere>(
+		    physicalDevice,
+		    logicalDevice,
+		    deletionQueue,
+		    spheres,
+		    ObjectType::t_Sphere,
+		    aabbsSpheres,
+		    blasInstancesData,
+		    raytracingInfo.objectBuffers.spheresBufferHandle,
+		    raytracingInfo.objectBuffers.spheresAABBBufferHandle);
 	}
 
 	// =========================================================================
 	// convert to bottom level acceleration structure
-	for (auto&& obj : meshObjects)
+	for (auto&& obj : raytracingInfo.meshObjects)
 	{
 		loadAndCreateVertexAndIndexBufferForModel(
 		    logicalDevice, physicalDevice, deletionQueue, obj);
@@ -1611,17 +1600,18 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Update Descriptor Set
-	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
 
 	// =========================================================================
 	// Material Index Buffer
 
-	if (meshObjects.size() > 0)
+	if (raytracingInfo.meshObjects.size() > 0)
 	{
 		std::vector<uint32_t> materialIndexList;
 		// TODO: Material list needs to include all possible materials from all objects, for now
 		// we only have one object
-		for (tinyobj::shape_t shape : meshObjects[0].shapes)
+		for (tinyobj::shape_t shape : raytracingInfo.meshObjects[0].shapes)
 		{
 			for (int index : shape.mesh.material_ids)
 			{
@@ -1665,17 +1655,21 @@ inline void initRayTracing(VkPhysicalDevice physicalDevice,
 
 		// TODO: Material list needs to include all possible materials from all objects, for now
 		// we only have one object
-		std::vector<Material> materialList(meshObjects[0].materials.size());
-		for (uint32_t i = 0; i < meshObjects[0].materials.size(); i++)
+		std::vector<Material> materialList(raytracingInfo.meshObjects[0].materials.size());
+		for (uint32_t i = 0; i < raytracingInfo.meshObjects[0].materials.size(); i++)
 		{
-			memcpy(
-			    &materialList[i].ambient, meshObjects[0].materials[i].ambient, sizeof(float) * 3);
-			memcpy(
-			    &materialList[i].diffuse, meshObjects[0].materials[i].diffuse, sizeof(float) * 3);
-			memcpy(
-			    &materialList[i].specular, meshObjects[0].materials[i].specular, sizeof(float) * 3);
-			memcpy(
-			    &materialList[i].emission, meshObjects[0].materials[i].emission, sizeof(float) * 3);
+			memcpy(&materialList[i].ambient,
+			       raytracingInfo.meshObjects[0].materials[i].ambient,
+			       sizeof(float) * 3);
+			memcpy(&materialList[i].diffuse,
+			       raytracingInfo.meshObjects[0].materials[i].diffuse,
+			       sizeof(float) * 3);
+			memcpy(&materialList[i].specular,
+			       raytracingInfo.meshObjects[0].materials[i].specular,
+			       sizeof(float) * 3);
+			memcpy(&materialList[i].emission,
+			       raytracingInfo.meshObjects[0].materials[i].emission,
+			       sizeof(float) * 3);
 		}
 
 		VkBuffer materialBufferHandle = VK_NULL_HANDLE;
@@ -2192,7 +2186,8 @@ inline void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	raytracingInfo.rayTraceImageViewHandle = createRaytracingImageView(
 	    logicalDevice, swapChainImageFormat, raytracingInfo.rayTraceImageHandle);
 
-	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingInfo, meshObjects);
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
 
 	// reset frame count so the window gets refreshed properly
 	resetFrameCount(raytracingInfo);
