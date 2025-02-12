@@ -194,8 +194,10 @@ inline void renderRaytracingOptions(UIData& uiData)
 			// passing a boolean in a storage buffer directly didn't work probably due to alignment
 			// issues, so we just send 0 or 1 instead
 			bool debugShowAABBs = uiData.raytracingDataConstants.debugShowAABBs > 0;
-			valueChanged = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes", &debugShowAABBs)
-			               || valueChanged;
+			valueChanged
+			    = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes (ignores slicing planes)",
+			                      &debugShowAABBs)
+			      || valueChanged;
 			uiData.raytracingDataConstants.debugShowAABBs = debugShowAABBs ? 1 : 0;
 
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
@@ -203,7 +205,8 @@ inline void renderRaytracingOptions(UIData& uiData)
 			                                  0.0f,
 			                                  1.0f,
 			                                  "%.7f",
-			                                  ImGuiSliderFlags_AlwaysClamp);
+			                                  ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
 		}
 
 		ImGui::SeparatorText("Environment");

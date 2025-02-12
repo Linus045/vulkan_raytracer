@@ -44,10 +44,8 @@ camera;
 
 layout( push_constant ) uniform RaytracingDataConstants
 {
-	float newtonErrorTolerance;
-    vec3 globalLightPosition;
-    vec3 globalLightColor;
-    float debugShowAABBs;
+	// see common_types.h
+	PUSH_CONSTANT_MEMBERS
 } raytracingDataConstants;
 
 layout(binding = 2, set = 0) buffer IndexBuffer { uint data[]; }
@@ -96,6 +94,7 @@ void main() {
     return;
   }
 
+  // debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
   if(gl_HitKindEXT == t_SlicingPlane) {
 	  payload.rayActive = 0;
   } else if(gl_HitKindEXT == t_AABBDebug) {

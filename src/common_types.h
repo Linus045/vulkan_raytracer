@@ -41,9 +41,11 @@ using uint = unsigned int;
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
  #define START_BINDING(a) enum class a {
  #define END_BINDING() }
+ #define ALIGNAS(x) alignas(x)
 #else
  #define START_BINDING(a)  const uint
  #define END_BINDING() 
+ #define ALIGNAS(x)
 #endif
 
 START_BINDING(ObjectType)
@@ -52,7 +54,7 @@ START_BINDING(ObjectType)
 	t_Tetrahedron = 3,
 	t_RectangularBezierSurface2x2 = 4,
 	t_SlicingPlane = 5,
-	t_AABBDebug = 1000
+	t_AABBDebug = 6
 END_BINDING();
 
 // TODO: add proper materials, this is just temporary to make debugging easier
@@ -68,6 +70,24 @@ START_BINDING(ColorIdx)
 	t_black = 9
 END_BINDING();
 // clang-format on
+
+#define PUSH_CONSTANT_MEMBERS                                                                      \
+	ALIGNAS(4) float newtonErrorTolerance;                                                         \
+	ALIGNAS(16) vec3 globalLightPosition;                                                          \
+	ALIGNAS(16) vec3 globalLightColor;                                                             \
+	ALIGNAS(16) vec3 environmentColor;                                                             \
+	ALIGNAS(4) float debugShowAABBs;
+
+#ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
+struct RaytracingDataConstants
+{
+	PUSH_CONSTANT_MEMBERS
+};
+#else
+// because we are using push_constant a block is required so we
+// manually have to use PUSH_CONSTANT_DATA in the shader inside the block
+// we could also use a macro but I prefer the more explicit way
+#endif
 
 struct Aabb
 {

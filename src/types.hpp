@@ -1,5 +1,6 @@
 #pragma once
 
+#include "src/common_types.h"
 #include <cstdint>
 #include <optional>
 
@@ -38,15 +39,6 @@ struct UniformBufferObject
 {
 	alignas(16) glm::mat4 modelMatrix;
 	alignas(16) std::vector<glm::vec3> modelNormals;
-};
-
-struct RaytracingDataConstants
-{
-	alignas(4) float newtonErrorTolerance;
-	alignas(16) glm::vec3 globalLightPosition;
-	alignas(16) glm::vec3 globalLightColor;
-	alignas(16) glm::vec3 environmentColor;
-	alignas(4) float debugShowAABBs;
 };
 
 struct SharedInfo
