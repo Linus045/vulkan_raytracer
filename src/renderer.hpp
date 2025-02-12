@@ -84,13 +84,13 @@ class Renderer
 	{
 		// this->worldObjects = worldObjects;
 
-		createImageViews(logicalDevice);
+		createImageViews();
 
 		createRenderPass();
 		// createDescriptorSetLayoutGlobal();
 		// createDescriptorSetLayoutModel();
 		createGraphicsPipeline();
-		createFramebuffers(logicalDevice, window);
+		createFramebuffers();
 		createCommandPools();
 
 		// createUniformBuffers();
@@ -177,7 +177,7 @@ class Renderer
 		return raytracingInfo.uniformStructure.frameCount;
 	}
 
-	void createImageViews(VkDevice logicalDevice)
+	void createImageViews()
 	{
 		// retrieve images from the swapchain so we can access them
 		uint32_t swapChainImageCount = 0;
@@ -216,7 +216,7 @@ class Renderer
 		}
 	}
 
-	void createFramebuffers(VkDevice logicalDevice, const Window& window)
+	void createFramebuffers()
 	{
 		swapChainFramebuffers.resize(swapChainImageViews.size());
 		for (size_t i = 0; i < swapChainImageViews.size(); i++)

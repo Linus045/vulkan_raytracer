@@ -101,10 +101,10 @@ class Window
 		setMouseCursorCapturedEnabled(cursorCaptureEnabled);
 	}
 
-	void setMouseCursorCapturedEnabled(const bool cursorCaptureEnabled)
+	void setMouseCursorCapturedEnabled(const bool captureMouseCursor)
 	{
-		this->cursorCaptureEnabled = cursorCaptureEnabled;
-		if (this->cursorCaptureEnabled)
+		cursorCaptureEnabled = captureMouseCursor;
+		if (cursorCaptureEnabled)
 		{
 			glfwSetInputMode(glfwWindow, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		}

@@ -143,9 +143,9 @@ class Camera
 		return yawRadians;
 	}
 
-	void setMovementSpeed(const float movementSpeed)
+	void setMovementSpeed(const float speed)
 	{
-		this->movementSpeed = glm::clamp(movementSpeed, movementSpeedMin, movementSpeedMax);
+		movementSpeed = glm::clamp(speed, movementSpeedMin, movementSpeedMax);
 	}
 
 	float getMovementSpeed() const
@@ -153,9 +153,9 @@ class Camera
 		return movementSpeed;
 	}
 
-	void setRotationSpeed(const float rotationSpeed)
+	void setRotationSpeed(const float speed)
 	{
-		this->rotationSpeed = glm::clamp(rotationSpeed, rotationSpeedMin, rotationSpeedMax);
+		rotationSpeed = glm::clamp(speed, rotationSpeedMin, rotationSpeedMax);
 	}
 
 	float getRotationSpeed() const

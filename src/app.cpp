@@ -72,7 +72,7 @@ class HelloTriangleApplication
 		                                                           physicalDevice);
 
 		window.setWindowUserPointer(customUserData.get());
-		initInputHandlers(window);
+		initInputHandlers();
 
 		mainLoop();
 
@@ -272,7 +272,7 @@ class HelloTriangleApplication
 	// 	}
 	// }
 
-	void initInputHandlers(ltracer::Window& window)
+	void initInputHandlers()
 	{
 		glfwSetKeyCallback(window.getGLFWWindow(), &ltracer::handleInputCallback);
 		glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
@@ -322,13 +322,12 @@ class HelloTriangleApplication
 			throw std::runtime_error("failed to find a suitable GPU!");
 
 		assert(deviceExtensions != NULL);
-		createLogicalDevice(*deviceExtensions, raytracingSupported);
+		createLogicalDevice(*deviceExtensions);
 
 		vulkan_initialized = true;
 	}
 
-	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions,
-	                         const bool raytracingSupported)
+	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions)
 	{
 		// grab the required queue families
 		ltracer::QueueFamilyIndices indices
@@ -473,18 +472,19 @@ class HelloTriangleApplication
 		debug_print("Transfer queue: %p\n", static_cast<void*>(transferQueue));
 	}
 
-	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDevice,
+	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDeviceToCheck,
 	                                 const std::vector<const char*> requiredDeviceExtensions)
 	{
 		uint32_t extensionCount;
-		vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &extensionCount, nullptr);
+		vkEnumerateDeviceExtensionProperties(
+		    physicalDeviceToCheck, nullptr, &extensionCount, nullptr);
 
 		std::vector<VkExtensionProperties> availableExtensions(extensionCount);
 		vkEnumerateDeviceExtensionProperties(
-		    physicalDevice, nullptr, &extensionCount, availableExtensions.data());
+		    physicalDeviceToCheck, nullptr, &extensionCount, availableExtensions.data());
 
 		VkPhysicalDeviceProperties properties;
-		vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+		vkGetPhysicalDeviceProperties(physicalDeviceToCheck, &properties);
 
 		// std::cout << "----------------------------\n";
 		// std::cout << "Device: " << properties.deviceName << "\n";
@@ -577,8 +577,8 @@ class HelloTriangleApplication
 			renderer.cleanupFramebufferAndImageViews();
 			window.recreateSwapChain(
 			    physicalDevice, logicalDevice, extent, swapChainSupportDetails);
-			renderer.createImageViews(logicalDevice);
-			renderer.createFramebuffers(logicalDevice, window);
+			renderer.createImageViews();
+			renderer.createFramebuffers();
 
 			renderer.recreateRaytracingImageAndImageView();
 			camera.updateScreenSize(extent.width, extent.height);
@@ -637,20 +637,20 @@ class HelloTriangleApplication
 		return details;
 	}
 
-	bool isDeviceSuitable(VkPhysicalDevice physicalDevice,
+	bool isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 	                      const std::vector<const char*> requiredDeviceExtensions)
 	{
 		ltracer::QueueFamilyIndices indices
-		    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
+		    = ltracer::findQueueFamilies(physicalDeviceToCheck, window.getVkSurface());
 
 		bool extensionsSupported
-		    = checkDeviceExtensionSupport(physicalDevice, requiredDeviceExtensions);
+		    = checkDeviceExtensionSupport(physicalDeviceToCheck, requiredDeviceExtensions);
 
 		bool swapChainAdequate = false;
 		if (extensionsSupported)
 		{
 			ltracer::SwapChainSupportDetails swapChainSupport
-			    = querySwapChainSupport(physicalDevice, window);
+			    = querySwapChainSupport(physicalDeviceToCheck, window);
 			swapChainAdequate
 			    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 		}
@@ -666,10 +666,11 @@ class HelloTriangleApplication
 
 		createInfo = {};
 		createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-		createInfo.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT
-		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
-		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
-		                             | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+		createInfo.messageSeverity =
+		    // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
+		    VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+		    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+		    | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 		createInfo.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
 		                         | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
 		                         | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
@@ -768,8 +769,8 @@ class HelloTriangleApplication
 					renderer->cleanupFramebufferAndImageViews();
 					window.recreateSwapChain(
 					    physicalDevice, logicalDevice, extent, swapChainSupportDetails);
-					renderer->createImageViews(logicalDevice);
-					renderer->createFramebuffers(logicalDevice, window);
+					renderer->createImageViews();
+					renderer->createFramebuffers();
 
 					renderer->recreateRaytracingImageAndImageView();
 
