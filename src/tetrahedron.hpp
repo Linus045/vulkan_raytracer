@@ -20,9 +20,9 @@ class RectangularBezierSurface
 	                         const std::vector<glm::vec3> controlPoints)
 	    : n(degreeN), m(degreeM), controlPoints(controlPoints)
 	{
-		assert(degreeN > 0 && "RectangularBezierSurface - Degree N can't be 0");
-		assert(degreeM > 0 && "RectangularBezierSurface - Degree M can't be 0");
-		assert(controlPoints.size() == (1 + degreeN) * (1 + degreeM)
+		assert(n > 0 && "RectangularBezierSurface - Degree N can't be 0");
+		assert(m > 0 && "RectangularBezierSurface - Degree M can't be 0");
+		assert(controlPoints.size() == (1 + n) * (1 + m)
 		       && "RectangularBezierSurface - controlpoint count does not match degree");
 	}
 

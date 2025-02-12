@@ -11,6 +11,7 @@
 #include "GLFW/glfw3.h"
 
 #include "src/types.hpp"
+#include "src/vk_utils.hpp"
 
 namespace ltracer
 {
