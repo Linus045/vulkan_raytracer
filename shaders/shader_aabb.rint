@@ -10,7 +10,7 @@
 #extension GL_EXT_buffer_reference2 : require
 
 
-#include "../src/common_types.h"
+#include "../include/common_types.h"
 
 // TODO; put this in a common file
 
