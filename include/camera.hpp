@@ -28,7 +28,9 @@ class Camera
 {
   public:
 	Transform transform;
+	const glm::vec3 globalUp = {0, 1, 0};
 
+  public:
 	explicit Camera()
 	{
 		transform.position = glm::vec3(2, 3.5, 6);
@@ -163,7 +165,32 @@ class Camera
 		return rotationSpeed;
 	}
 
-	const glm::vec3 globalUp = {0, 1, 0};
+  private:
+	void updateProjectionMatrix()
+	{
+		assert(screen_width != 0);
+		assert(screen_height != 0);
+
+		// float aspect = screen_width / (float)screen_height;
+		// float fov_x = atan(tan(90.0f / 2.0f) * aspect) * 2.0f;
+
+		projectionMatrix = glm::perspectiveFovRH_ZO(
+		    glm::radians(fovy_degree), (float)screen_width, (float)screen_height, zNear, zFar);
+		projectionMatrix[1][1] *= -1.0f;
+
+		// logMat4("projectionMatrix", projectionMatrix);
+	}
+
+	void updateViewMatrix()
+	{
+		auto cameraUp = globalUp;
+		auto cameraRight = glm::vec3(1, 0, 0);
+		glm::mat4 cameraRotation = glm::mat4();
+		cameraRotation = glm::rotate(cameraRotation, yawRadians, cameraUp);
+		cameraRotation = glm::rotate(cameraRotation, pitchRadians, cameraRight);
+
+		viewMatrix = glm::inverse(cameraRotation);
+	}
 
   private:
 	float pitchLimit_degree = 89.0f; // Limit for up/down rotation (in degrees)
@@ -190,32 +217,6 @@ class Camera
 	float rotationSpeedMin = 1.0f;
 	float rotationSpeedMax = 100.0f;
 	float rotationSpeed = 60.0f;
-
-	void updateProjectionMatrix()
-	{
-		assert(screen_width != 0);
-		assert(screen_height != 0);
-
-		// float aspect = screen_width / (float)screen_height;
-		// float fov_x = atan(tan(90.0f / 2.0f) * aspect) * 2.0f;
-
-		projectionMatrix = glm::perspectiveFovRH_ZO(
-		    glm::radians(fovy_degree), (float)screen_width, (float)screen_height, zNear, zFar);
-		projectionMatrix[1][1] *= -1.0f;
-
-		// logMat4("projectionMatrix", projectionMatrix);
-	}
-
-	void updateViewMatrix()
-	{
-		auto cameraUp = globalUp;
-		auto cameraRight = glm::vec3(1, 0, 0);
-		glm::mat4 cameraRotation = glm::mat4();
-		cameraRotation = glm::rotate(cameraRotation, yawRadians, cameraUp);
-		cameraRotation = glm::rotate(cameraRotation, pitchRadians, cameraRight);
-
-		viewMatrix = glm::inverse(cameraRotation);
-	}
 };
 
 } // namespace ltracer

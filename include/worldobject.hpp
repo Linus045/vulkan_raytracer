@@ -60,8 +60,6 @@ class WorldObject
 		modelMatrix = glm::translate(modelMatrix, transform.position);
 		return modelMatrix;
 	}
-
-  private:
 };
 
 } // namespace ltracer

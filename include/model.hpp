@@ -66,24 +66,6 @@ struct Vertex
 class MeshObject : public WorldObject
 {
   public:
-	static MeshObject loadFromPath(std::filesystem::path filepath)
-	{
-		uint32_t primitiveCount;
-		std::vector<float> vertices;
-		std::vector<uint32_t> indices;
-		std::vector<tinyobj::shape_t> shapes;
-		std::vector<tinyobj::material_t> materials;
-		loadOBJScene(filepath, primitiveCount, vertices, indices, shapes, materials);
-
-		return MeshObject(glm::vec3{0, 0, 0}, primitiveCount, vertices, indices, shapes, materials);
-	}
-
-	~MeshObject() = default;
-	MeshObject(MeshObject&&) = default;
-	MeshObject(const MeshObject&) = delete;
-	MeshObject& operator=(MeshObject&&) = delete;
-	MeshObject& operator=(const MeshObject&) = delete;
-
 	const std::vector<glm::vec3> normals;
 
 	const uint32_t primitiveCount;
@@ -104,6 +86,24 @@ class MeshObject : public WorldObject
 	// VkDeviceMemory normalBufferMemory;
 
 	// VkBuffer uniformBufferHandle;
+
+	~MeshObject() = default;
+	MeshObject(MeshObject&&) = default;
+	MeshObject(const MeshObject&) = delete;
+	MeshObject& operator=(MeshObject&&) = delete;
+	MeshObject& operator=(const MeshObject&) = delete;
+
+	static MeshObject loadFromPath(std::filesystem::path filepath)
+	{
+		uint32_t primitiveCount;
+		std::vector<float> vertices;
+		std::vector<uint32_t> indices;
+		std::vector<tinyobj::shape_t> shapes;
+		std::vector<tinyobj::material_t> materials;
+		loadOBJScene(filepath, primitiveCount, vertices, indices, shapes, materials);
+
+		return MeshObject(glm::vec3{0, 0, 0}, primitiveCount, vertices, indices, shapes, materials);
+	}
 
 	void cleanup([[maybe_unused]] VkDevice device) const
 	{

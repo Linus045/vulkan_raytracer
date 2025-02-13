@@ -22,6 +22,60 @@ class Application
 	void run();
 
   private:
+	void createWindow();
+	void createRenderer();
+	bool checkValidationLayerSupport();
+	void initInputHandlers();
+	void printSelectedGPU();
+	void initVulkan();
+	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions);
+	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDeviceToCheck,
+	                                 const std::vector<const char*> requiredDeviceExtensions);
+	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions);
+
+	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
+	                              VkDevice logicalDevice,
+	                              ltracer::Renderer& renderer,
+	                              ltracer::Window& window,
+	                              ltracer::Camera& camera,
+	                              ltracer::SwapChainSupportDetails& swapChainSupportDetails);
+
+	static ltracer::SwapChainSupportDetails
+	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, ltracer::Window& window)
+	{
+		return querySwapChainSupport(physicalDevice, window);
+	}
+
+	static ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
+	                                                              ltracer::Window& window);
+
+	bool isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
+	                      const std::vector<const char*> requiredDeviceExtensions);
+
+	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
+	void setupDebugMessenger();
+	static VkResult
+	createDebugUtilsMessengerEXT(VkInstance instance,
+	                             const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+	                             const VkAllocationCallbacks* pAllocator,
+	                             VkDebugUtilsMessengerEXT* pDebugMessenger);
+	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
+	                                          const VkDebugUtilsMessengerEXT debugMessenger,
+	                                          const VkAllocationCallbacks* pAllocator);
+	void mainLoop();
+	void cleanupApp();
+	void createInstanceForVulkan();
+	std::vector<const char*> getRequiredInstanceExtensions();
+	static VKAPI_ATTR VkBool32 VKAPI_CALL
+	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
+	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
+	              [[maybe_unused]] void* pUserData);
+	static void framebufferResizeCallback(GLFWwindow* window,
+	                                      [[maybe_unused]] int width,
+	                                      [[maybe_unused]] int height);
+
+  private:
 	// stores the data displayed in the ui
 	std::unique_ptr<ltracer::ui::UIData> uiData;
 
@@ -103,57 +157,4 @@ class Application
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 	};
-
-	void createWindow();
-	void createRenderer();
-	bool checkValidationLayerSupport();
-	void initInputHandlers();
-	void printSelectedGPU();
-	void initVulkan();
-	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions);
-	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDeviceToCheck,
-	                                 const std::vector<const char*> requiredDeviceExtensions);
-	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions);
-
-	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
-	                              VkDevice logicalDevice,
-	                              ltracer::Renderer& renderer,
-	                              ltracer::Window& window,
-	                              ltracer::Camera& camera,
-	                              ltracer::SwapChainSupportDetails& swapChainSupportDetails);
-
-	static ltracer::SwapChainSupportDetails
-	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, ltracer::Window& window)
-	{
-		return querySwapChainSupport(physicalDevice, window);
-	}
-
-	static ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
-	                                                              ltracer::Window& window);
-
-	bool isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
-	                      const std::vector<const char*> requiredDeviceExtensions);
-
-	void populateDebugMessengerCreateInfo(VkDebugUtilsMessengerCreateInfoEXT& createInfo);
-	void setupDebugMessenger();
-	static VkResult
-	createDebugUtilsMessengerEXT(VkInstance instance,
-	                             const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-	                             const VkAllocationCallbacks* pAllocator,
-	                             VkDebugUtilsMessengerEXT* pDebugMessenger);
-	static void DestroyDebugUtilsMessengerEXT(VkInstance instance,
-	                                          const VkDebugUtilsMessengerEXT debugMessenger,
-	                                          const VkAllocationCallbacks* pAllocator);
-	void mainLoop();
-	void cleanupApp();
-	void createInstanceForVulkan();
-	std::vector<const char*> getRequiredInstanceExtensions();
-	static VKAPI_ATTR VkBool32 VKAPI_CALL
-	debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-	              [[maybe_unused]] VkDebugUtilsMessageTypeFlagsEXT messageType,
-	              const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
-	              [[maybe_unused]] void* pUserData);
-	static void framebufferResizeCallback(GLFWwindow* window,
-	                                      [[maybe_unused]] int width,
-	                                      [[maybe_unused]] int height);
 };

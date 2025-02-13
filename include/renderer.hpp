@@ -158,6 +158,31 @@ class Renderer
 	}
 
   private:
+	void createSyncObjects();
+
+	void createCommandBuffers();
+
+	void createCommandPools();
+
+	VkShaderModule createShaderModule(const std::vector<char>& code);
+
+	void createGraphicsPipeline();
+
+	void createRenderPass();
+
+	void
+	recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, ui::UIData& uiData);
+
+	inline void updateSharedInfoBuffer()
+	{
+		// ltracer::SharedInfo sharedInfo;
+		// sharedInfo.view = viewMatrix;
+		// sharedInfo.proj = projectionMatrix;
+		// memcpy(sharedInfoBufferMemoryMapped, &sharedInfo,
+		//        sizeof(ltracer::SharedInfo));
+	}
+
+  private:
 	// How many frames can be recorded at the same time
 	const int MAX_FRAMES_IN_FLIGHT = 3;
 
@@ -204,30 +229,6 @@ class Renderer
 	VkPipeline graphicsPipeline;
 
 	// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects;
-
-	void createSyncObjects();
-
-	void createCommandBuffers();
-
-	void createCommandPools();
-
-	VkShaderModule createShaderModule(const std::vector<char>& code);
-
-	void createGraphicsPipeline();
-
-	void createRenderPass();
-
-	void
-	recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, ui::UIData& uiData);
-
-	inline void updateSharedInfoBuffer()
-	{
-		// ltracer::SharedInfo sharedInfo;
-		// sharedInfo.view = viewMatrix;
-		// sharedInfo.proj = projectionMatrix;
-		// memcpy(sharedInfoBufferMemoryMapped, &sharedInfo,
-		//        sizeof(ltracer::SharedInfo));
-	}
 };
 
 } // namespace ltracer
