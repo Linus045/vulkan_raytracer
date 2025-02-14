@@ -8,6 +8,7 @@
 #include <glm/matrix.hpp>
 #include <iostream>
 #include <ostream>
+#include <tuple>
 
 #include "common_types.h"
 
@@ -34,6 +35,11 @@ inline size_t convert2Dto1D_index(int columns, int i, int j)
 	return static_cast<size_t>(i * columns + j);
 }
 
+inline size_t convert3Dto1D_index(int columns, int depth, int i, int j, int k)
+{
+	return static_cast<size_t>(i * columns * depth + j * depth + k);
+}
+
 inline vec3 bezierSurfacePoint(const glm::vec3 controlPoints[16], int n, int m, double u, double v)
 {
 	auto sum = glm::vec3();
@@ -50,7 +56,64 @@ inline vec3 bezierSurfacePoint(const glm::vec3 controlPoints[16], int n, int m, 
 	return sum;
 }
 
-inline vec3
+// TODO: this is only temporary, use a proper calculation
+inline std::tuple<int, int, int> getControlPointIndices(size_t idx)
+{
+	switch (idx)
+	{
+		// first layer, x direction
+	case 0:
+		return std::make_tuple(0, 0, 0);
+	case 1:
+		return std::make_tuple(1, 0, 0);
+	case 2:
+		return std::make_tuple(2, 0, 0);
+
+		// first layer z direction
+	case 3:
+		return std::make_tuple(0, 0, 1);
+	case 4:
+		return std::make_tuple(0, 0, 2);
+	case 5:
+		return std::make_tuple(1, 0, 1);
+
+		// second layer
+	case 6:
+		return std::make_tuple(0, 1, 0);
+	case 7:
+		return std::make_tuple(1, 1, 0);
+	case 8:
+		return std::make_tuple(0, 1, 1);
+
+		// third layer
+	case 9:
+		return std::make_tuple(0, 2, 0);
+	}
+	throw std::runtime_error("Invalid index");
+}
+
+inline glm::vec3 bezierVolumePoint(const std::array<glm::vec3, 10> controlPoints,
+                                   int n,
+                                   int m,
+                                   int o,
+                                   double u,
+                                   double v,
+                                   double w)
+{
+	auto sum = glm::vec3();
+	for (size_t idx = 0; idx < controlPoints.size(); idx++)
+	{
+		int i, j, k;
+		std::tie(i, j, k) = getControlPointIndices(idx);
+
+		sum += controlPoints[idx]
+		       * static_cast<float>(realPolynomial(i, n, u) * realPolynomial(j, m, v)
+		                            * realPolynomial(k, o, w));
+	}
+	return sum;
+}
+
+inline glm::vec3
 partialDerivativeBezierSurfaceU(const glm::vec3 controlPoints[16], int n, int m, double u, double v)
 {
 	auto sum = glm::vec3();
@@ -229,13 +292,14 @@ inline bool newtonsMethod(std::vector<Sphere>& spheres,
 inline void visualizeVector(std::vector<Sphere>& spheres,
                             const glm::vec3& startPos,
                             const glm::vec3& direction,
-                            const float length)
+                            const float length,
+                            const float sphereSize = 0.06f)
 {
 	float stepSize = 0.01f;
 	for (float s = 0; s <= length; s += stepSize)
 	{
 		auto pos = startPos + direction * s;
-		spheres.emplace_back(pos, 0.06f, 2);
+		spheres.emplace_back(pos, sphereSize, 2);
 	}
 }
 
@@ -340,4 +404,27 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	}
 }
 
+inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedron2& tetrahedron)
+{
+	double stepSize = 0.1;
+	for (double u = 0; u <= 1; u += stepSize)
+	{
+		for (double v = 0; v <= 1; v += stepSize)
+		{
+			for (double w = 0; w <= 1; w += stepSize)
+			{
+				if (u + v + w <= 1)
+				{
+					auto colorIdx
+					    = (u == 0 || v == 0 || w == 0) ? ColorIdx::t_white : ColorIdx::t_purple;
+					spheres.emplace_back(
+					    bezierVolumePoint(
+					        std::to_array(tetrahedron.controlPoints), 3, 3, 3, u, v, w),
+					    0.01,
+					    static_cast<int>(colorIdx));
+				}
+			}
+		}
+	}
+}
 } // namespace ltracer

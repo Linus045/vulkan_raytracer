@@ -1,7 +1,10 @@
+#include <glm/detail/qualifier.hpp>
 #include <string>
+#include <array>
 
 #include "raytracing.hpp"
 #include "shader_module.hpp"
+#include "tetrahedron.hpp"
 #include "tlas.hpp"
 #include "visualizations.hpp"
 #include "device_procedures.hpp"
@@ -1087,16 +1090,13 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// create aabbs (temporary)
 
-	const glm::vec3 points[4] = {
-	    glm::vec3(0.0f, 0.0f, 0.5f),
-	    glm::vec3(0.5f, 0.0f, -0.5f),
-	    glm::vec3(-0.5f, 0.0f, -0.5f),
-	    glm::vec3(0.0f, 0.5f, 0.0f),
-	};
-	;
-
 	std::vector<Tetrahedron1> tetrahedrons = {
-	    createTetrahedron1(points),
+	    // createTetrahedron1({
+	    //     glm::vec3(0.0f, 0.0f, 0.5f),
+	    //     glm::vec3(0.5f, 0.0f, -0.5f),
+	    //     glm::vec3(-0.5f, 0.0f, -0.5f),
+	    //     glm::vec3(0.0f, 0.5f, 0.0f),
+	    // }),
 	};
 
 	std::vector<Sphere> spheres{
@@ -1189,6 +1189,33 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		    blasInstancesData,
 		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
 		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
+	}
+
+	auto tetrahedron2 = createTetrahedron2(std::array<glm::vec3, 10>{
+	    glm::vec3(0.0f, 0.0f, 0.0f),
+
+	    glm::vec3(1.0f, 0.0f, 0.0f),
+	    glm::vec3(2.0f, 0.0f, 0.0f),
+
+	    glm::vec3(0.0f, 0.0f, 1.0f),
+	    glm::vec3(0.0f, 0.0f, 2.0f),
+
+	    glm::vec3(1.0f, 0.0f, 1.0f),
+
+	    glm::vec3(0.0f, 1.0f, 0.0f),
+	    glm::vec3(1.0f, 1.0f, 0.0f),
+	    glm::vec3(0.0f, 1.0f, 1.0f),
+
+	    glm::vec3(0.0f, 2.0f, 0.0f),
+	});
+
+	{
+		auto rayPos = glm::vec3(0.5f, 0.8f, 0.6f);
+		spheres.push_back(Sphere{rayPos, 0.1f, static_cast<int>(ColorIdx::t_red)});
+		visualizeVector(spheres, rayPos, glm::vec3(0, 0, 0) - rayPos, 0.8f, 0.01f);
+		visualizeTetrahedron2(spheres, tetrahedron2);
+
+		// TODO: do some intersection calculations here
 	}
 
 	// {
