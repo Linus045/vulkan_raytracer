@@ -45,7 +45,7 @@ void initImgui(VkInstance vulkanInstance,
 	pool_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
 	pool_info.flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
 	pool_info.maxSets = 1000;
-	pool_info.poolSizeCount = std::size(pool_sizes);
+	pool_info.poolSizeCount = static_cast<uint32_t>(std::size(pool_sizes));
 	pool_info.pPoolSizes = pool_sizes;
 
 	if (vkCreateDescriptorPool(logicalDevice, &pool_info, nullptr, &imguiPool) != VK_SUCCESS)
@@ -157,7 +157,7 @@ void renderRaytracingOptions(UIData& uiData)
 			    = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes (ignores slicing planes)",
 			                      &debugShowAABBs)
 			      || valueChanged;
-			uiData.raytracingDataConstants.debugShowAABBs = debugShowAABBs ? 1 : 0;
+			uiData.raytracingDataConstants.debugShowAABBs = static_cast<float>(debugShowAABBs ? 1 : 0);
 
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,

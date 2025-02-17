@@ -26,7 +26,7 @@ class Window
 	}
 
 	Window(uint32_t width, uint32_t height) : initialWidth(width), initialHeight(height)
-	{
+{
 		//
 	}
 
@@ -276,11 +276,11 @@ class Window
 			          << '\n';
 		}
 		std::cout << "Using the first format: ";
-		std::cout << string_VkFormat(availableFormats[1].format)
+		std::cout << string_VkFormat(availableFormats[0].format)
 		          << " | Color space: " << string_VkColorSpaceKHR(availableFormats[0].colorSpace)
 		          << '\n';
 		// TODO: For some reason this works?
-		return availableFormats[1];
+		return availableFormats[0];
 	}
 
 	VkPresentModeKHR
@@ -318,8 +318,8 @@ class Window
 	VkSurfaceKHR vulkanSurface = VK_NULL_HANDLE;
 
 	VkSwapchainKHR swapChain = VK_NULL_HANDLE;
-	VkFormat swapChainImageFormat;
-	VkExtent2D swapChainExtent;
+	VkFormat swapChainImageFormat = VK_FORMAT_UNDEFINED;
+	VkExtent2D swapChainExtent = {0,0};
 
 #ifdef NDEBUG
 	bool cursorCaptureEnabled = true;

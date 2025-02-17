@@ -26,6 +26,11 @@ inline void logVec3(const std::string& info, const glm::vec3& vector)
 	std::printf("%s: (%f, %f, %f)\n", info.c_str(), vector.x, vector.y, vector.z);
 }
 
+inline void logVec2(const std::string& info, const glm::vec2& vector)
+{
+	std::printf("%s: (%f, %f)\n", info.c_str(), vector.x, vector.y);
+}
+
 inline void logMat4(const std::string info, const glm::mat4& mat)
 {
 	std::cout << info << '\n';

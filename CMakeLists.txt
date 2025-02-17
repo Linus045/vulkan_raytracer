@@ -76,7 +76,7 @@ ExternalProject_Add_Step(
 # these instructions search the directory tree when CMake is
 # invoked and put all files that match the pattern in the variables
 # `sources` and `data`
-file(GLOB_RECURSE sources      src/*.cpp src/*.h src/*.hpp)
+file(GLOB_RECURSE sources src/*.cpp)
 file(GLOB_RECURSE data resources/*)
 
 add_subdirectory(3rdparty/glm)
@@ -215,8 +215,9 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 elseif( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	# using MSVC
 	target_compile_options(${target_name} PRIVATE
-		-Wall
+		-W4
 		-WX
+		-wd4324
 	)
 else()
 	message("Warning: Undefined compiler, setting no compiler flags")

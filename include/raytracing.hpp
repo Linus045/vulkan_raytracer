@@ -101,7 +101,7 @@ VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
 VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
                           VkDevice logicalDevice,
                           DeletionQueue& deletionQueue,
-                          const std::vector<AABB>& aabbs);
+                          const std::vector<ltracer::AABB>& aabbs);
 
 /**
  * @brief Creates the command pool used for the ray tracing operations
@@ -278,7 +278,7 @@ createBottomLevelAccelerationStructuresForObjects(VkPhysicalDevice physicalDevic
                                                   DeletionQueue& deletionQueue,
                                                   const std::vector<T>& objects,
                                                   const ObjectType objectType,
-                                                  std::vector<AABB>& aabbs,
+                                                  std::vector<ltracer::AABB>& aabbs,
                                                   std::vector<BLASInstance>& blasInstancesData,
                                                   VkBuffer& objectsBufferHandle,
                                                   VkBuffer& aabbObjectsBufferHandle)

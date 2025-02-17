@@ -2,6 +2,7 @@
 #include <string>
 #include <array>
 
+#include "deletion_queue.hpp"
 #include "raytracing.hpp"
 #include "logger.hpp"
 #include "shader_module.hpp"
@@ -276,7 +277,7 @@ void createPipelineLayout(VkDevice logicalDevice,
 VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
                           VkDevice logicalDevice,
                           DeletionQueue& deletionQueue,
-                          const std::vector<AABB>& aabbs)
+                          const std::vector<ltracer::AABB>& aabbs)
 {
 	std::vector<VkAabbPositionsKHR> aabbPositions;
 	for (auto&& aabb : aabbs)
@@ -1183,10 +1184,10 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	{
 		// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
 		// something like that
-		std::vector<AABB> aabbsTetrahedrons;
+		std::vector<ltracer::AABB> aabbsTetrahedrons;
 		for (auto&& tetrahedron : tetrahedrons)
 		{
-			aabbsTetrahedrons.push_back(AABB::fromTetrahedron(tetrahedron));
+			aabbsTetrahedrons.push_back(ltracer::AABB::fromTetrahedron(tetrahedron));
 		}
 
 		createBottomLevelAccelerationStructuresForObjects<Tetrahedron1>(
@@ -1221,8 +1222,8 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	{
 		auto rayPos = glm::vec3(0.5f, 0.8f, 0.6f);
-		auto rayDirection = glm::vec3(0, 0, 0) - rayPos;
-		spheres.push_back(Sphere{rayPos, 0.1f, static_cast<int>(ColorIdx::t_red)});
+		auto rayDirection = glm::vec3(0, 1, 0) - rayPos;
+		spheres.emplace_back(rayPos, 0.1f, static_cast<int>(ColorIdx::t_red));
 		visualizeVector(spheres, rayPos, rayDirection, 0.8f, 0.01f);
 
 		glm::vec3 N1, N2;
@@ -1240,7 +1241,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N1, 0.4f, 0.008f);
 		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N2, 0.1f, 0.008f);
 
-		visualizeTetrahedron2(spheres, tetrahedron2);
+		auto e = glm::vec2(-glm::dot(N1, rayPos), -glm::dot(N2, rayPos));
 
 		// TODO: do some intersection calculations here
 		logVec3("Ray Position", rayPos);
@@ -1248,10 +1249,52 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		for (auto p : tetrahedron2.controlPoints)
 		{
 			logVec3("Controlpoint: ", p);
+			logVec2("-> Geometric distance to plane N1 and N2: ", transformPointToD(N1, N2, e, p));
 		}
 
-		visualizePlane(spheres, N1, rayPos, 0.5, 0.5);
-		visualizePlane(spheres, N2, rayPos, 0.5, 0.5);
+		visualizePlane(spheres, N1, rayPos, 1, 1);
+		visualizePlane(spheres, N2, rayPos, 1, 1);
+
+		visualizeTetrahedron2(spheres, tetrahedron2);
+
+		glm::vec3 intersectionPoint{};
+		glm::vec3 initialGuess{};
+		if (newtonsMethod3(
+		        spheres,
+		        intersectionPoint,
+		        initialGuess,
+		        /*[](const float u,
+		               const float v,
+		               const float w)
+		            { return bezierVolumePoint(tetrahedron2.controlPoints, u, v, w);
+		        },*/
+		        [=](const float t, const float u, const float v, const float w)
+		        {
+			        return (rayPos + rayDirection * t)
+			               - bezierVolumePoint(std::to_array(tetrahedron2.controlPoints), u, v, w)
+		        },
+		        [=](const float t, const float u, const float v, const float w)
+		        {
+			        return jacobian3(std::to_array({
+			                             partialDericativeBezierVolume3T,
+			                             partialDericativeBezierVolume3U,
+			                             partialDericativeBezierVolume3V,
+			                             partialDericativeBezierVolume3W,
+			                         }),
+			                         std::to_array({
+			                             t,
+			                             u,
+			                             v,
+			                             w,
+			                         }))
+		        }))
+		{
+			std::cout << "We hit the surface!" << std::endl;
+		}
+		else
+		{
+			std::cout << "Ray Missed the surface!" << std::endl;
+		}
 	}
 
 	{
@@ -1288,11 +1331,11 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 			throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
 		}
 
-		std::vector<AABB> aabbsRectangularSurfaces2x2;
+		std::vector<ltracer::AABB> aabbsRectangularSurfaces2x2;
 		for (auto&& rectangularBezierSurface2x2 : rectangularBezierSurfaces2x2)
 		{
 			aabbsRectangularSurfaces2x2.push_back(
-			    AABB::fromRectangularBezierSurface(rectangularBezierSurface2x2));
+			    ltracer::AABB::fromRectangularBezierSurface(rectangularBezierSurface2x2));
 		}
 
 		createBottomLevelAccelerationStructuresForObjects<RectangularBezierSurface2x2>(
@@ -1309,7 +1352,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	if (spheres.size() > 0)
 	{
-		std::vector<AABB> aabbsSpheres;
+		std::vector<ltracer::AABB> aabbsSpheres;
 		for (auto&& sphere : spheres)
 		{
 			aabbsSpheres.push_back(AABB::fromSphere(sphere));

@@ -66,33 +66,6 @@ struct Vertex
 class MeshObject : public WorldObject
 {
   public:
-	const std::vector<glm::vec3> normals;
-
-	const uint32_t primitiveCount;
-	const std::vector<float> vertices;
-	const std::vector<uint32_t> indices;
-	const std::vector<tinyobj::shape_t> shapes;
-	const std::vector<tinyobj::material_t> materials;
-
-	VkBuffer vertexBufferHandle;
-	VkDeviceMemory vertexBufferDeviceMemoryHandle;
-	VkDeviceAddress vertexBufferDeviceAddress;
-
-	VkBuffer indexBufferHandle;
-	VkDeviceMemory indexBufferDeviceMemoryHandle;
-	VkDeviceAddress indexBufferDeviceAddress;
-
-	// VkBuffer normalBuffer;
-	// VkDeviceMemory normalBufferMemory;
-
-	// VkBuffer uniformBufferHandle;
-
-	~MeshObject() = default;
-	MeshObject(MeshObject&&) = default;
-	MeshObject(const MeshObject&) = delete;
-	MeshObject& operator=(MeshObject&&) = delete;
-	MeshObject& operator=(const MeshObject&) = delete;
-
 	static MeshObject loadFromPath(std::filesystem::path filepath)
 	{
 		uint32_t primitiveCount;
@@ -104,6 +77,33 @@ class MeshObject : public WorldObject
 
 		return MeshObject(glm::vec3{0, 0, 0}, primitiveCount, vertices, indices, shapes, materials);
 	}
+
+	~MeshObject() = default;
+	MeshObject(MeshObject&&) = default;
+	MeshObject(const MeshObject&) = delete;
+	MeshObject& operator=(MeshObject&&) = delete;
+	MeshObject& operator=(const MeshObject&) = delete;
+
+	const std::vector<glm::vec3> normals{};
+
+	const uint32_t primitiveCount{};
+	const std::vector<float> vertices{};
+	const std::vector<uint32_t> indices{};
+	const std::vector<tinyobj::shape_t> shapes{};
+	const std::vector<tinyobj::material_t> materials{};
+
+	VkBuffer vertexBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory vertexBufferDeviceMemoryHandle{};
+	VkDeviceAddress vertexBufferDeviceAddress{};
+
+	VkBuffer indexBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory indexBufferDeviceMemoryHandle{};
+	VkDeviceAddress indexBufferDeviceAddress{};
+
+	// VkBuffer normalBuffer;
+	// VkDeviceMemory normalBufferMemory;
+
+	// VkBuffer uniformBufferHandle;
 
 	void cleanup([[maybe_unused]] VkDevice device) const
 	{

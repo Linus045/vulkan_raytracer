@@ -1,6 +1,8 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
@@ -67,9 +69,8 @@ inline Tetrahedron1 createTetrahedron1(const std::array<glm::vec3, 4>& points)
 inline Tetrahedron2 createTetrahedron2(const std::array<glm::vec3, 10>& points)
 {
 	auto tetrahedron = Tetrahedron2();
-	for (size_t i = 0; i < 10; i++)
-	{
-		tetrahedron.controlPoints[i] = points[i];
+	for (size_t i = 0; i < points.size(); i++) {
+		tetrahedron.controlPoints[i] = points[i]; 
 	}
 	return tetrahedron;
 }
