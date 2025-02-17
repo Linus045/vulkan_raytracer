@@ -1,7 +1,9 @@
 #pragma once
 
+#include <functional>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_float2x2.hpp>
+#include <glm/ext/matrix_transform.hpp>
 #include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
@@ -226,10 +228,10 @@ inline bool newtonsMethod(std::vector<Sphere>& spheres,
 		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
 	}
 
-	const int max_iterations = 20;
+	const int max_iterations = 6;
 	glm::vec2 u[max_iterations + 1];
 
-	const auto tolerance = glm::vec2(0.2f, 0.2f);
+	const auto tolerance = glm::vec2(0.001f, 0.001f);
 
 	u[0] = initialGuess;
 
@@ -239,7 +241,7 @@ inline bool newtonsMethod(std::vector<Sphere>& spheres,
 	{
 		{
 			auto cPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-			spheres.emplace_back(cPoint, 0.3, 7);
+			spheres.emplace_back(cPoint, 0.1, 7);
 			std::cout << "Current point on surface for UV: " << "(" << u[c].x << "," << u[c].y
 			          << ")"
 			          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
@@ -303,10 +305,41 @@ inline void visualizeVector(std::vector<Sphere>& spheres,
 	}
 }
 
+inline void visualizePlane(std::vector<Sphere>& spheres,
+                           const glm::vec3& normal,
+                           const glm::vec3& pointOnPlane,
+                           const float sizeX,
+                           [[maybe_unused]] const float sizeZ)
+{
+	glm::vec3 u;
+	if (glm::abs(normal.z) < glm::abs(normal.x))
+	{
+		u = glm::vec3(0, 0, 1);
+	}
+	else
+	{
+		u = glm::vec3(1, 0, 0);
+	}
+
+	glm::vec3 b1 = glm::cross(normal, u);
+	glm::vec3 b2 = glm::cross(normal, b1);
+	glm::vec3 b3 = glm::cross(normal, b2);
+
+	float stepSize = 0.1f;
+	for (float x = 0; x <= sizeX; x += stepSize)
+	{
+		for (float z = 0; z <= sizeZ; z += stepSize)
+		{
+			auto pos = glm::dot(pointOnPlane, normal);
+			spheres.emplace_back(pos + x * b2 + z * b3, 0.02f, static_cast<int>(ColorIdx::t_pink));
+		}
+	}
+}
+
 inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
                                    RectangularBezierSurface2x2 surface)
 {
-	double stepSize = 0.01;
+	double stepSize = 0.1f;
 	for (double u = 0; u <= 1; u += stepSize)
 	{
 		for (double v = 0; v <= 1; v += stepSize)
@@ -348,7 +381,7 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	                  n2))
 	{
 		std::cout << "HIT!" << std::endl;
-		spheres.emplace_back(intersectionPoint, 1, 6);
+		spheres.emplace_back(intersectionPoint, 0.1, 6);
 	}
 
 	for (int i = 0; i < 16; i++)
@@ -404,8 +437,133 @@ inline void visualizeBezierSurface(std::vector<Sphere>& spheres,
 	}
 }
 
+// inline glm::mat2x2 jacobian3(const std::array<glm::vec3, 10> controlPoints,
+//                             const glm::vec3 n1,
+//                             const glm::vec3 n2,
+//                             const double u,
+//                             const double v,
+//                             const double w
+// 							)
+// {
+// 	auto partialDerivtiveU =  partialDerivativeBezierVolumeU(controlPoints, u, v, w);
+// 	auto partialDerivativeV = partialDerivativeBezierVolumeV(controlPoints,u, v, w);
+// 	auto partialDerivativeW = partialDerivativeBezierVolumeW(controlPoints,u, v, w);
+// 	return glm::mat2x2{
+// 	    glm::dot(n1, partialDerivtiveU),
+// 	    glm::dot(n1, partialDerivativeV),
+// 	    glm::dot(n2, partialDerivtiveU),
+// 	    glm::dot(n2, partialDerivativeV),
+// 	};
+// }
+
+// inline glm::mat2x2 inverseJacobian3(const glm::mat3x3& J)
+// {
+// 	float d = glm::determinant(J);
+// 	assert(glm::abs(d) > 0.00001 && "Error: determinant is near zero");
+
+// 	auto mat = 1.0f / d
+// 	           * glm::mat2x2{
+// 	               J[1][1],
+// 	               -J[0][1],
+// 	               -J[1][0],
+// 	               J[0][0],
+// 	           };
+// 	return mat;
+// }
+
+// inline bool newtonsMethod3(
+//     std::vector<Sphere>& spheres,
+//     glm::vec3& intersectionPoint,
+//     const glm::vec3 initialGuess,
+//     const std::array<glm::vec3, 10> controlPoints,
+//     std::function<glm::vec3(const std::array<glm::vec3, 10>, const float, const float, const
+//     float)>
+//         bezierFunc,
+//     std::function<float(const float, const float, const float)> func)
+// {
+// 	// glm::vec2 initialGuess = glm::vec2(0.5, 0.2);
+// 	{
+// 		auto point = bezierFunc(controlPoints, initialGuess.x, initialGuess.y, initialGuess.z);
+// 		std::cout << "Initial starting point on surface for UVW: " << "(" << initialGuess.x << ','
+// 		          << initialGuess.y << ',' << initialGuess.y << ")"
+// 		          << " -> (" << point.x << " " << point.y << " " << point.z << ')' << std::endl;
+// 	}
+
+// 	const int max_iterations = 5;
+// 	glm::vec3 u[max_iterations + 1];
+
+// 	const auto tolerance = glm::vec2(0.2f, 0.2f);
+
+// 	u[0] = initialGuess;
+
+// 	auto previousError = glm::vec3();
+// 	auto error = glm::vec3(100000, 100000, 100000);
+
+// 	for (int c = 0; c < max_iterations; c++)
+// 	{
+// 		// Visualize steps
+// 		{
+// 			auto cPoint = bezierFunc(controlPoints, u[c].x, u[c].y, u[c].y);
+// 			spheres.emplace_back(cPoint, 0.3, 7);
+// 			std::cout << "Current point on surface for UVW: " << "(" << u[c].x << "," << u[c].y
+// 			          << "," << u[c].z << ")"
+// 			          << " -> (" << cPoint.x << " " << cPoint.y << " " << cPoint.z << ")"
+// 			          << std::endl;
+// 		}
+
+// 		auto j = jacobian3(controlPoints, n1, n2, u[c].x, u[c].y, u[c].z);
+// 		auto inv_j = inverseJacobian(j);
+// 		auto f_value = f(controlPoints, origin, n, m, n1, n2, u[c].x, u[c].y);
+
+// 		auto differenceInUV = (inv_j * f_value);
+// 		u[c + 1] = u[c] - differenceInUV;
+
+// 		previousError = error;
+// 		error = abs(f_value);
+
+// 		std::cout << "=================== Step: " << c << " ===================" << std::endl;
+// 		auto point = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
+// 		std::cout << "Testing point on surface for UV: " << "(" << u[c].x << "," << u[c].y << ")"
+// 		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
+
+// 		std::cout << "f value: " << f_value.x << " " << f_value.y << std::endl;
+// 		std::cout << "differenceInUV: " << differenceInUV.x << " " << differenceInUV.y << std::endl;
+// 		std::cout << "Jacobian: " << j[0][0] << " " << j[0][1] << " " << j[1][0] << " " << j[1][1]
+// 		          << std::endl;
+// 		std::cout << "Inverse Jacobian: " << inv_j[0][0] << " " << inv_j[0][1] << " " << inv_j[1][0]
+// 		          << " " << inv_j[1][1] << std::endl;
+// 		std::cout << "Determinant of J: " << glm::determinant(j) << std::endl;
+// 		std::cout << "u value: " << u[c + 1].x << " " << u[c + 1].y << std::endl;
+// 		std::cout << "Error: " << error.x << " " << error.y << std::endl;
+
+// 		if (error.x < tolerance.x && error.t < tolerance.y)
+// 		{
+// 			intersectionPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
+// 			std::cout << "Intersection point: " << intersectionPoint.x << " " << intersectionPoint.y
+// 			          << " " << intersectionPoint.z << std::endl;
+// 			return true;
+// 		}
+
+// 		if (length(error) > length(previousError))
+// 		{
+// 			intersectionPoint = glm::vec3();
+// 			std::cout << "No intersection point found" << std::endl;
+// 			return false;
+// 		}
+// 	}
+
+// 	return false;
+// }
+
 inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedron2& tetrahedron)
 {
+	// Visualize control points
+	for (auto& point : tetrahedron.controlPoints)
+	{
+		spheres.emplace_back(point, 0.05f, static_cast<int>(ColorIdx::t_green));
+	}
+
+	// Visualize volume
 	double stepSize = 0.1;
 	for (double u = 0; u <= 1; u += stepSize)
 	{

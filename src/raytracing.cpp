@@ -3,6 +3,7 @@
 #include <array>
 
 #include "raytracing.hpp"
+#include "logger.hpp"
 #include "shader_module.hpp"
 #include "tetrahedron.hpp"
 #include "tlas.hpp"
@@ -766,44 +767,53 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
 	};
 
-	writeDescriptorSetList.push_back({
-	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	    .pNext = &accelerationStructureDescriptorInfo,
-	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-	    .dstBinding = 0,
-	    .dstArrayElement = 0,
-	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-	    .pImageInfo = NULL,
-	    .pBufferInfo = NULL,
-	    .pTexelBufferView = NULL,
-	});
+	if (raytracingInfo.topLevelAccelerationStructureHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = &accelerationStructureDescriptorInfo,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 0,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = NULL,
+		    .pTexelBufferView = NULL,
+		});
+	}
 
-	writeDescriptorSetList.push_back({
-	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	    .pNext = NULL,
-	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-	    .dstBinding = 1,
-	    .dstArrayElement = 0,
-	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    .pImageInfo = NULL,
-	    .pBufferInfo = &uniformDescriptorInfo,
-	    .pTexelBufferView = NULL,
-	});
+	if (raytracingInfo.uniformBufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 1,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &uniformDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
 
-	writeDescriptorSetList.push_back({
-	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	    .pNext = NULL,
-	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-	    .dstBinding = 4,
-	    .dstArrayElement = 0,
-	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-	    .pImageInfo = &rayTraceImageDescriptorInfo,
-	    .pBufferInfo = NULL,
-	    .pTexelBufferView = NULL,
-	});
+	if (raytracingInfo.rayTraceImageViewHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 4,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+		    .pImageInfo = &rayTraceImageDescriptorInfo,
+		    .pBufferInfo = NULL,
+		    .pTexelBufferView = NULL,
+		});
+	}
 
 	if (raytracingInfo.objectBuffers.tetrahedronsBufferHandle != VK_NULL_HANDLE)
 	{
@@ -1191,7 +1201,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
 	}
 
-	auto tetrahedron2 = createTetrahedron2(std::array<glm::vec3, 10>{
+	[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::array<glm::vec3, 10>{
 	    glm::vec3(0.0f, 0.0f, 0.0f),
 
 	    glm::vec3(1.0f, 0.0f, 0.0f),
@@ -1211,23 +1221,49 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	{
 		auto rayPos = glm::vec3(0.5f, 0.8f, 0.6f);
+		auto rayDirection = glm::vec3(0, 0, 0) - rayPos;
 		spheres.push_back(Sphere{rayPos, 0.1f, static_cast<int>(ColorIdx::t_red)});
-		visualizeVector(spheres, rayPos, glm::vec3(0, 0, 0) - rayPos, 0.8f, 0.01f);
+		visualizeVector(spheres, rayPos, rayDirection, 0.8f, 0.01f);
+
+		glm::vec3 N1, N2;
+		if (glm::abs(rayDirection.x) > glm::abs(rayDirection.y)
+		    && glm::abs(rayDirection.x) > glm::abs(rayDirection.z))
+		{
+			N1 = glm::vec3(rayDirection.y, -rayDirection.z, 0);
+		}
+		else
+		{
+			N1 = glm::vec3(0, rayDirection.z, -rayDirection.y);
+		}
+		N2 = glm::cross(N1, rayDirection);
+
+		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N1, 0.4f, 0.008f);
+		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N2, 0.1f, 0.008f);
+
 		visualizeTetrahedron2(spheres, tetrahedron2);
 
 		// TODO: do some intersection calculations here
+		logVec3("Ray Position", rayPos);
+		logVec3("Ray Direction", rayDirection);
+		for (auto p : tetrahedron2.controlPoints)
+		{
+			logVec3("Controlpoint: ", p);
+		}
+
+		visualizePlane(spheres, N1, rayPos, 0.5, 0.5);
+		visualizePlane(spheres, N2, rayPos, 0.5, 0.5);
 	}
 
-	// {
-	// 	// Visualize surface using spheres
-	// 	std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
-	// 	if (!surfaceTest.tryConvertToRectangularSurfaces2x2(rectangularBezierSurfaces2x2))
-	// 	{
-	// 		throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
-	// 	}
+	{
+		// Visualize surface using spheres
+		// std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
+		// if (!surfaceTest.tryConvertToRectangularSurfaces2x2(rectangularBezierSurfaces2x2))
+		// {
+		// 	throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
+		// }
 
-	// 	visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
-	// }
+		// visualizeBezierSurface(spheres, rectangularBezierSurfaces2x2[0]);
+	}
 
 	// {
 	// 	// Visualize slicing planes
@@ -1351,46 +1387,53 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		instances.push_back(std::move(bottomLevelGeometryInstance));
 	}
 
-	createAndBuildTopLevelAccelerationStructure(instances,
-	                                            deletionQueue,
-	                                            logicalDevice,
-	                                            physicalDevice,
-	                                            raytracingInfo,
-	                                            graphicsQueueHandle);
-	// =========================================================================
-	// Uniform Buffer
+	if (instances.size() > 0)
 	{
-		createBuffer(physicalDevice,
-		             logicalDevice,
-		             deletionQueue,
-		             sizeof(UniformStructure),
-		             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		             memoryAllocateFlagsInfo,
-		             raytracingInfo.uniformBufferHandle,
-		             raytracingInfo.uniformDeviceMemoryHandle);
-
-		void* hostUniformMemoryBuffer;
-		result = vkMapMemory(logicalDevice,
-		                     raytracingInfo.uniformDeviceMemoryHandle,
-		                     0,
-		                     sizeof(UniformStructure),
-		                     0,
-		                     &hostUniformMemoryBuffer);
-		if (result != VK_SUCCESS)
+		createAndBuildTopLevelAccelerationStructure(instances,
+		                                            deletionQueue,
+		                                            logicalDevice,
+		                                            physicalDevice,
+		                                            raytracingInfo,
+		                                            graphicsQueueHandle);
+		// =========================================================================
+		// Uniform Buffer
 		{
-			throw new std::runtime_error("initRayTraci - vkMapMemory");
-		}
-		memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             deletionQueue,
+			             sizeof(UniformStructure),
+			             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             raytracingInfo.uniformBufferHandle,
+			             raytracingInfo.uniformDeviceMemoryHandle);
 
-		vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+			void* hostUniformMemoryBuffer;
+			result = vkMapMemory(logicalDevice,
+			                     raytracingInfo.uniformDeviceMemoryHandle,
+			                     0,
+			                     sizeof(UniformStructure),
+			                     0,
+			                     &hostUniformMemoryBuffer);
+			if (result != VK_SUCCESS)
+			{
+				throw new std::runtime_error("initRayTraci - vkMapMemory");
+			}
+			memcpy(hostUniformMemoryBuffer,
+			       &raytracingInfo.uniformStructure,
+			       sizeof(UniformStructure));
+
+			vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+		}
 	}
 
 	// =========================================================================
 	// Update Descriptor Set
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
-
+	if (raytracingInfo.meshObjects.size() > 0)
+	{
+		updateAccelerationStructureDescriptorSet(
+		    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
+	}
 	// =========================================================================
 	// Material Index Buffer
 
@@ -1743,22 +1786,25 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
 	}
 
 	// TODO: we need some synchronization here probably
-	void* hostUniformMemoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              raytracingInfo.uniformDeviceMemoryHandle,
-	                              0,
-	                              sizeof(UniformStructure),
-	                              0,
-	                              &hostUniformMemoryBuffer);
-
-	memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
-
-	if (result != VK_SUCCESS)
+	if (raytracingInfo.uniformDeviceMemoryHandle != VK_NULL_HANDLE)
 	{
-		throw new std::runtime_error("initRayTracing - vkMapMemory");
-	}
+		void* hostUniformMemoryBuffer;
+		VkResult result = vkMapMemory(logicalDevice,
+		                              raytracingInfo.uniformDeviceMemoryHandle,
+		                              0,
+		                              sizeof(UniformStructure),
+		                              0,
+		                              &hostUniformMemoryBuffer);
 
-	vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+		memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
+
+		if (result != VK_SUCCESS)
+		{
+			throw new std::runtime_error("initRayTracing - vkMapMemory");
+		}
+
+		vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+	}
 }
 
 void createRaytracingImage(VkPhysicalDevice physicalDevice,

@@ -5,6 +5,7 @@
 #include <limits>
 #include <stdexcept>
 
+#include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan_core.h>
 
 #define GLFW_INCLUDE_VULKAN
@@ -266,7 +267,20 @@ class Window
 		}
 
 		// if the good format cannot be found, just use the first one
-		return availableFormats[0];
+		std::cout << "Warning: Could not find the good format\nAvailable Formats:\n";
+
+		for (const auto& availableFormat : availableFormats)
+		{
+			std::cout << "  + Format:" << string_VkFormat(availableFormat.format)
+			          << " | Color space: " << string_VkColorSpaceKHR(availableFormat.colorSpace)
+			          << '\n';
+		}
+		std::cout << "Using the first format: ";
+		std::cout << string_VkFormat(availableFormats[1].format)
+		          << " | Color space: " << string_VkColorSpaceKHR(availableFormats[0].colorSpace)
+		          << '\n';
+		// TODO: For some reason this works?
+		return availableFormats[1];
 	}
 
 	VkPresentModeKHR
