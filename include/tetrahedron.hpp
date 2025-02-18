@@ -69,8 +69,9 @@ inline Tetrahedron1 createTetrahedron1(const std::array<glm::vec3, 4>& points)
 inline Tetrahedron2 createTetrahedron2(const std::array<glm::vec3, 10>& points)
 {
 	auto tetrahedron = Tetrahedron2();
-	for (size_t i = 0; i < points.size(); i++) {
-		tetrahedron.controlPoints[i] = points[i]; 
+	for (size_t i = 0; i < points.size(); i++)
+	{
+		tetrahedron.controlPoints[i] = points[i];
 	}
 	return tetrahedron;
 }

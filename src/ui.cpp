@@ -157,7 +157,8 @@ void renderRaytracingOptions(UIData& uiData)
 			    = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes (ignores slicing planes)",
 			                      &debugShowAABBs)
 			      || valueChanged;
-			uiData.raytracingDataConstants.debugShowAABBs = static_cast<float>(debugShowAABBs ? 1 : 0);
+			uiData.raytracingDataConstants.debugShowAABBs
+			    = static_cast<float>(debugShowAABBs ? 1 : 0);
 
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
