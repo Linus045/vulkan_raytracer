@@ -1255,36 +1255,14 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		visualizeTetrahedron2(spheres, tetrahedron2);
 
 		// glm::vec3 intersectionPoint{};
-		// glm::vec3 initialGuess{};
-		// if (newtonsMethod3(
-		//         spheres,
-		//         intersectionPoint,
-		//         initialGuess,
-		//         /*[](const float u,
-		//                const float v,
-		//                const float w)
-		//             { return bezierVolumePoint(tetrahedron2.controlPoints, u, v, w);
-		//         },*/
-		//         [=](const float t, const float u, const float v, const float w)
-		//         {
-		// 	        return (rayPos + rayDirection * t)
-		// 	               - bezierVolumePoint(std::to_array(tetrahedron2.controlPoints), u, v, w)
-		//         },
-		//         [=](const float t, const float u, const float v, const float w)
-		//         {
-		// 	        return jacobian3(std::to_array({
-		// 	                             partialDericativeBezierVolume3T,
-		// 	                             partialDericativeBezierVolume3U,
-		// 	                             partialDericativeBezierVolume3V,
-		// 	                             partialDericativeBezierVolume3W,
-		// 	                         }),
-		// 	                         std::to_array({
-		// 	                             t,
-		// 	                             u,
-		// 	                             v,
-		// 	                             w,
-		// 	                         }))
-		//         }))
+		// glm::vec2 initialGuess{1, 1};
+		// if (newtonsMethod2(spheres,
+		//                    intersectionPoint,
+		//                    initialGuess,
+		//                    rayPos,
+		//                    std::to_array(tetrahedron2.controlPoints),
+		//                    N1,
+		//                    N2))
 		// {
 		// 	std::cout << "We hit the surface!" << std::endl;
 		// }
