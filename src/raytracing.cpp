@@ -1218,9 +1218,9 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	});
 
 	{
-		auto rayPos = glm::vec3(0.5f, 0.8f, 0.6f);
-		auto rayDirection = glm::vec3(0, 1, 0) - rayPos;
-		spheres.emplace_back(rayPos, 0.1f, static_cast<int>(ColorIdx::t_red));
+		auto rayPos = glm::vec3(-0.5f, 0.8f, 0.6f);
+		auto rayDirection = glm::vec3(1, -0.6, -1);
+		spheres.emplace_back(rayPos, 0.04f, static_cast<int>(ColorIdx::t_red));
 		visualizeVector(spheres, rayPos, rayDirection, 0.8f, 0.01f);
 
 		glm::vec3 N1, N2;
@@ -1249,27 +1249,37 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 			logVec2("-> Geometric distance to plane N1 and N2: ", transformPointToD(N1, N2, e, p));
 		}
 
-		visualizePlane(spheres, N1, rayPos, 1, 1);
-		visualizePlane(spheres, N2, rayPos, 1, 1);
+		// visualizePlane(spheres, N1, rayPos, 1, 1);
+		// visualizePlane(spheres, N2, rayPos, 1, 1);
 
 		visualizeTetrahedron2(spheres, tetrahedron2);
 
-		// glm::vec3 intersectionPoint{};
-		// glm::vec2 initialGuess{1, 1};
-		// if (newtonsMethod2(spheres,
-		//                    intersectionPoint,
-		//                    initialGuess,
-		//                    rayPos,
-		//                    std::to_array(tetrahedron2.controlPoints),
-		//                    N1,
-		//                    N2))
-		// {
-		// 	std::cout << "We hit the surface!" << std::endl;
-		// }
-		// else
-		// {
-		// 	std::cout << "Ray Missed the surface!" << std::endl;
-		// }
+		glm::vec3 intersectionPoint{};
+		// TODO: figure out how to get a good initial guess
+		// maybe calculate the intersection with the AABB box? but how do we then transform that
+		// hitpos into the u,v parameter space? i guess getting the offset from the zero-position of
+		// the aabb and then mapping to 0-1 will work?
+		glm::vec2 initialGuess{0, 0};
+
+		spheres.emplace_back(
+		    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
+		    0.05f,
+		    static_cast<int>(ColorIdx::t_red));
+
+		if (newtonsMethod2(spheres,
+		                   intersectionPoint,
+		                   initialGuess,
+		                   rayPos,
+		                   std::to_array(tetrahedron2.controlPoints),
+		                   N1,
+		                   N2))
+		{
+			std::cout << "We hit the surface!" << std::endl;
+		}
+		else
+		{
+			std::cout << "Ray Missed the surface!" << std::endl;
+		}
 	}
 
 	{

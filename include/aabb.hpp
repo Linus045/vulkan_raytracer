@@ -103,6 +103,28 @@ class AABB
 		};
 	}
 
+	static AABB fromTetrahedron2(const Tetrahedron2& tetrahedron)
+	{
+		glm::vec3 min = tetrahedron.controlPoints[0];
+		glm::vec3 max = tetrahedron.controlPoints[0];
+
+		for (const glm::vec3& point : tetrahedron.controlPoints)
+		{
+			min.x = glm::min(min.x, point.x);
+			min.y = glm::min(min.y, point.y);
+			min.z = glm::min(min.z, point.z);
+
+			max.x = glm::max(max.x, point.x);
+			max.y = glm::max(max.y, point.y);
+			max.z = glm::max(max.z, point.z);
+		}
+
+		return AABB{
+		    .min = min,
+		    .max = max,
+		};
+	}
+
 	static AABB fromTriangle(const Triangle& triangle)
 	{
 		return AABB
