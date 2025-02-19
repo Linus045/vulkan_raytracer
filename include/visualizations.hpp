@@ -71,7 +71,7 @@ inline vec3 bezierSurfacePoint(const glm::vec3 controlPoints[16], int n, int m, 
 }
 
 // TODO: this is only temporary, use a proper calculation
-inline std::tuple<int, int, int> getControlPointIndices(size_t idx)
+constexpr std::tuple<int, int, int> getControlPointIndices(size_t idx)
 {
 	switch (idx)
 	{
@@ -328,33 +328,33 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 
 	for (int c = 0; c < max_iterations - 1; c++)
 	{
-		// {
-		// 	auto cPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
-		// 	if (glm::abs(cPoint.x) < 100 && glm::abs(cPoint.y) < 100 && glm::abs(cPoint.z) < 100)
-		// 	{
-		// 		std::cout << "Current point on surface for UV: "
-		// 		          << "(" << u[c].x << "," << u[c].y << ")"
-		// 		          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
-		// 		spheres.emplace_back(
-		// 		    cPoint,
-		// 		    (static_cast<float>(max_iterations - c) / static_cast<float>(max_iterations))
-		// 		        * 0.03f,
-		// 		    static_cast<int>(ColorIdx::t_white));
-		// 	}
-		// 	else
-		// 	{
-		// 		// NOTE: This happens when the u[c].x and u[c].y are way off
-		// 		std::cout << "WARNING!!!!!! Current point on surface for UV is GIGANTIC: "
-		// 		          << "(" << u[c].x << "," << u[c].y << ")"
-		// 		          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
-		// 	}
-		// }
+		{
+			auto cPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
+			if (glm::abs(cPoint.x) < 100 && glm::abs(cPoint.y) < 100 && glm::abs(cPoint.z) < 100)
+			{
+				std::cout << "Current point on surface for UV: "
+				          << "(" << u[c].x << "," << u[c].y << ")"
+				          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
+				spheres.emplace_back(
+				    cPoint,
+				    (static_cast<float>(max_iterations - c) / static_cast<float>(max_iterations))
+				        * 0.03f,
+				    static_cast<int>(ColorIdx::t_white));
+			}
+			else
+			{
+				// NOTE: This happens when the u[c].x and u[c].y are way off
+				std::cout << "WARNING!!!!!! Current point on surface for UV is GIGANTIC: "
+				          << "(" << u[c].x << "," << u[c].y << ")"
+				          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
+			}
+		}
 
 		std::cout << "=================== Step: " << c << " ===================" << std::endl;
-		// auto point = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
-		// std::cout << "Testing point on surface for UV: "
-		//           << "(" << u[c].x << "," << u[c].y << ")"
-		//           << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
+		auto point = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
+		std::cout << "Testing point on surface for UV for c=" << c << ":"
+		          << "(" << u[c].x << "," << u[c].y << ")"
+		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
 
 		auto j = jacobian2(controlPoints, partial1, partial2, n1, n2, u[c].x, u[c].y);
 		glm::mat2x2 inv_j{};
@@ -922,6 +922,46 @@ inline bool intersectWithPlane(const glm::vec3 planeNormal,
 		glm::vec3 rayToPlanePoint = planeOrigin - rayOrigin;
 		t = dot(rayToPlanePoint, planeNormal) / denom;
 		return t >= 0;
+	}
+	return false;
+}
+
+inline glm::vec3 IntersectPlane(
+    const glm::vec3 rayOrigin, const glm::vec3 direction, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2)
+{
+	glm::vec3 D = direction;
+	glm::vec3 N = glm::cross(p1 - p0, p2 - p0);
+	glm::vec3 X = rayOrigin + D * dot(p0 - rayOrigin, N) / dot(D, N);
+
+	return X;
+}
+
+inline float PointInOrOn(glm::vec3 P1, glm::vec3 P2, glm::vec3 A, glm::vec3 B)
+{
+	glm::vec3 CP1 = glm::cross(B - A, P1 - A);
+	glm::vec3 CP2 = glm::cross(B - A, P2 - A);
+	return glm::step(0.0f, glm::dot(CP1, CP2));
+}
+
+inline float PointInTriangle(glm::vec3 px, glm::vec3 p0, glm::vec3 p1, glm::vec3 p2)
+{
+	return PointInOrOn(px, p0, p1, p2) * PointInOrOn(px, p1, p2, p0) * PointInOrOn(px, p2, p0, p1);
+}
+
+inline bool IntersectTriangle(const glm::vec3 rayOrigin,
+                              const glm::vec3 direction,
+                              glm::vec3 p0,
+                              glm::vec3 p1,
+                              glm::vec3 p2,
+                              float& t)
+{
+	vec3 X = IntersectPlane(rayOrigin, direction, p0, p1, p2);
+
+	if (PointInTriangle(X, p0, p1, p2) > 0)
+	{
+		float dist = distance(rayOrigin, X);
+		t = dist;
+		return dist > 0;
 	}
 	return false;
 }

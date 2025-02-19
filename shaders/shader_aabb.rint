@@ -854,10 +854,10 @@ void main() {
 		// 	tHit = min(tHit, distance(intersectionPoint, ray.origin));
 		// }
 
-		if (newtonsMethod2(intersectionPoint, 2, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
-		{
-			tHit = min(tHit, distance(intersectionPoint, ray.origin));
-		}
+		// if (newtonsMethod2(intersectionPoint, 2, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
+		// {
+		// 	tHit = min(tHit, distance(intersectionPoint, ray.origin));
+		// }
 
 		// if (newtonsMethod2(intersectionPoint, 3, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
 		// {
