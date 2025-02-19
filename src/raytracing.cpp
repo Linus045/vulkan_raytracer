@@ -1218,10 +1218,10 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	});
 
 	{
-		auto rayPos = glm::vec3(-0.5f, 0.8f, 0.6f);
-		auto rayDirection = glm::vec3(1, -0.6, -1);
+		auto rayPos = glm::vec3(5.0f, -0.8f, -2.0f);
+		auto rayDirection = (glm::vec3(-0.6, 2, 0.25) - rayPos);
 		spheres.emplace_back(rayPos, 0.04f, static_cast<int>(ColorIdx::t_red));
-		visualizeVector(spheres, rayPos, rayDirection, 0.8f, 0.01f);
+		visualizeVector(spheres, rayPos, rayDirection, 2.8f, 0.01f);
 
 		glm::vec3 N1, N2;
 		if (glm::abs(rayDirection.x) > glm::abs(rayDirection.y)
@@ -1259,22 +1259,48 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// maybe calculate the intersection with the AABB box? but how do we then transform that
 		// hitpos into the u,v parameter space? i guess getting the offset from the zero-position of
 		// the aabb and then mapping to 0-1 will work?
-		glm::vec2 initialGuess{0, 0};
+		glm::vec2 initialGuess{0.4, 0.8};
 
-		spheres.emplace_back(
-		    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
-		    0.05f,
-		    static_cast<int>(ColorIdx::t_red));
-
+		std::cout << "Testing for Side 1 with H1" << std::endl;
 		if (newtonsMethod2(spheres,
 		                   intersectionPoint,
+		                   H1,
+		                   partialH1v2,
+		                   partialH1w2,
 		                   initialGuess,
 		                   rayPos,
 		                   std::to_array(tetrahedron2.controlPoints),
 		                   N1,
 		                   N2))
 		{
-			std::cout << "We hit the surface!" << std::endl;
+			std::cout << "We hit the surface 1!" << std::endl;
+			spheres.emplace_back(
+			    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
+			    0.005f,
+			    static_cast<int>(ColorIdx::t_red));
+		}
+		else
+		{
+			std::cout << "Ray Missed the surface!" << std::endl;
+		}
+
+		std::cout << "Testing for Side 2 with H2" << std::endl;
+		if (newtonsMethod2(spheres,
+		                   intersectionPoint,
+		                   H2,
+		                   partialH2u2,
+		                   partialH2w2,
+		                   initialGuess,
+		                   rayPos,
+		                   std::to_array(tetrahedron2.controlPoints),
+		                   N1,
+		                   N2))
+		{
+			std::cout << "We hit the surface 2!" << std::endl;
+			spheres.emplace_back(
+			    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
+			    0.005f,
+			    static_cast<int>(ColorIdx::t_yellow));
 		}
 		else
 		{

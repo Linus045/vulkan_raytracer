@@ -8,7 +8,6 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 #include <glm/matrix.hpp>
-#include <iomanip>
 #include <iostream>
 #include <ostream>
 #include <tuple>
@@ -17,6 +16,12 @@
 
 namespace ltracer
 {
+
+using HSideFunc = std::function<glm::vec3(
+    const std::array<glm::vec3, 10> controlPoints, int n, const double v, const double w)>;
+
+using PartialFunc = std::function<glm::vec3(
+    const std::array<glm::vec3, 10> controlPoints, const double v, const double w)>;
 
 // TODO: maybe convert this file into some kind of Scene class that holds all the objects
 // and does the updating
@@ -294,17 +299,15 @@ inline glm::vec2 f(const glm::vec3 controlPoints[16],
 	};
 }
 
-inline glm::vec3
-H1(const std::array<glm::vec3, 10> controlPoints, int n, const double v, const double w);
-
-inline glm::vec2 fSide1(const std::array<glm::vec3, 10> controlPoints,
-                        const glm::vec3 origin,
-                        const glm::vec3 n1,
-                        const glm::vec3 n2,
-                        const double v,
-                        const double w)
+inline glm::vec2 fSide(const std::array<glm::vec3, 10> controlPoints,
+                       HSideFunc hSideFunc,
+                       const glm::vec3 origin,
+                       const glm::vec3 n1,
+                       const glm::vec3 n2,
+                       const double v,
+                       const double w)
 {
-	auto surfacePoint = H1(controlPoints, 2, v, w);
+	auto surfacePoint = hSideFunc(controlPoints, 2, v, w);
 	auto d1 = glm::dot(-n1, origin);
 	auto d2 = glm::dot(-n2, origin);
 	// std::cout << "d1: " << d1 << " d2: " << d2 << std::endl;
@@ -403,14 +406,16 @@ partialH1v2(const std::array<glm::vec3, 10> controlPoints, const double v, const
 inline glm::vec3
 partialH1w2(const std::array<glm::vec3, 10> controlPoints, const double v, const double w);
 
-inline glm::mat2x2 jacobian2Side1(const std::array<glm::vec3, 10> controlPoints,
-                                  const glm::vec3 n1,
-                                  const glm::vec3 n2,
-                                  const double v,
-                                  const double w)
+inline glm::mat2x2 jacobian2(const std::array<glm::vec3, 10> controlPoints,
+                             PartialFunc partialu,
+                             PartialFunc partialv,
+                             const glm::vec3 n1,
+                             const glm::vec3 n2,
+                             const double v,
+                             const double w)
 {
-	auto partialDerivativeV = partialH1v2(controlPoints, v, w);
-	auto partialDerivativeW = partialH1w2(controlPoints, v, w);
+	auto partialDerivativeV = partialu(controlPoints, v, w);
+	auto partialDerivativeW = partialv(controlPoints, v, w);
 	return glm::mat2x2{
 	    glm::dot(n1, partialDerivativeV),
 	    glm::dot(n1, partialDerivativeW),
@@ -421,6 +426,9 @@ inline glm::mat2x2 jacobian2Side1(const std::array<glm::vec3, 10> controlPoints,
 
 inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
                            glm::vec3& intersectionPoint,
+                           HSideFunc hSideFunc,
+                           PartialFunc partialu,
+                           PartialFunc partialv,
                            const glm::vec2 initialGuess,
                            const glm::vec3 origin,
                            const std::array<glm::vec3, 10> controlPoints,
@@ -435,7 +443,7 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 		//           << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
 	}
 
-	const int max_iterations = 10;
+	const int max_iterations = 5;
 	glm::vec2 u[max_iterations + 1];
 
 	const auto tolerance = glm::vec2(0.001f, 0.001f);
@@ -447,18 +455,18 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 	for (int c = 0; c < max_iterations; c++)
 	{
 		{
-			auto cPoint = H1(controlPoints, 2, u[c].x, u[c].y);
+			auto cPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
 			spheres.emplace_back(
 			    cPoint,
 			    (static_cast<float>(max_iterations - c) / static_cast<float>(max_iterations))
-			        * 0.03f,
+			        * 0.04f,
 			    static_cast<int>(ColorIdx::t_white));
 			std::cout << "Current point on surface for UV: "
 			          << "(" << u[c].x << "," << u[c].y << ")"
 			          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
 		}
 
-		auto j = jacobian2Side1(controlPoints, n1, n2, u[c].x, u[c].y);
+		auto j = jacobian2(controlPoints, partialu, partialv, n1, n2, u[c].x, u[c].y);
 		glm::mat2x2 inv_j{};
 
 		if (inverseJacobian(j, inv_j) == false)
@@ -466,7 +474,7 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 			return false;
 		}
 
-		auto f_value = fSide1(controlPoints, origin, n1, n2, u[c].x, u[c].y);
+		auto f_value = fSide(controlPoints, hSideFunc, origin, n1, n2, u[c].x, u[c].y);
 
 		u[c + 1] = u[c] - (inv_j * f_value);
 
@@ -474,7 +482,7 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 		error = abs(f_value);
 
 		std::cout << "=================== Step: " << c << " ===================" << std::endl;
-		auto point = H1(controlPoints, 2, u[c].x, u[c].y);
+		auto point = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
 		std::cout << "Testing point on surface for UV: "
 		          << "(" << u[c].x << "," << u[c].y << ")"
 		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
@@ -492,7 +500,7 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 
 		if (error.x < tolerance.x && error.t < tolerance.y)
 		{
-			intersectionPoint = H1(controlPoints, 2, u[c].x, u[c].y);
+			intersectionPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
 			std::cout << "Intersection point: " << intersectionPoint.x << " " << intersectionPoint.y
 			          << " " << intersectionPoint.z << std::endl;
 			return true;
@@ -997,61 +1005,216 @@ partialH1w2(const std::array<glm::vec3, 10> controlPoints, const double v, const
 	return sum;
 }
 
-inline glm::vec3 H2(const std::array<glm::vec3, 10> controlPoints, const double u, const double w)
+inline glm::vec3
+H2(const std::array<glm::vec3, 10> controlPoints, int n, const double u, const double w)
 {
 	auto sum = glm::vec3();
-	for (int k = 0; k <= 2; k++)
+	for (int k = 0; k <= n; k++)
 	{
-		for (int j = 0; j <= 2 - k; j++)
+		for (int j = 0; j <= n - k; j++)
 		{
-			for (int i = 0; i <= 2 - k - j; i++)
+			for (int i = 0; i <= n - k - j; i++)
 			{
 				size_t idx = getControlPointIndices(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomial<float>(i, 2, u)
-				       * BernsteinPolynomial<float>(j, 2, 0) * BernsteinPolynomial<float>(k, 2, w);
+				sum += controlPoints[idx] * BernsteinPolynomial<float>(i, n, u)
+				       * BernsteinPolynomial<float>(j, n, 0) * BernsteinPolynomial<float>(k, n, w);
 			}
 		}
 	}
 	return sum;
 }
 
-inline glm::vec3 H3(const std::array<glm::vec3, 10> controlPoints, const double u, const double v)
+inline glm::vec3
+partialH2u2(const std::array<glm::vec3, 10> controlPoints, const double u, const double w)
 {
+	int n = 2;
 	auto sum = glm::vec3();
-	for (int k = 0; k <= 2; k++)
+	for (int k = 0; k <= n; k++)
 	{
-		for (int j = 0; j <= 2 - k; j++)
+		for (int j = 0; j <= n - k; j++)
 		{
-			for (int i = 0; i <= 2 - k - j; i++)
+			for (int i = 0; i <= n - k - j; i++)
 			{
 				size_t idx = getControlPointIndices(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomial<float>(i, 2, u)
-				       * BernsteinPolynomial<float>(j, 2, v) * BernsteinPolynomial<float>(k, 2, 0);
+
+				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, u)
+				           - BernsteinPolynomial<float>(i, n - 1, u);
+				float Bj = BernsteinPolynomial<float>(j, n, 0);
+				float Bk = BernsteinPolynomial<float>(k, n, w);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3
+partialH2w2(const std::array<glm::vec3, 10> controlPoints, const double u, const double w)
+{
+	int n = 2;
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial<float>(i, n, u);
+				float Bj = BernsteinPolynomial<float>(j, n, 0);
+				float Bk = 2.0f
+				           * (BernsteinPolynomial<float>(k - 1, n - 1, w)
+				              - BernsteinPolynomial<float>(k, n - 1, w));
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3
+H3(const std::array<glm::vec3, 10> controlPoints, int n, const double u, const double v)
+{
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+				sum += controlPoints[idx] * BernsteinPolynomial<float>(i, n, u)
+				       * BernsteinPolynomial<float>(j, n, v) * BernsteinPolynomial<float>(k, n, 0);
 			}
 		}
 	}
 	return sum;
 }
 
-inline glm::vec3 H4(const std::array<glm::vec3, 10> controlPoints, const double r, const double t)
+inline glm::vec3
+partialH3u2(const std::array<glm::vec3, 10> controlPoints, const double u, const double v)
+{
+	int n = 2;
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+
+				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, u)
+				           - BernsteinPolynomial<float>(i, n - 1, u);
+				float Bj = BernsteinPolynomial<float>(j, n, v);
+				float Bk = BernsteinPolynomial<float>(k, n, 0);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3
+partialH3v2(const std::array<glm::vec3, 10> controlPoints, const double u, const double v)
+{
+	int n = 2;
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial<float>(i, n, u);
+				float Bj = 2.0f
+				           * (BernsteinPolynomial<float>(j - 1, n - 1, v)
+				              - BernsteinPolynomial<float>(j, n - 1, v));
+				float Bk = BernsteinPolynomial<float>(k, n, 0);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3
+H4(const std::array<glm::vec3, 10> controlPoints, int n, const double r, const double t)
 {
 	auto sum = glm::vec3();
-	for (int k = 0; k <= 2; k++)
+	for (int k = 0; k <= n; k++)
 	{
-		for (int j = 0; j <= 2 - k; j++)
+		for (int j = 0; j <= n - k; j++)
 		{
-			for (int i = 0; i <= 2 - k - j; i++)
+			for (int i = 0; i <= n - k - j; i++)
 			{
 				if (r + t <= 1)
 				{
 					size_t idx = getControlPointIndices(i, j, k);
-					sum += controlPoints[idx] * BernsteinPolynomial<float>(i, 2, r)
-					       * BernsteinPolynomial<float>(j, 2, t)
-					       * BernsteinPolynomial<float>(k, 2, 1.0 - r - t);
+					sum += controlPoints[idx] * BernsteinPolynomial<float>(i, n, r)
+					       * BernsteinPolynomial<float>(j, n, t)
+					       * BernsteinPolynomial<float>(k, n, 1.0 - r - t);
 				}
 			}
 		}
 	}
+	return sum;
+}
+
+inline glm::vec3
+partialH4r2(const std::array<glm::vec3, 10> controlPoints, const double r, const double t)
+{
+	int n = 2;
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+
+				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, r)
+				           - BernsteinPolynomial<float>(i, n - 1, r);
+				float Bj = BernsteinPolynomial<float>(j, n, t);
+				float Bk = BernsteinPolynomial<float>(k, n, 1.0 - r - t);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3
+partialH4t2(const std::array<glm::vec3, 10> controlPoints, const double r, const double t)
+{
+	int n = 2;
+	auto sum = glm::vec3();
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				size_t idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial<float>(i, n, r);
+				float Bj = 2.0f * BernsteinPolynomial<float>(j - 1, n - 1, t)
+				           - BernsteinPolynomial<float>(j, n - 1, t);
+				float Bk = BernsteinPolynomial<float>(k, n, 1.0 - r - t);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
 	return sum;
 }
 
@@ -1060,10 +1223,10 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 	// Visualize control points
 	for (auto& point : tetrahedron.controlPoints)
 	{
-		spheres.emplace_back(point, 0.05f, static_cast<int>(ColorIdx::t_green));
+		spheres.emplace_back(point, 0.02f, static_cast<int>(ColorIdx::t_black));
 	}
-	static auto min = 100000000.0f;
-	static auto minParameter = glm::vec3(0);
+	// static auto min = 100000000.0f;
+	// static auto minParameter = glm::vec3(0);
 	// Visualize volume
 	double stepSize = 0.1;
 	for (double u = 0; u <= 1; u += stepSize)
@@ -1088,8 +1251,9 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 					// 	minParameter = glm::vec3(u, v, w);
 					// }
 
-					const auto side1Point = H1(std::to_array(tetrahedron.controlPoints), 2, u, v);
-					spheres.emplace_back(side1Point, 0.01f, static_cast<int>(ColorIdx::t_yellow));
+					// const auto side1Point = H2(std::to_array(tetrahedron.controlPoints), 2, u,
+					// v); spheres.emplace_back(side1Point, 0.01f,
+					// static_cast<int>(ColorIdx::t_yellow));
 
 					// auto isEdge = glm::abs(u - 1) <= 1e-8 || glm::abs(v - 1) <= 1e-8
 					//               || glm::abs(w - 1) <= 1e-8 || glm::abs(u) <= 1e-8
@@ -1127,12 +1291,13 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 		}
 	}
 
-	std::cout << "Min with parameter (u,v,w) is:" << std::fixed << min << " (" << minParameter.x
-	          << " " << minParameter.y << " " << minParameter.z << ")" << std::endl;
+	// std::cout << "Min with parameter (u,v,w) is:" << std::fixed << min << " (" << minParameter.x
+	//           << " " << minParameter.y << " " << minParameter.z << ")" << std::endl;
 
-	auto pO = bezierVolumePoint(
-	    std::to_array(tetrahedron.controlPoints), minParameter.x, minParameter.y, minParameter.z);
-	spheres.emplace_back(pO, 0.01f, static_cast<int>(ColorIdx::t_red));
+	// auto pO = bezierVolumePoint(
+	//     std::to_array(tetrahedron.controlPoints), minParameter.x, minParameter.y,
+	//     minParameter.z);
+	// spheres.emplace_back(pO, 0.01f, static_cast<int>(ColorIdx::t_red));
 }
 
 inline glm::vec2
