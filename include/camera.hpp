@@ -33,10 +33,9 @@ class Camera
   public:
 	explicit Camera()
 	{
-		transform.position = glm::vec3(2, 3.5, 6);
+		transform.position = glm::vec3(0.85, 1.3, 2.6);
 		glm::vec3 up = globalUp;
-		transform.rotation
-		    = glm::quatLookAt(glm::normalize(glm::vec3(2, 3.5, 7) - transform.position), up);
+		transform.rotation = glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, -0.5, -1)), up);
 		pitchRadians = glm::pitch(transform.rotation);
 		yawRadians = glm::yaw(transform.rotation);
 

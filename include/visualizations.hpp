@@ -26,16 +26,6 @@ using PartialFunc = std::function<glm::vec3(
 // TODO: maybe convert this file into some kind of Scene class that holds all the objects
 // and does the updating
 
-// using FunctionToFindRootFor
-//     = std::function<glm::vec3(const float t, const float u, const float v, const float w)>;
-
-// using PartialFunc = std::function<glm::vec3(
-//     const std::array<glm::vec3, 10> controlPoints, const double u, const double v, const double
-//     w)>;
-// using PartialFuncQuotient = std::function<float(PartialFunc, float x)>;
-// using JacobianMatrix = std::function<std::array<float, 16>(
-//     const std::array<PartialFuncQuotient, 4> Partials, const std::array<float, 4> X)>;
-
 // TODO: maybe change the implementation of this
 inline double nChooseK(int n, int k)
 {
@@ -144,60 +134,6 @@ bezierVolumePoint(const std::array<glm::vec3, 10> controlPoints, double u, doubl
 		}
 	}
 	return sum;
-}
-
-inline glm::vec3 tetrahedronSide1PartialDerivative2V(const std::array<glm::vec3, 10> controlPoints,
-                                                     double v,
-                                                     double w)
-{
-	auto sum = glm::vec3();
-	for (int i = 0; i <= 2 - 1; i++)
-	{
-		for (int j = 0; j <= 2 - 1; j++)
-		{
-			for (int k = 0; k <= 2 - 1; k++)
-			{
-				if (i + j + k <= 2 - 1)
-				{
-					size_t p_a = getControlPointIndices(i, j + 1, k);
-					size_t p_b = getControlPointIndices(i, j, k);
-					sum += (controlPoints[p_a] - controlPoints[p_b])
-					       * BernsteinPolynomial<float>(i, 1, 0)
-					       * BernsteinPolynomial<float>(j, 1, v)
-					       * BernsteinPolynomial<float>(k, 1, w);
-				}
-			}
-		}
-	}
-
-	return static_cast<float>(2) * sum;
-}
-
-inline glm::vec3 tetrahedronSide1PartialDerivative2W(const std::array<glm::vec3, 10> controlPoints,
-                                                     double v,
-                                                     double w)
-{
-	auto sum = glm::vec3();
-	for (int i = 0; i <= 2 - 1; i++)
-	{
-		for (int j = 0; j <= 2 - 1; j++)
-		{
-			for (int k = 0; k <= 2 - 1; k++)
-			{
-				if (i + j + k <= 2 - 1)
-				{
-					size_t p_a = getControlPointIndices(i, j, k + 1);
-					size_t p_b = getControlPointIndices(i, j, k);
-					sum += (controlPoints[p_a] - controlPoints[p_b])
-					       * BernsteinPolynomial<float>(i, 2, 0)
-					       * BernsteinPolynomial<float>(j, 2, v)
-					       * BernsteinPolynomial<float>(k, 2, w);
-				}
-			}
-		}
-	}
-
-	return static_cast<float>(2) * sum;
 }
 
 inline glm::vec3
@@ -310,39 +246,10 @@ inline glm::vec2 fSide(const std::array<glm::vec3, 10> controlPoints,
 	auto surfacePoint = hSideFunc(controlPoints, 2, v, w);
 	auto d1 = glm::dot(-n1, origin);
 	auto d2 = glm::dot(-n2, origin);
-	// std::cout << "d1: " << d1 << " d2: " << d2 << std::endl;
 	return glm::vec2{
 	    glm::dot(n1, surfacePoint) + d1,
 	    glm::dot(n2, surfacePoint) + d2,
 	};
-}
-
-inline glm::vec3 partialDerivativeBezierSurfaceU2(const std::array<glm::vec3, 10> controlPoints,
-                                                  double u,
-                                                  double v,
-                                                  double w)
-{
-	auto sum = glm::vec3();
-	for (int i = 0; i <= 2 - 1; i++)
-	{
-		for (int j = 0; j <= 2 - 1; j++)
-		{
-			for (int k = 0; k <= 2 - 1; k++)
-			{
-				if (i + j + k <= 2 - 1)
-				{
-					size_t p_a = getControlPointIndices(i + 1, j, k);
-					size_t p_b = getControlPointIndices(i, j, k);
-					sum += (controlPoints[p_a] - controlPoints[p_b])
-					       * BernsteinPolynomial<float>(i, 2, u)
-					       * BernsteinPolynomial<float>(j, 2, v)
-					       * BernsteinPolynomial<float>(k, 2, w);
-				}
-			}
-		}
-	}
-
-	return static_cast<float>(2) * sum;
 }
 
 inline glm::vec3 partialDerivativeBezierSurfaceV2(const std::array<glm::vec3, 10> controlPoints,
@@ -373,62 +280,29 @@ inline glm::vec3 partialDerivativeBezierSurfaceV2(const std::array<glm::vec3, 10
 	return static_cast<float>(2) * sum;
 }
 
-inline glm::vec3 partialDerivativeBezierSurfaceW2(const std::array<glm::vec3, 10> controlPoints,
-                                                  double u,
-                                                  double v,
-                                                  double w)
-{
-	auto sum = glm::vec3();
-	for (int i = 0; i <= 2 - 1; i++)
-	{
-		for (int j = 0; j <= 2 - 1; j++)
-		{
-			for (int k = 0; k <= 2 - 1; k++)
-			{
-				if (i + j + k <= 2 - 1)
-				{
-					size_t p_a = getControlPointIndices(i, j, k + 1);
-					size_t p_b = getControlPointIndices(i, j, k);
-					sum += (controlPoints[p_a] - controlPoints[p_b])
-					       * BernsteinPolynomial<float>(i, 2, u)
-					       * BernsteinPolynomial<float>(j, 2, v)
-					       * BernsteinPolynomial<float>(k, 2, w);
-				}
-			}
-		}
-	}
-
-	return static_cast<float>(2) * sum;
-}
-
-inline glm::vec3
-partialH1v2(const std::array<glm::vec3, 10> controlPoints, const double v, const double w);
-inline glm::vec3
-partialH1w2(const std::array<glm::vec3, 10> controlPoints, const double v, const double w);
-
 inline glm::mat2x2 jacobian2(const std::array<glm::vec3, 10> controlPoints,
-                             PartialFunc partialu,
-                             PartialFunc partialv,
+                             PartialFunc partial1,
+                             PartialFunc partial2,
                              const glm::vec3 n1,
                              const glm::vec3 n2,
                              const double v,
                              const double w)
 {
-	auto partialDerivativeV = partialu(controlPoints, v, w);
-	auto partialDerivativeW = partialv(controlPoints, v, w);
+	auto partialDerivative1 = partial1(controlPoints, v, w);
+	auto partialDerivative2 = partial2(controlPoints, v, w);
 	return glm::mat2x2{
-	    glm::dot(n1, partialDerivativeV),
-	    glm::dot(n1, partialDerivativeW),
-	    glm::dot(n2, partialDerivativeV),
-	    glm::dot(n2, partialDerivativeW),
+	    glm::dot(n1, partialDerivative1),
+	    glm::dot(n1, partialDerivative2),
+	    glm::dot(n2, partialDerivative1),
+	    glm::dot(n2, partialDerivative2),
 	};
 }
 
 inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
                            glm::vec3& intersectionPoint,
                            HSideFunc hSideFunc,
-                           PartialFunc partialu,
-                           PartialFunc partialv,
+                           PartialFunc partial1,
+                           PartialFunc partial2,
                            const glm::vec2 initialGuess,
                            const glm::vec3 origin,
                            const std::array<glm::vec3, 10> controlPoints,
@@ -446,163 +320,91 @@ inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
 	const int max_iterations = 5;
 	glm::vec2 u[max_iterations + 1];
 
-	const auto tolerance = glm::vec2(0.001f, 0.001f);
+	const auto tolerance = glm::vec2(0.01f, 0.01f);
 
 	u[0] = initialGuess;
 
 	glm::vec2 previousError = glm::vec2(), error = glm::vec2(100000, 100000);
 
-	for (int c = 0; c < max_iterations; c++)
+	for (int c = 0; c < max_iterations - 1; c++)
 	{
-		{
-			auto cPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
-			spheres.emplace_back(
-			    cPoint,
-			    (static_cast<float>(max_iterations - c) / static_cast<float>(max_iterations))
-			        * 0.04f,
-			    static_cast<int>(ColorIdx::t_white));
-			std::cout << "Current point on surface for UV: "
-			          << "(" << u[c].x << "," << u[c].y << ")"
-			          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
-		}
+		// {
+		// 	auto cPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
+		// 	if (glm::abs(cPoint.x) < 100 && glm::abs(cPoint.y) < 100 && glm::abs(cPoint.z) < 100)
+		// 	{
+		// 		std::cout << "Current point on surface for UV: "
+		// 		          << "(" << u[c].x << "," << u[c].y << ")"
+		// 		          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
+		// 		spheres.emplace_back(
+		// 		    cPoint,
+		// 		    (static_cast<float>(max_iterations - c) / static_cast<float>(max_iterations))
+		// 		        * 0.03f,
+		// 		    static_cast<int>(ColorIdx::t_white));
+		// 	}
+		// 	else
+		// 	{
+		// 		// NOTE: This happens when the u[c].x and u[c].y are way off
+		// 		std::cout << "WARNING!!!!!! Current point on surface for UV is GIGANTIC: "
+		// 		          << "(" << u[c].x << "," << u[c].y << ")"
+		// 		          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
+		// 	}
+		// }
 
-		auto j = jacobian2(controlPoints, partialu, partialv, n1, n2, u[c].x, u[c].y);
+		std::cout << "=================== Step: " << c << " ===================" << std::endl;
+		// auto point = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
+		// std::cout << "Testing point on surface for UV: "
+		//           << "(" << u[c].x << "," << u[c].y << ")"
+		//           << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
+
+		auto j = jacobian2(controlPoints, partial1, partial2, n1, n2, u[c].x, u[c].y);
 		glm::mat2x2 inv_j{};
-
+		// when the determinant is 0, we cannot invert the matrix
 		if (inverseJacobian(j, inv_j) == false)
 		{
+			std::cout << "Abort! Jacobian not invertable" << std::endl;
+			std::cout << "=================== Done  ===================\n" << std::endl;
 			return false;
 		}
 
 		auto f_value = fSide(controlPoints, hSideFunc, origin, n1, n2, u[c].x, u[c].y);
-
+		std::cout << "f value: " << f_value.x << " " << f_value.y << std::endl;
 		u[c + 1] = u[c] - (inv_j * f_value);
 
 		previousError = error;
-		error = abs(f_value);
+		error = glm::abs(f_value);
 
-		std::cout << "=================== Step: " << c << " ===================" << std::endl;
-		auto point = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
-		std::cout << "Testing point on surface for UV: "
-		          << "(" << u[c].x << "," << u[c].y << ")"
-		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
-
-		std::cout << "f value: " << f_value.x << " " << f_value.y << std::endl;
 		// std::cout << "differenceInUV: " << differenceInUV.x << " " << differenceInUV.y <<
 		// std::endl;
-		std::cout << "Jacobian: " << j[0][0] << " " << j[0][1] << " " << j[1][0] << " " << j[1][1]
-		          << std::endl;
-		std::cout << "Inverse Jacobian: " << inv_j[0][0] << " " << inv_j[0][1] << " " << inv_j[1][0]
-		          << " " << inv_j[1][1] << std::endl;
-		std::cout << "Determinant of J: " << glm::determinant(j) << std::endl;
-		std::cout << "u value: " << u[c + 1].x << " " << u[c + 1].y << std::endl;
+		// std::cout << "Jacobian: " << j[0][0] << " " << j[0][1] << " " << j[1][0] << " " <<
+		// j[1][1]
+		//           << std::endl;
+		// std::cout << "Inverse Jacobian: " << inv_j[0][0] << " " << inv_j[0][1] << " " <<
+		// inv_j[1][0]
+		//           << " " << inv_j[1][1] << std::endl;
+		// std::cout << "Determinant of J: " << glm::determinant(j) << std::endl;
 		std::cout << "Error: " << error.x << " " << error.y << std::endl;
+		std::cout << "Calculated u value: " << u[c + 1].x << " " << u[c + 1].y << std::endl;
 
 		if (error.x < tolerance.x && error.t < tolerance.y)
 		{
 			intersectionPoint = hSideFunc(controlPoints, 2, u[c].x, u[c].y);
 			std::cout << "Intersection point: " << intersectionPoint.x << " " << intersectionPoint.y
 			          << " " << intersectionPoint.z << std::endl;
+			std::cout << "=================== Done  ===================\n" << std::endl;
 			return true;
 		}
 
-		// if (length(error) > length(previousError))
-		// {
-		// 	intersectionPoint = glm::vec3();
-		// 	std::cout << "No intersection point found" << std::endl;
-		// 	return false;
-		// }
+		if (error.x > previousError.x && error.y > previousError.y)
+		{
+			std::cout << "Error Increased! No intersection point found" << std::endl;
+			intersectionPoint = glm::vec3();
+			std::cout << "=================== Done  ===================\n" << std::endl;
+			return false;
+		}
 	}
 	intersectionPoint = glm::vec3();
 	std::cout << "No intersection point found" << std::endl;
-	return false;
-
-	// return false;
-}
-
-inline bool newtonsMethod3(std::vector<Sphere>& spheres,
-                           glm::vec3& intersectionPoint,
-                           const glm::vec2 initialGuess,
-                           const glm::vec3 origin,
-                           const glm::vec3 controlPoints[16],
-                           int n,
-                           int m,
-                           const glm::vec3 n1,
-                           const glm::vec3 n2)
-{
-	// glm::vec2 initialGuess = glm::vec2(0.5, 0.2);
-	{
-		auto point = bezierSurfacePoint(controlPoints, n, m, initialGuess.x, initialGuess.y);
-		std::cout << "Initial starting point on surface for UV: "
-		          << "(" << initialGuess.x << "," << initialGuess.y << ")"
-		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
-	}
-
-	const int max_iterations = 6;
-	glm::vec2 u[max_iterations + 1];
-
-	const auto tolerance = glm::vec2(0.001f, 0.001f);
-
-	u[0] = initialGuess;
-
-	glm::vec2 previousError = glm::vec2(), error = glm::vec2(100000, 100000);
-
-	for (int c = 0; c < max_iterations; c++)
-	{
-		{
-			auto cPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-			spheres.emplace_back(cPoint, 0.1f, 7);
-			std::cout << "Current point on surface for UV: "
-			          << "(" << u[c].x << "," << u[c].y << ")"
-			          << " -> " << cPoint.x << " " << cPoint.y << " " << cPoint.z << std::endl;
-		}
-
-		auto j = jacobian(controlPoints, n, m, n1, n2, u[c].x, u[c].y);
-		glm::mat2x2 inv_j{};
-		if (inverseJacobian(j, inv_j) == false)
-		{
-			return false;
-		}
-		auto f_value = f(controlPoints, origin, n, m, n1, n2, u[c].x, u[c].y);
-
-		auto differenceInUV = (inv_j * f_value);
-		u[c + 1] = u[c] - differenceInUV;
-
-		previousError = error;
-		error = abs(f_value);
-
-		std::cout << "=================== Step: " << c << " ===================" << std::endl;
-		auto point = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-		std::cout << "Testing point on surface for UV: "
-		          << "(" << u[c].x << "," << u[c].y << ")"
-		          << " -> " << point.x << " " << point.y << " " << point.z << std::endl;
-
-		std::cout << "f value: " << f_value.x << " " << f_value.y << std::endl;
-		std::cout << "differenceInUV: " << differenceInUV.x << " " << differenceInUV.y << std::endl;
-		std::cout << "Jacobian: " << j[0][0] << " " << j[0][1] << " " << j[1][0] << " " << j[1][1]
-		          << std::endl;
-		std::cout << "Inverse Jacobian: " << inv_j[0][0] << " " << inv_j[0][1] << " " << inv_j[1][0]
-		          << " " << inv_j[1][1] << std::endl;
-		std::cout << "Determinant of J: " << glm::determinant(j) << std::endl;
-		std::cout << "u value: " << u[c + 1].x << " " << u[c + 1].y << std::endl;
-		std::cout << "Error: " << error.x << " " << error.y << std::endl;
-
-		if (error.x < tolerance.x && error.t < tolerance.y)
-		{
-			intersectionPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-			std::cout << "Intersection point: " << intersectionPoint.x << " " << intersectionPoint.y
-			          << " " << intersectionPoint.z << std::endl;
-			return true;
-		}
-
-		if (length(error) > length(previousError))
-		{
-			intersectionPoint = glm::vec3();
-			std::cout << "No intersection point found" << std::endl;
-			return false;
-		}
-	}
-
+	std::cout << "=================== Done  ===================\n" << std::endl;
 	return false;
 }
 
@@ -754,187 +556,6 @@ inline void visualizeBezierSurface([[maybe_unused]] std::vector<Sphere>& spheres
 	// }
 }
 
-// inline float partialDericativeBezierVolume3T(const std::array<glm::vec3, 10>
-// controlPoints,
-//                                              double u,
-//                                              double v,
-//                                              double w)
-// {
-// 	auto sum = glm::vec3();
-// 	for (int i = 0; i <= 3; i++)
-// 	{
-// 		for (int j = 0; j <= 3; j++)
-// 		{
-// 			for (int j = 0; j <= 3; j++)
-// 			{
-// 				size_t p_a = convert2Dto1D_index(n + 1, i + 1, j);
-// 				size_t p_b = convert2Dto1D_index(n + 1, i, j);
-// 				sum += (controlPoints[p_a] - controlPoints[p_b])
-// 				       * static_cast<float>(realPolynomial(i, n - 1, u) * realPolynomial(j,
-// m, v));
-// 			}
-// 		};
-
-// 		// return static_cast<float>(m) * sum;
-
-// 		return glm::dot()
-// 	}
-// }
-
-// inline vec3
-// partialDerivativeBezierVolumeV(const glm::vec3 controlPoints[16], int n, int m, double u,
-// double v)
-// {
-// 	auto sum = glm::vec3();
-// 	for (int i = 0; i <= n; i++)
-// 	{
-// 		for (int j = 0; j <= m - 1; j++)
-// 		{
-// 			size_t p_a = convert2Dto1D_index(n + 1, i, j + 1);
-// 			size_t p_b = convert2Dto1D_index(n + 1, i, j);
-// 			sum += (controlPoints[p_a] - controlPoints[p_b])
-// 			       * static_cast<float>(realPolynomial(i, n, u) * realPolynomial(j, m - 1,
-// v));
-// 		}
-// 	};
-
-// 	return static_cast<float>(n) * sum;
-// }
-
-// inline vec3
-// partialDerivativeBezierVolumeW(const glm::vec3 controlPoints[16], int n, int m, double u,
-// double v)
-// {
-// 	auto sum = glm::vec3();
-// 	for (int i = 0; i <= n; i++)
-// 	{
-// 		for (int j = 0; j <= m - 1; j++)
-// 		{
-// 			size_t p_a = convert2Dto1D_index(n + 1, i, j + 1);
-// 			size_t p_b = convert2Dto1D_index(n + 1, i, j);
-// 			sum += (controlPoints[p_a] - controlPoints[p_b])
-// 			       * static_cast<float>(realPolynomial(i, n, u) * realPolynomial(j, m - 1,
-// v));
-// 		}
-// 	};
-
-// 	return static_cast<float>(n) * sum;
-// }
-
-// inline JacobianMatrix jacobian3(const std::array<PartialResult, 4> Partials,
-//                                 const std::array<float, 4> X)
-// {
-// 	return std::array<PartialResult, 4>{
-// 	    Partials[0](X[0]),
-// 	    Partials[0](X[1]),
-// 	    Partials[0](X[2]),
-// 	    Partials[0](X[3]),
-
-// 	    Partials[1](X[0]),
-// 	    Partials[1](X[1]),
-// 	    Partials[1](X[2]),
-// 	    Partials[1](X[3]),
-
-// 	    Partials[2](X[0]),
-// 	    Partials[2](X[1]),
-// 	    Partials[2](X[2]),
-// 	    Partials[2](X[3]),
-
-// 	    Partials[3](X[0]),
-// 	    Partials[3](X[1]),
-// 	    Partials[3](X[2]),
-// 	    Partials[3](X[3]),
-// 	};
-// }
-
-// inline glm::mat2x2 inverseJacobian3(const glm::mat3x3& J)
-// {
-// 	float d = glm::determinant(J);
-// 	assert(glm::abs(d) > 0.00001 && "Error: determinant is near zero");
-
-// 	auto mat = 1.0f / d
-// 	           * glm::mat2x2{
-// 	               J[1][1],
-// 	               -J[0][1],
-// 	               -J[1][0],
-// 	               J[0][0],
-// 	           };
-// 	return mat;
-// }
-
-// inline bool newtonsMethod3(std::vector<Sphere>& spheres,
-//                            glm::vec2& intersectionPoint,
-//                            const glm::vec2 initialGuess,
-//                            // std::function<glm::vec3(const std::array<glm::vec3, 10>, const
-//                            float,
-//                            // const float, const float)>
-//                            //     bezierFunc,
-//                            FunctionToFindRootFor func,
-//                            JacobianMatrix jacobianFunc)
-// {
-// 	// glm::vec2 initialGuess = glm::vec2(0.5, 0.2);
-// 	{
-// 		// auto point = bezierFunc(controlPoints, initialGuess.x, initialGuess.y,
-// 		// initialGuess.z); std::cout << "Initial starting point on surface for UVW: " << "(" <<
-// 		// initialGuess.x << ','
-// 		//           << initialGuess.y << ',' << initialGuess.y << ")"
-// 		//           << " -> (" << point.x << " " << point.y << " " << point.z << ')' <<
-// 		//           std::endl;
-// 	}
-
-// 	const int max_iterations = 5;
-// 	glm::vec3 u[max_iterations + 1];
-
-// 	const auto tolerance = glm::vec2(0.02f, 0.02f);
-
-// 	u[0] = initialGuess;
-
-// 	auto previousError = glm::vec3();
-// 	auto error = glm::vec3(100000, 100000, 100000);
-
-// 	for (int c = 0; c < max_iterations; c++)
-// 	{
-// 		// Visualize steps
-// 		{
-// 			// auto cPoint = bezierFunc(controlPoints, u[c].x, u[c].y, u[c].y);
-// 			// spheres.emplace_back(cPoint, 0.3, 7);
-// 			// std::cout << "Current point on surface for UVW: " << "(" << u[c].x << "," <<
-// 			// u[c].y
-// 			//           << "," << u[c].z << ")"
-// 			//           << " -> (" << cPoint.x << " " << cPoint.y << " " << cPoint.z << ")"
-// 			//           << std::endl;
-// 		}
-
-// 		auto j = jacobian3(controlPoints, n1, n2, u[c].x, u[c].y, u[c].z);
-
-// 		auto deltaX = (inverseJacobian(j) * f(controlPoints, origin, n, m, n1, n2, u[c].x,
-// u[c].y)); 		u[c + 1] = u[c] - deltaX;
-
-// 		previousError = error;
-// 		error = abs(f_value);
-
-// 		auto point = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-
-// 		if (error.x < tolerance.x && error.t < tolerance.y)
-// 		{
-// 			intersectionPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
-// 			std::cout << "Intersection point: " << intersectionPoint.x << " " <<
-// intersectionPoint.y
-// 			          << " " << intersectionPoint.z << std::endl;
-// 			return true;
-// 		}
-
-// 		if (length(error) > length(previousError))
-// 		{
-// 			intersectionPoint = glm::vec3();
-// 			std::cout << "No intersection point found" << std::endl;
-// 			return false;
-// 		}
-// 	}
-
-// 	return false;
-// }
-
 inline glm::vec3
 H1(const std::array<glm::vec3, 10> controlPoints, int n, const double v, const double w)
 {
@@ -968,7 +589,7 @@ partialH1v2(const std::array<glm::vec3, 10> controlPoints, const double v, const
 				size_t idx = getControlPointIndices(i, j, k);
 
 				float Bi = BernsteinPolynomial<float>(i, n, 0);
-				float Bj = 2.0f * BernsteinPolynomial<float>(j - 1, n - 1, v)
+				float Bj = static_cast<float>(n) * BernsteinPolynomial<float>(j - 1, n - 1, v)
 				           - BernsteinPolynomial<float>(j, n - 1, v);
 				float Bk = BernsteinPolynomial<float>(k, n, w);
 				sum += controlPoints[idx] * Bi * Bj * Bk;
@@ -994,7 +615,7 @@ partialH1w2(const std::array<glm::vec3, 10> controlPoints, const double v, const
 
 				float Bi = BernsteinPolynomial<float>(i, n, 0);
 				float Bj = BernsteinPolynomial<float>(j, n, v);
-				float Bk = 2.0f
+				float Bk = static_cast<float>(n)
 				           * (BernsteinPolynomial<float>(k - 1, n - 1, w)
 				              - BernsteinPolynomial<float>(k, n - 1, w));
 				sum += controlPoints[idx] * Bi * Bj * Bk;
@@ -1037,7 +658,7 @@ partialH2u2(const std::array<glm::vec3, 10> controlPoints, const double u, const
 			{
 				size_t idx = getControlPointIndices(i, j, k);
 
-				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, u)
+				float Bi = static_cast<float>(n) * BernsteinPolynomial<float>(i - 1, n - 1, u)
 				           - BernsteinPolynomial<float>(i, n - 1, u);
 				float Bj = BernsteinPolynomial<float>(j, n, 0);
 				float Bk = BernsteinPolynomial<float>(k, n, w);
@@ -1064,7 +685,7 @@ partialH2w2(const std::array<glm::vec3, 10> controlPoints, const double u, const
 
 				float Bi = BernsteinPolynomial<float>(i, n, u);
 				float Bj = BernsteinPolynomial<float>(j, n, 0);
-				float Bk = 2.0f
+				float Bk = static_cast<float>(n)
 				           * (BernsteinPolynomial<float>(k - 1, n - 1, w)
 				              - BernsteinPolynomial<float>(k, n - 1, w));
 				sum += controlPoints[idx] * Bi * Bj * Bk;
@@ -1107,7 +728,7 @@ partialH3u2(const std::array<glm::vec3, 10> controlPoints, const double u, const
 			{
 				size_t idx = getControlPointIndices(i, j, k);
 
-				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, u)
+				float Bi = static_cast<float>(n) * BernsteinPolynomial<float>(i - 1, n - 1, u)
 				           - BernsteinPolynomial<float>(i, n - 1, u);
 				float Bj = BernsteinPolynomial<float>(j, n, v);
 				float Bk = BernsteinPolynomial<float>(k, n, 0);
@@ -1133,7 +754,7 @@ partialH3v2(const std::array<glm::vec3, 10> controlPoints, const double u, const
 				size_t idx = getControlPointIndices(i, j, k);
 
 				float Bi = BernsteinPolynomial<float>(i, n, u);
-				float Bj = 2.0f
+				float Bj = static_cast<float>(n)
 				           * (BernsteinPolynomial<float>(j - 1, n - 1, v)
 				              - BernsteinPolynomial<float>(j, n - 1, v));
 				float Bk = BernsteinPolynomial<float>(k, n, 0);
@@ -1181,7 +802,7 @@ partialH4r2(const std::array<glm::vec3, 10> controlPoints, const double r, const
 			{
 				size_t idx = getControlPointIndices(i, j, k);
 
-				float Bi = 2.0f * BernsteinPolynomial<float>(i - 1, n - 1, r)
+				float Bi = static_cast<float>(n) * BernsteinPolynomial<float>(i - 1, n - 1, r)
 				           - BernsteinPolynomial<float>(i, n - 1, r);
 				float Bj = BernsteinPolynomial<float>(j, n, t);
 				float Bk = BernsteinPolynomial<float>(k, n, 1.0 - r - t);
@@ -1207,7 +828,7 @@ partialH4t2(const std::array<glm::vec3, 10> controlPoints, const double r, const
 				size_t idx = getControlPointIndices(i, j, k);
 
 				float Bi = BernsteinPolynomial<float>(i, n, r);
-				float Bj = 2.0f * BernsteinPolynomial<float>(j - 1, n - 1, t)
+				float Bj = static_cast<float>(n) * BernsteinPolynomial<float>(j - 1, n - 1, t)
 				           - BernsteinPolynomial<float>(j, n - 1, t);
 				float Bk = BernsteinPolynomial<float>(k, n, 1.0 - r - t);
 				sum += controlPoints[idx] * Bi * Bj * Bk;
@@ -1238,48 +859,33 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 				if (u + v + w <= 2)
 				{
 					// auto rayO = glm::vec3(0.5f, 0.8f, 0.6f);
-					// auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v,
-					// w);
+					auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v, w);
 
-					// auto d = glm::distance(rayO, p);
-					// std::cout << "Distance for parameter (u,v,w) ->: " << u << " " << v << " " <<
-					// w
-					//           << " is: " << std::fixed << std::setprecision(4) << d << std::endl;
-					// if (d < min)
-					// {
-					// 	min = d;
-					// 	minParameter = glm::vec3(u, v, w);
-					// }
-
-					// const auto side1Point = H2(std::to_array(tetrahedron.controlPoints), 2, u,
-					// v); spheres.emplace_back(side1Point, 0.01f,
-					// static_cast<int>(ColorIdx::t_yellow));
-
-					// auto isEdge = glm::abs(u - 1) <= 1e-8 || glm::abs(v - 1) <= 1e-8
-					//               || glm::abs(w - 1) <= 1e-8 || glm::abs(u) <= 1e-8
-					//               || glm::abs(v) <= 1e-8 || glm::abs(w) <= 1e-8;
+					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
+					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
+					//               || glm::abs(v) <= 1e-5 || glm::abs(w) <= 1e-5;
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
+						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_purple));
+						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_purple));
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_green));
+						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_green));
 					}
 
-					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-8;
+					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_white));
+						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_white));
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
@@ -1291,20 +897,14 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 		}
 	}
 
-	// std::cout << "Min with parameter (u,v,w) is:" << std::fixed << min << " (" << minParameter.x
+	// std::cout << "Min with parameter (u,v,w) is:" << std::fixed << min << " (" <<
+	// minParameter.x
 	//           << " " << minParameter.y << " " << minParameter.z << ")" << std::endl;
 
 	// auto pO = bezierVolumePoint(
 	//     std::to_array(tetrahedron.controlPoints), minParameter.x, minParameter.y,
 	//     minParameter.z);
 	// spheres.emplace_back(pO, 0.01f, static_cast<int>(ColorIdx::t_red));
-}
-
-inline glm::vec2
-transformPointToD(const glm::vec3 n1, const glm::vec3 n2, const glm::vec2 e, const glm::vec3 p)
-{
-	return glm::vec2(n1.x * p.x + n1.x * p.x + n1.x * p.x + e.x,
-	                 n2.x * p.x + n2.x * p.x + n2.x * p.x + e.y);
 }
 
 inline bool intersectWithPlane(const glm::vec3 planeNormal,
@@ -1314,7 +914,8 @@ inline bool intersectWithPlane(const glm::vec3 planeNormal,
                                float& t)
 {
 	// debugPrintfEXT("Test intesection with Plane: RayOrigin: (%v3f) rayDirection: (%v3f)
-	// PlaneNormal(%v3f) PlanePosition:(%v3f)",rayOrigin, rayDirection, planeNormal, planeOrigin);
+	// PlaneNormal(%v3f) PlanePosition:(%v3f)",rayOrigin, rayDirection, planeNormal,
+	// planeOrigin);
 	float denom = dot(planeNormal, rayDirection);
 	if (denom > 1e-6)
 	{

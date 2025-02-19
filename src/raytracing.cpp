@@ -1,3 +1,4 @@
+#include <cassert>
 #include <glm/detail/qualifier.hpp>
 #include <string>
 #include <array>
@@ -1218,36 +1219,49 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	});
 
 	{
-		auto rayPos = glm::vec3(5.0f, -0.8f, -2.0f);
-		auto rayDirection = (glm::vec3(-0.6, 2, 0.25) - rayPos);
+		auto rayPos = glm::vec3(-0.2f, 0.4f, 0.3f);
+		auto rayDirection = glm::vec3(1, -0.1, -0.8);
+
+		// auto rayPos = glm::vec3(1.5f, -0.8f, 0.5f);
+		// auto rayDirection = glm::normalize(glm::vec3(0.6, 0.1, 0.2) - rayPos);
+
 		spheres.emplace_back(rayPos, 0.04f, static_cast<int>(ColorIdx::t_red));
 		visualizeVector(spheres, rayPos, rayDirection, 2.8f, 0.01f);
 
 		glm::vec3 N1, N2;
-		if (glm::abs(rayDirection.x) > glm::abs(rayDirection.y)
-		    && glm::abs(rayDirection.x) > glm::abs(rayDirection.z))
-		{
-			N1 = glm::vec3(rayDirection.y, -rayDirection.z, 0);
-		}
-		else
-		{
-			N1 = glm::vec3(0, rayDirection.z, -rayDirection.y);
-		}
-		N2 = glm::cross(N1, rayDirection);
+		glm::vec3 v = (glm::abs(rayDirection.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
+		                                                 : glm::vec3(1.0f, 0.0f, 0.0f);
+		N1 = glm::normalize(glm::cross(rayDirection, v));
+		N2 = glm::normalize(glm::cross(rayDirection, N1));
 
-		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N1, 0.4f, 0.008f);
-		visualizeVector(spheres, rayPos + rayDirection * 0.2f, N2, 0.1f, 0.008f);
+		// TODO: This is the way described in the paper but it does not work properly if the
+		// direction is e.g. (1,0,0)
+		// if (glm::abs(rayDirection.x) > glm::abs(rayDirection.y)
+		//     && glm::abs(rayDirection.x) > glm::abs(rayDirection.z))
+		// {
+		// 	N1 = glm::normalize(glm::vec3(rayDirection.y, -rayDirection.z, 0));
+		// }
+		// else
+		// {
+		// 	N1 = glm::normalize(glm::vec3(0, rayDirection.z, -rayDirection.y));
+		// }
+		// N2 = glm::normalize(glm::cross(N1, rayDirection));
 
-		auto e = glm::vec2(-glm::dot(N1, rayPos), -glm::dot(N2, rayPos));
+		std::cout << "Ray direction: " << rayDirection.x << ", " << rayDirection.y << ", "
+		          << rayDirection.z << std::endl;
+		std::cout << "N1: " << N1.x << ", " << N1.y << ", " << N1.z
+		          << " Length: " << glm::length(N1) << std::endl;
+		std::cout << "N2: " << N2.x << ", " << N2.y << ", " << N2.z
+		          << " Length: " << glm::length(N2) << std::endl;
+		assert(glm::abs(glm::length(N1) - 1.0) < 1e-5 && "N1 is not normalized or zero");
+		assert(glm::abs(glm::length(N2) - 1.0) < 1e-5 && "N2 is not normalized or zero");
+
+		// visualizeVector(spheres, rayPos + rayDirection * 0.2f, N1, 0.4f, 0.008f);
+		// visualizeVector(spheres, rayPos + rayDirection * 0.2f, N2, 0.1f, 0.008f);
 
 		// TODO: do some intersection calculations here
 		logVec3("Ray Position", rayPos);
 		logVec3("Ray Direction", rayDirection);
-		for (auto p : tetrahedron2.controlPoints)
-		{
-			logVec3("Controlpoint: ", p);
-			logVec2("-> Geometric distance to plane N1 and N2: ", transformPointToD(N1, N2, e, p));
-		}
 
 		// visualizePlane(spheres, N1, rayPos, 1, 1);
 		// visualizePlane(spheres, N2, rayPos, 1, 1);
@@ -1259,52 +1273,80 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// maybe calculate the intersection with the AABB box? but how do we then transform that
 		// hitpos into the u,v parameter space? i guess getting the offset from the zero-position of
 		// the aabb and then mapping to 0-1 will work?
-		glm::vec2 initialGuess{0.4, 0.8};
 
-		std::cout << "Testing for Side 1 with H1" << std::endl;
-		if (newtonsMethod2(spheres,
-		                   intersectionPoint,
-		                   H1,
-		                   partialH1v2,
-		                   partialH1w2,
-		                   initialGuess,
-		                   rayPos,
-		                   std::to_array(tetrahedron2.controlPoints),
-		                   N1,
-		                   N2))
-		{
-			std::cout << "We hit the surface 1!" << std::endl;
-			spheres.emplace_back(
-			    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
-			    0.005f,
-			    static_cast<int>(ColorIdx::t_red));
-		}
-		else
-		{
-			std::cout << "Ray Missed the surface!" << std::endl;
-		}
+		auto guesses = {
+		    glm::vec2(0.0, 0.0), glm::vec2(0.1, 0.1), glm::vec2(0.2, 0.2), glm::vec2(0.3, 0.3),
+		    glm::vec2(0.4, 0.4), glm::vec2(0.5, 0.5), glm::vec2(0.6, 0.6), glm::vec2(0.7, 0.7),
+		    glm::vec2(0.8, 0.8), glm::vec2(0.9, 0.9), glm::vec2(1.0, 1.0), glm::vec2(1.5, 1.5),
 
-		std::cout << "Testing for Side 2 with H2" << std::endl;
-		if (newtonsMethod2(spheres,
-		                   intersectionPoint,
-		                   H2,
-		                   partialH2u2,
-		                   partialH2w2,
-		                   initialGuess,
-		                   rayPos,
-		                   std::to_array(tetrahedron2.controlPoints),
-		                   N1,
-		                   N2))
+		    glm::vec2(0, 0.0),   glm::vec2(0, 0.1),   glm::vec2(0, 0.2),   glm::vec2(0, 0.3),
+		    glm::vec2(0, 0.4),   glm::vec2(0, 0.5),   glm::vec2(0, 0.6),   glm::vec2(0, 0.7),
+		    glm::vec2(0, 0.8),   glm::vec2(0, 0.9),   glm::vec2(0, 1.0),   glm::vec2(0, 1.5),
+
+		    glm::vec2(0.0, 0),   glm::vec2(0.1, 0),   glm::vec2(0.2, 0),   glm::vec2(0.3, 0),
+		    glm::vec2(0.4, 0),   glm::vec2(0.5, 0),   glm::vec2(0.6, 0),   glm::vec2(0.7, 0),
+		    glm::vec2(0.8, 0),   glm::vec2(0.9, 0),   glm::vec2(1.0, 0),   glm::vec2(1.5, 0),
+		};
+		for (auto guess : guesses)
 		{
-			std::cout << "We hit the surface 2!" << std::endl;
-			spheres.emplace_back(
-			    H1(std::to_array(tetrahedron2.controlPoints), 2, initialGuess.x, initialGuess.y),
-			    0.005f,
-			    static_cast<int>(ColorIdx::t_yellow));
-		}
-		else
-		{
-			std::cout << "Ray Missed the surface!" << std::endl;
+			if (newtonsMethod2(spheres,
+			                   intersectionPoint,
+			                   H1,
+			                   partialH1v2,
+			                   partialH1w2,
+			                   guess,
+			                   rayPos,
+			                   std::to_array(tetrahedron2.controlPoints),
+			                   N1,
+			                   N2))
+			{
+				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+			}
+
+			std::cout << "Testing for Side 2 with H2" << std::endl;
+			if (newtonsMethod2(spheres,
+			                   intersectionPoint,
+			                   H2,
+			                   partialH2u2,
+			                   partialH2w2,
+			                   guess,
+			                   rayPos,
+			                   std::to_array(tetrahedron2.controlPoints),
+			                   N1,
+			                   N2))
+			{
+				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+			}
+
+			std::cout << "Testing for Side 3 with H3" << std::endl;
+			if (newtonsMethod2(spheres,
+			                   intersectionPoint,
+			                   H3,
+			                   partialH3u2,
+			                   partialH3v2,
+			                   guess,
+			                   rayPos,
+			                   std::to_array(tetrahedron2.controlPoints),
+			                   N1,
+			                   N2))
+			{
+				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+			}
+
+			std::cout << "Testing for Side 4 with H4" << std::endl;
+			if (newtonsMethod2(spheres,
+			                   intersectionPoint,
+			                   H4,
+			                   partialH4r2,
+			                   partialH4t2,
+			                   guess,
+			                   rayPos,
+			                   std::to_array(tetrahedron2.controlPoints),
+			                   N1,
+			                   N2))
+			{
+				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+			}
 		}
 	}
 
