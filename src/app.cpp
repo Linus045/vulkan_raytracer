@@ -637,6 +637,13 @@ void Application::mainLoop()
 
 		renderer->updateViewProjectionMatrix(camera.getViewMatrix(), camera.getProjectionMatrix());
 
+		std::cout << "Frame count: " << renderer->getFrameCount() << std::endl;
+		if (renderer->getFrameCount() >= 10)
+		{
+			std::cout << "Reached limit for frames, exiting\n";
+			glfwSetWindowShouldClose(window.getGLFWWindow(), true);
+		}
+
 		renderer->drawFrame(camera, delta, *uiData);
 
 		if (uiData->configurationChanged || camera.isCameraMoved())

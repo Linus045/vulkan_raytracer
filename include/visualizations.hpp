@@ -849,7 +849,7 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
 	// Visualize volume
-	double stepSize = 0.1;
+	double stepSize = 0.25;
 	for (double u = 0; u <= 1; u += stepSize)
 	{
 		for (double v = 0; v <= 1; v += stepSize)

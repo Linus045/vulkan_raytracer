@@ -22,7 +22,7 @@ struct Ray
 
 layout(set = 0, binding=5, scalar) buffer Tetrahedrons
 {
-	Tetrahedron1[] tetrahedrons;
+	Tetrahedron2[] tetrahedrons;
 };
 
 layout(set = 0, binding=6, scalar) buffer Spheres
@@ -147,7 +147,7 @@ float nChooseK(int N, int K)
 }
 
 
-float realPolynomial(int i, int n, float x)
+float BernsteinPolynomial(int i, int n, float x)
 {
 	return nChooseK(n, i) * pow(x, i) * pow(1 - x, n - i);
 }
@@ -166,7 +166,7 @@ vec3 bezierSurfacePoint(const vec3 controlPoints[16], int n, int m, float u, flo
 		{
 			int idx = convert2Dto1D_index(n + 1, i, j);
 			sum += controlPoints[idx]
-				* realPolynomial(i, n, u) * realPolynomial(j, m, v);
+				* BernsteinPolynomial(i, n, u) * BernsteinPolynomial(j, m, v);
 		}
 	}
 	return sum;
@@ -182,7 +182,7 @@ vec3 partialDerivativeBezierSurfaceU(const vec3 controlPoints[16], int n, int m,
 			int p_a = convert2Dto1D_index(n + 1, i + 1, j);
 			int p_b = convert2Dto1D_index(n + 1, i, j);
 			sum += (controlPoints[p_a] - controlPoints[p_b])
-				* realPolynomial(i, n - 1, u) * realPolynomial(j, m, v);
+				* BernsteinPolynomial(i, n - 1, u) * BernsteinPolynomial(j, m, v);
 		}
 	};
 
@@ -199,7 +199,7 @@ vec3 partialDerivativeBezierSurfaceV(const vec3 controlPoints[16], int n, int m,
 			int p_a = convert2Dto1D_index(n + 1, i, j + 1);
 			int p_b = convert2Dto1D_index(n + 1, i, j);
 			sum += (controlPoints[p_a] - controlPoints[p_b])
-				* realPolynomial(i, n, u) * realPolynomial(j, m - 1, v);
+				* BernsteinPolynomial(i, n, u) * BernsteinPolynomial(j, m - 1, v);
 		}
 	};
 
@@ -212,6 +212,296 @@ vec2 projectPoint(const vec3 point, const vec3 origin, const vec3 n1, const vec3
 			dot(point, n2) - dot(n2, origin));
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+int getControlPointIndices(int i, int j, int k)
+{
+	if (i == 0 && j == 0 && k == 0) return 0;
+	if (i == 2 && j == 0 && k == 0) return 1;
+	if (i == 0 && j == 2 && k == 0) return 2;
+	if (i == 0 && j == 0 && k == 2) return 3;
+	if (i == 1 && j == 0 && k == 0) return 4;
+	if (i == 0 && j == 1 && k == 0) return 5;
+	if (i == 0 && j == 0 && k == 1) return 6;
+	if (i == 1 && j == 1 && k == 0) return 7;
+	if (i == 1 && j == 0 && k == 1) return 8;
+	if (i == 0 && j == 1 && k == 1) return 9;
+	return 0;
+}
+
+vec3 H1(const vec3 controlPoints[10], int n, const float v, const float w)
+{
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+				sum += controlPoints[idx] * BernsteinPolynomial(i, n, 0)
+				       * BernsteinPolynomial(j, n, v) * BernsteinPolynomial(k, n, w);
+			}
+		}
+	}
+	return sum;
+}
+
+vec3 partialH1v2(const vec3 controlPoints[10], const float v, const float w)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial(i, n, 0);
+				float Bj = n * BernsteinPolynomial(j - 1, n - 1, v)
+				           - BernsteinPolynomial(j, n - 1, v);
+				float Bk = BernsteinPolynomial(k, n, w);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 partialH1w2(const vec3 controlPoints[10], const float v, const float w)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial(i, n, 0);
+				float Bj = BernsteinPolynomial(j, n, v);
+				float Bk = n
+				           * (BernsteinPolynomial(k - 1, n - 1, w)
+				              - BernsteinPolynomial(k, n - 1, w));
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
+{
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u) *
+					BernsteinPolynomial(j, n, 0) * BernsteinPolynomial(k, n, w);
+			}
+		}
+	}
+	return sum;
+}
+
+vec3 partialH2u2(const vec3 controlPoints[10], const float u, const float w)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = n * BernsteinPolynomial(i - 1, n - 1, u)
+				           - BernsteinPolynomial(i, n - 1, u);
+				float Bj = BernsteinPolynomial(j, n, 0);
+				float Bk = BernsteinPolynomial(k, n, w);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 partialH2w2(const vec3 controlPoints[10], const float u, const float w)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial(i, n, u);
+				float Bj = BernsteinPolynomial(j, n, 0);
+				float Bk = n
+				           * (BernsteinPolynomial(k - 1, n - 1, w)
+				              - BernsteinPolynomial(k, n - 1, w));
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 H3(const vec3 controlPoints[10], int n, const float u, const float v)
+{
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u)
+				       * BernsteinPolynomial(j, n, v) * BernsteinPolynomial(k, n, 0);
+			}
+		}
+	}
+	return sum;
+}
+
+vec3 partialH3u2(const vec3 controlPoints[10], const float u, const float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = n * BernsteinPolynomial(i - 1, n - 1, u)
+				           - BernsteinPolynomial(i, n - 1, u);
+				float Bj = BernsteinPolynomial(j, n, v);
+				float Bk = BernsteinPolynomial(k, n, 0);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 partialH3v2(const vec3 controlPoints[10], const float u, const float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial(i, n, u);
+				float Bj = n
+				           * (BernsteinPolynomial(j - 1, n - 1, v)
+				              - BernsteinPolynomial(j, n - 1, v));
+				float Bk = BernsteinPolynomial(k, n, 0);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
+{
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (r + t <= 1)
+				{
+					int idx = getControlPointIndices(i, j, k);
+					sum += controlPoints[idx] * BernsteinPolynomial(i, n, r)
+					       * BernsteinPolynomial(j, n, t)
+					       * BernsteinPolynomial(k, n, 1.0 - r - t);
+				}
+			}
+		}
+	}
+	return sum;
+}
+
+vec3 partialH4r2(const vec3 controlPoints[10], const float r, const float t)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = n * BernsteinPolynomial(i - 1, n - 1, r)
+				           - BernsteinPolynomial(i, n - 1, r);
+				float Bj = BernsteinPolynomial(j, n, t);
+				float Bk = BernsteinPolynomial(k, n, 1.0 - r - t);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 partialH4t2(const vec3 controlPoints[10], const float r, const float t)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				int idx = getControlPointIndices(i, j, k);
+
+				float Bi = BernsteinPolynomial(i, n, r);
+				float Bj = n * BernsteinPolynomial(j - 1, n - 1, t)
+				           - BernsteinPolynomial(j, n - 1, t);
+				float Bk = BernsteinPolynomial(k, n, 1.0 - r - t);
+				sum += controlPoints[idx] * Bi * Bj * Bk;
+			}
+		}
+	}
+
+	return sum;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 mat2x2 jacobian(const vec3 controlPoints[16],
@@ -229,6 +519,38 @@ mat2x2 jacobian(const vec3 controlPoints[16],
 			dot(n1, partialDerivativeV),
 			dot(n2, partialDerivtiveU),
 			dot(n2, partialDerivativeV)
+	);
+}
+
+mat2x2 jacobian2(const vec3 controlPoints[10],
+		int mode,
+		const vec3 n1,
+		const vec3 n2,
+		const float v,
+		const float w)
+{
+	vec3 partialDerivative1 = vec3(0);
+	vec3 partialDerivative2 = vec3(0);
+	if(mode == 1) {
+		partialDerivative1 = partialH1v2(controlPoints, v, w);
+		partialDerivative2 = partialH1w2(controlPoints, v, w);
+	}else if(mode == 2) {
+		partialDerivative1 = partialH2u2(controlPoints, v, w);
+		partialDerivative2 = partialH2w2(controlPoints, v, w);
+	}else if(mode == 3) {
+		partialDerivative1 = partialH3u2(controlPoints, v, w);
+		partialDerivative2 = partialH3v2(controlPoints, v, w);
+	}else if(mode == 4) {
+		partialDerivative1 = partialH4r2(controlPoints, v, w);
+		partialDerivative2 = partialH4t2(controlPoints, v, w);
+	}
+
+
+	return mat2x2(
+		dot(n1, partialDerivative1),
+		dot(n1, partialDerivative2),
+		dot(n2, partialDerivative1),
+		dot(n2, partialDerivative2)
 	);
 }
 
@@ -260,11 +582,36 @@ vec2 f(const vec3 controlPoints[16],
 	float d1 = dot(-n1, origin);
 	float d2 = dot(-n2, origin);
 	return vec2(
-			dot(n1, surfacePoint) + d1, 
+			dot(n1, surfacePoint) + d1,
 			dot(n2, surfacePoint) + d2
 			);
 }
 
+vec2 fSide(const vec3[10] controlPoints,
+                       int side,
+                       const vec3 origin,
+                       const vec3 n1,
+                       const vec3 n2,
+                       const float v,
+                       const float w)
+{
+	vec3 surfacePoint;
+	if(side == 1) {
+ 		surfacePoint = H1(controlPoints, 2, v, w);
+	}else if(side == 2) {
+ 		surfacePoint = H2(controlPoints, 2, v, w);
+	}else if(side == 3) {
+ 		surfacePoint = H3(controlPoints, 2, v, w);
+	}else if(side == 4) {
+ 		surfacePoint = H4(controlPoints, 2, v, w);
+	}
+	float d1 = dot(-n1, origin);
+	float d2 = dot(-n2, origin);
+	return vec2(
+	    dot(n1, surfacePoint) + d1,
+	    dot(n2, surfacePoint) + d2
+	);
+}
 
 
 bool newtonsMethod(inout vec3 intersectionPoint,
@@ -306,18 +653,77 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 		previousError = error;
 		error = abs(f_value);
 
-		if (error.x < tolerance.x && error.t < tolerance.y)
+		if (error.x < tolerance.x && error.y < tolerance.y)
 		{
 			intersectionPoint = bezierSurfacePoint(controlPoints, n, m, u[c].x, u[c].y);
 			return true;
 		}
 
-		if (length(error) > length(previousError))
+		if (error.x > previousError.x && error.y > previousError.y)
 		{
+			intersectionPoint = vec3(0);
 			return false;
 		}
 	}
 
+	intersectionPoint = vec3(0);
+	return false;
+}
+
+
+
+bool newtonsMethod2(inout vec3 intersectionPoint,
+		int side,
+		const vec2 initialGuess,
+		const vec3 origin,
+		const vec3[10] controlPoints,
+		const vec3 n1,
+		const vec3 n2)
+{
+	const int max_iterations = 5;
+	vec2 u[max_iterations + 1];
+
+	const vec2 tolerance = vec2(0.001f, 0.001f);
+	u[0] = initialGuess;
+	vec2 previousError = vec2(0);
+	vec2 error = vec2(100000, 100000);
+
+	for (int c = 0; c < max_iterations; c++)
+	{
+		mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
+		mat2x2 inv_j = inverseJacobian(j);
+		if(inv_j == mat2x2(0,0,0,0)) {
+			intersectionPoint = vec3(0,0,0);
+			return false;
+		}
+
+		vec2 f_value = fSide(controlPoints, side, origin, n1, n2, u[c].x, u[c].y);
+		u[c + 1] = u[c] - (inv_j * f_value);
+
+		previousError = error;
+		error = abs(f_value);
+
+		if (error.x < tolerance.x && error.y < tolerance.y)
+		{
+			if(side == 1) {
+				intersectionPoint = H1(controlPoints, 2, u[c+1].x, u[c+1].y);
+			}else if(side == 2) {
+				intersectionPoint = H2(controlPoints, 2, u[c+1].x, u[c+1].y);
+			}else if(side == 3) {
+				intersectionPoint = H3(controlPoints, 2, u[c+1].x, u[c+1].y);
+			}else if(side == 4) {
+				intersectionPoint = H4(controlPoints, 2, u[c+1].x, u[c+1].y);
+			}
+			return true;
+		}
+
+		if (error.x > previousError.x && error.y > previousError.y)
+		{
+			intersectionPoint = vec3(0);
+			return false;
+		}
+	}
+	intersectionPoint = vec3(0);
 	return false;
 }
 
@@ -365,48 +771,48 @@ void main() {
 		// TODO: i dont know if this is the best approach, here we are checking 4 sides, since the degree is 1
 		// this is the simplest method
 		// intersect test with tetrahedron of degree 1
-		Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
+		// Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
 
-		float t =-1;
-		if(IntersectTriangle(ray,
-				tetrahedron.controlPoints[2],
-				tetrahedron.controlPoints[0],
-				tetrahedron.controlPoints[3], t))
-		{
-			if(t < tHit || tHit < 0) {
-				tHit = t;
-			}
-		}
+		// float t =-1;
+		// if(IntersectTriangle(ray,
+		// 		tetrahedron.controlPoints[2],
+		// 		tetrahedron.controlPoints[0],
+		// 		tetrahedron.controlPoints[3], t))
+		// {
+		// 	if(t < tHit || tHit < 0) {
+		// 		tHit = t;
+		// 	}
+		// }
 
-		if(IntersectTriangle(ray,
-				tetrahedron.controlPoints[0],
-				tetrahedron.controlPoints[1],
-				tetrahedron.controlPoints[3],t))
-		{
-			if(t < tHit || tHit < 0) {
-				tHit = t;
-			}
-		}
+		// if(IntersectTriangle(ray,
+		// 		tetrahedron.controlPoints[0],
+		// 		tetrahedron.controlPoints[1],
+		// 		tetrahedron.controlPoints[3],t))
+		// {
+		// 	if(t < tHit || tHit < 0) {
+		// 		tHit = t;
+		// 	}
+		// }
 
-		if(IntersectTriangle(ray,
-				tetrahedron.controlPoints[1],
-				tetrahedron.controlPoints[2],
-				tetrahedron.controlPoints[3],t))
-		{
-			if(t < tHit || tHit < 0) {
-				tHit = t;
-			}
-		}
+		// if(IntersectTriangle(ray,
+		// 		tetrahedron.controlPoints[1],
+		// 		tetrahedron.controlPoints[2],
+		// 		tetrahedron.controlPoints[3],t))
+		// {
+		// 	if(t < tHit || tHit < 0) {
+		// 		tHit = t;
+		// 	}
+		// }
 
-		if(IntersectTriangle(ray,
-				tetrahedron.controlPoints[0],
-				tetrahedron.controlPoints[1],
-				tetrahedron.controlPoints[2],t))
-		{
-			if(t < tHit || tHit < 0) {
-				tHit = t;
-			}
-		}
+		// if(IntersectTriangle(ray,
+		// 		tetrahedron.controlPoints[0],
+		// 		tetrahedron.controlPoints[1],
+		// 		tetrahedron.controlPoints[2],t))
+		// {
+		// 	if(t < tHit || tHit < 0) {
+		// 		tHit = t;
+		// 	}
+		// }
 
 
 	 // debugPrintfEXT("tHit: %f", tHit);
@@ -417,6 +823,52 @@ void main() {
 		// 	 tetrahedron.controlPoints[2],
 		// 	 tetrahedron.controlPoints[3]
 		// 	 );
+	}
+	else if(objectType == t_Tetrahedron2)
+	{
+		Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
+		vec3 o = ray.origin;
+		vec3 n1, n2;
+
+		float dx = ray.direction.x;
+		float dy = ray.direction.y;
+		float dz = ray.direction.z;
+
+		// if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
+		// 	n1 = vec3(dy, -dx, 0);
+		// }else{
+		// 	n1 = vec3(0, dz, -dy);
+		// }
+		// n2 = cross(n1, ray.direction);
+
+		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
+		n1 = normalize(cross(ray.direction, v));
+		n2 = normalize(cross(ray.direction, n1));
+
+		vec3 intersectionPoint;
+		// TODO: figure out what a good intial guess is
+		// vec2 initialGuess = projectPoint(surface.controlPoints[10].xyz, o, n1, n2);
+		vec2 initialGuess = vec2(0.5,0.5);
+		// if (newtonsMethod2(intersectionPoint, 1, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
+		// {
+		// 	tHit = min(tHit, distance(intersectionPoint, ray.origin));
+		// }
+
+		if (newtonsMethod2(intersectionPoint, 2, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
+		{
+			tHit = min(tHit, distance(intersectionPoint, ray.origin));
+		}
+
+		// if (newtonsMethod2(intersectionPoint, 3, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
+		// {
+		// 	tHit = min(tHit, distance(intersectionPoint, ray.origin));
+		// }
+
+		// if (newtonsMethod2(intersectionPoint, 4, initialGuess, ray.origin, tetrahedron.controlPoints, n1, n2))
+		// {
+		// 	tHit = min(tHit, distance(intersectionPoint, ray.origin));
+		// }
+
 	}
 	else if(objectType == t_Triangle)
 	{

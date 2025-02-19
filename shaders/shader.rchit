@@ -60,7 +60,7 @@ materialBuffer;
 
 layout(binding=5, set = 0, scalar) buffer Tetrahedrons
 {
-	Tetrahedron1[] tetrahedrons;
+	Tetrahedron2[] tetrahedrons;
 };
 
 layout(set = 0, binding=6, scalar) buffer Spheres
@@ -103,12 +103,28 @@ void main() {
 		payload.indirectColor = vec3(0,0,0);
 		payload.rayActive = 0;
   }else if(gl_HitKindEXT == t_Tetrahedron1) {
+	  // if (payload.rayDepth == 0) {
+		 //  vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+		 //  vec3 positionToLightDirection = normalize(raytracingDataConstants.globalLightPosition - position);
+		 //  vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
+
+		 //  Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
+		 //  vec3 tetrahedronCenter = (tetrahedron.controlPoints[0] + tetrahedron.controlPoints[1] + tetrahedron.controlPoints[2] + tetrahedron.controlPoints[3]) / 4.0;
+
+		 //  // TODO: fix normal calculation, calculate using intersection point as input to geometry formula
+		 //  vec3 normal = normalize(position - tetrahedronCenter);
+		 //  payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor *
+			//   dot(normal, positionToLightDirection);
+	  // }
+	  // payload.rayActive = 0;
+  }else if(gl_HitKindEXT == t_Tetrahedron2) {
+      // debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
 	  if (payload.rayDepth == 0) {
 		  vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 		  vec3 positionToLightDirection = normalize(raytracingDataConstants.globalLightPosition - position);
 		  vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
 
-		  Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
+		  Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
 		  vec3 tetrahedronCenter = (tetrahedron.controlPoints[0] + tetrahedron.controlPoints[1] + tetrahedron.controlPoints[2] + tetrahedron.controlPoints[3]) / 4.0;
 
 		  // TODO: fix normal calculation, calculate using intersection point as input to geometry formula

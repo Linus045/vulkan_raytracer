@@ -1102,14 +1102,16 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// create aabbs (temporary)
 
-	std::vector<Tetrahedron1> tetrahedrons = {
-	    // createTetrahedron1({
-	    //     glm::vec3(0.0f, 0.0f, 0.5f),
-	    //     glm::vec3(0.5f, 0.0f, -0.5f),
-	    //     glm::vec3(-0.5f, 0.0f, -0.5f),
-	    //     glm::vec3(0.0f, 0.5f, 0.0f),
-	    // }),
-	};
+	// std::vector<Tetrahedron1> tetrahedrons = {
+	//     // createTetrahedron1({
+	//     //     glm::vec3(0.0f, 0.0f, 0.5f),
+	//     //     glm::vec3(0.5f, 0.0f, -0.5f),
+	//     //     glm::vec3(-0.5f, 0.0f, -0.5f),
+	//     //     glm::vec3(0.0f, 0.5f, 0.0f),
+	//     // }),
+	// };
+
+	std::vector<Tetrahedron2> tetrahedrons2 = {};
 
 	std::vector<Sphere> spheres{
 	    // show origin
@@ -1181,29 +1183,8 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
-	if (tetrahedrons.size() > 0)
-	{
-		// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
-		// something like that
-		std::vector<ltracer::AABB> aabbsTetrahedrons;
-		for (auto&& tetrahedron : tetrahedrons)
-		{
-			aabbsTetrahedrons.push_back(ltracer::AABB::fromTetrahedron(tetrahedron));
-		}
 
-		createBottomLevelAccelerationStructuresForObjects<Tetrahedron1>(
-		    physicalDevice,
-		    logicalDevice,
-		    deletionQueue,
-		    tetrahedrons,
-		    ObjectType::t_Tetrahedron1,
-		    aabbsTetrahedrons,
-		    blasInstancesData,
-		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
-		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
-	}
-
-	[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::array<glm::vec3, 10>{
+	[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
 	    glm::vec3(0.0f, 0.0f, 0.0f),
 	    glm::vec3(2.0f, 0.0f, 0.0f),
 	    glm::vec3(0.0f, 2.0f, 0.0f),
@@ -1216,7 +1197,31 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	    glm::vec3(1.0f, 1.0f, 0.0f),
 	    glm::vec3(1.0f, 0.0f, 1.0f),
 	    glm::vec3(0.0f, 1.0f, 1.0f),
-	});
+	}));
+
+	tetrahedrons2.push_back(tetrahedron2);
+
+	if (tetrahedrons2.size() > 0)
+	{
+		// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
+		// something like that
+		std::vector<ltracer::AABB> aabbsTetrahedrons;
+		for (auto&& tetrahedron : tetrahedrons2)
+		{
+			aabbsTetrahedrons.push_back(ltracer::AABB::fromTetrahedron2(tetrahedron));
+		}
+
+		createBottomLevelAccelerationStructuresForObjects<Tetrahedron2>(
+		    physicalDevice,
+		    logicalDevice,
+		    deletionQueue,
+		    tetrahedrons2,
+		    ObjectType::t_Tetrahedron2,
+		    aabbsTetrahedrons,
+		    blasInstancesData,
+		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
+		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
+	}
 
 	{
 		auto rayPos = glm::vec3(-0.2f, 0.4f, 0.3f);
@@ -1247,8 +1252,8 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// }
 		// N2 = glm::normalize(glm::cross(N1, rayDirection));
 
-		std::cout << "Ray direction: " << rayDirection.x << ", " << rayDirection.y << ", "
-		          << rayDirection.z << std::endl;
+		logVec3("Ray Position", rayPos);
+		logVec3("Ray Direction", rayDirection);
 		std::cout << "N1: " << N1.x << ", " << N1.y << ", " << N1.z
 		          << " Length: " << glm::length(N1) << std::endl;
 		std::cout << "N2: " << N2.x << ", " << N2.y << ", " << N2.z
@@ -1260,94 +1265,93 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// visualizeVector(spheres, rayPos + rayDirection * 0.2f, N2, 0.1f, 0.008f);
 
 		// TODO: do some intersection calculations here
-		logVec3("Ray Position", rayPos);
-		logVec3("Ray Direction", rayDirection);
 
 		// visualizePlane(spheres, N1, rayPos, 1, 1);
 		// visualizePlane(spheres, N2, rayPos, 1, 1);
 
 		visualizeTetrahedron2(spheres, tetrahedron2);
 
-		glm::vec3 intersectionPoint{};
+		// glm::vec3 intersectionPoint{};
 		// TODO: figure out how to get a good initial guess
 		// maybe calculate the intersection with the AABB box? but how do we then transform that
 		// hitpos into the u,v parameter space? i guess getting the offset from the zero-position of
 		// the aabb and then mapping to 0-1 will work?
 
-		auto guesses = {
-		    glm::vec2(0.0, 0.0), glm::vec2(0.1, 0.1), glm::vec2(0.2, 0.2), glm::vec2(0.3, 0.3),
-		    glm::vec2(0.4, 0.4), glm::vec2(0.5, 0.5), glm::vec2(0.6, 0.6), glm::vec2(0.7, 0.7),
-		    glm::vec2(0.8, 0.8), glm::vec2(0.9, 0.9), glm::vec2(1.0, 1.0), glm::vec2(1.5, 1.5),
+		// auto guesses = {
+		//     glm::vec2(0.0, 0.0), glm::vec2(0.1, 0.1), glm::vec2(0.2, 0.2), glm::vec2(0.3, 0.3),
+		//     glm::vec2(0.4, 0.4), glm::vec2(0.5, 0.5), glm::vec2(0.6, 0.6), glm::vec2(0.7, 0.7),
+		//     glm::vec2(0.8, 0.8), glm::vec2(0.9, 0.9), glm::vec2(1.0, 1.0), glm::vec2(1.5, 1.5),
 
-		    glm::vec2(0, 0.0),   glm::vec2(0, 0.1),   glm::vec2(0, 0.2),   glm::vec2(0, 0.3),
-		    glm::vec2(0, 0.4),   glm::vec2(0, 0.5),   glm::vec2(0, 0.6),   glm::vec2(0, 0.7),
-		    glm::vec2(0, 0.8),   glm::vec2(0, 0.9),   glm::vec2(0, 1.0),   glm::vec2(0, 1.5),
+		//     glm::vec2(0, 0.0),   glm::vec2(0, 0.1),   glm::vec2(0, 0.2),   glm::vec2(0, 0.3),
+		//     glm::vec2(0, 0.4),   glm::vec2(0, 0.5),   glm::vec2(0, 0.6),   glm::vec2(0, 0.7),
+		//     glm::vec2(0, 0.8),   glm::vec2(0, 0.9),   glm::vec2(0, 1.0),   glm::vec2(0, 1.5),
 
-		    glm::vec2(0.0, 0),   glm::vec2(0.1, 0),   glm::vec2(0.2, 0),   glm::vec2(0.3, 0),
-		    glm::vec2(0.4, 0),   glm::vec2(0.5, 0),   glm::vec2(0.6, 0),   glm::vec2(0.7, 0),
-		    glm::vec2(0.8, 0),   glm::vec2(0.9, 0),   glm::vec2(1.0, 0),   glm::vec2(1.5, 0),
-		};
-		for (auto guess : guesses)
-		{
-			if (newtonsMethod2(spheres,
-			                   intersectionPoint,
-			                   H1,
-			                   partialH1v2,
-			                   partialH1w2,
-			                   guess,
-			                   rayPos,
-			                   std::to_array(tetrahedron2.controlPoints),
-			                   N1,
-			                   N2))
-			{
-				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
-			}
+		//     glm::vec2(0.0, 0),   glm::vec2(0.1, 0),   glm::vec2(0.2, 0),   glm::vec2(0.3, 0),
+		//     glm::vec2(0.4, 0),   glm::vec2(0.5, 0),   glm::vec2(0.6, 0),   glm::vec2(0.7, 0),
+		//     glm::vec2(0.8, 0),   glm::vec2(0.9, 0),   glm::vec2(1.0, 0),   glm::vec2(1.5, 0),
+		// };
 
-			std::cout << "Testing for Side 2 with H2" << std::endl;
-			if (newtonsMethod2(spheres,
-			                   intersectionPoint,
-			                   H2,
-			                   partialH2u2,
-			                   partialH2w2,
-			                   guess,
-			                   rayPos,
-			                   std::to_array(tetrahedron2.controlPoints),
-			                   N1,
-			                   N2))
-			{
-				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
-			}
+		// for (auto guess : guesses)
+		// {
+		// 	if (newtonsMethod2(spheres,
+		// 	                   intersectionPoint,
+		// 	                   H1,
+		// 	                   partialH1v2,
+		// 	                   partialH1w2,
+		// 	                   guess,
+		// 	                   rayPos,
+		// 	                   std::to_array(tetrahedron2.controlPoints),
+		// 	                   N1,
+		// 	                   N2))
+		// 	{
+		// 		spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+		// 	}
 
-			std::cout << "Testing for Side 3 with H3" << std::endl;
-			if (newtonsMethod2(spheres,
-			                   intersectionPoint,
-			                   H3,
-			                   partialH3u2,
-			                   partialH3v2,
-			                   guess,
-			                   rayPos,
-			                   std::to_array(tetrahedron2.controlPoints),
-			                   N1,
-			                   N2))
-			{
-				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
-			}
+		// 	std::cout << "Testing for Side 2 with H2" << std::endl;
+		// 	if (newtonsMethod2(spheres,
+		// 	                   intersectionPoint,
+		// 	                   H2,
+		// 	                   partialH2u2,
+		// 	                   partialH2w2,
+		// 	                   guess,
+		// 	                   rayPos,
+		// 	                   std::to_array(tetrahedron2.controlPoints),
+		// 	                   N1,
+		// 	                   N2))
+		// 	{
+		// 		spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+		// 	}
 
-			std::cout << "Testing for Side 4 with H4" << std::endl;
-			if (newtonsMethod2(spheres,
-			                   intersectionPoint,
-			                   H4,
-			                   partialH4r2,
-			                   partialH4t2,
-			                   guess,
-			                   rayPos,
-			                   std::to_array(tetrahedron2.controlPoints),
-			                   N1,
-			                   N2))
-			{
-				spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
-			}
-		}
+		// 	std::cout << "Testing for Side 3 with H3" << std::endl;
+		// 	if (newtonsMethod2(spheres,
+		// 	                   intersectionPoint,
+		// 	                   H3,
+		// 	                   partialH3u2,
+		// 	                   partialH3v2,
+		// 	                   guess,
+		// 	                   rayPos,
+		// 	                   std::to_array(tetrahedron2.controlPoints),
+		// 	                   N1,
+		// 	                   N2))
+		// 	{
+		// 		spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+		// 	}
+
+		// 	std::cout << "Testing for Side 4 with H4" << std::endl;
+		// 	if (newtonsMethod2(spheres,
+		// 	                   intersectionPoint,
+		// 	                   H4,
+		// 	                   partialH4r2,
+		// 	                   partialH4t2,
+		// 	                   guess,
+		// 	                   rayPos,
+		// 	                   std::to_array(tetrahedron2.controlPoints),
+		// 	                   N1,
+		// 	                   N2))
+		// 	{
+		// 		spheres.emplace_back(intersectionPoint, 0.1f, static_cast<int>(ColorIdx::t_orange));
+		// 	}
+		// }
 	}
 
 	{
