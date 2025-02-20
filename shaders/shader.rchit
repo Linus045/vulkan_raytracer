@@ -127,6 +127,7 @@ void main() {
 		  Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
 		  vec3 tetrahedronCenter = (tetrahedron.controlPoints[0] + tetrahedron.controlPoints[1] + tetrahedron.controlPoints[2] + tetrahedron.controlPoints[3]) / 4.0;
 
+		  tetrahedronCenter = vec3(0);
 		  // TODO: fix normal calculation, calculate using intersection point as input to geometry formula
 		  vec3 normal = normalize(position - tetrahedronCenter);
 		  payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor *

@@ -300,9 +300,9 @@ inline glm::mat2x2 jacobian2(const std::array<glm::vec3, 10> controlPoints,
 
 inline bool newtonsMethod2([[maybe_unused]] std::vector<Sphere>& spheres,
                            glm::vec3& intersectionPoint,
-                           HSideFunc hSideFunc,
-                           PartialFunc partial1,
-                           PartialFunc partial2,
+                           const HSideFunc& hSideFunc,
+                           const PartialFunc& partial1,
+                           const PartialFunc& partial2,
                            const glm::vec2 initialGuess,
                            const glm::vec3 origin,
                            const std::array<glm::vec3, 10> controlPoints,
@@ -849,7 +849,7 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
 	// Visualize volume
-	double stepSize = 0.25;
+	double stepSize = 0.1;
 	for (double u = 0; u <= 1; u += stepSize)
 	{
 		for (double v = 0; v <= 1; v += stepSize)
@@ -867,19 +867,19 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
+						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_purple));
+						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_purple));
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_green));
+						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_green));
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
