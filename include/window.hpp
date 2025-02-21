@@ -276,11 +276,12 @@ class Window
 			          << '\n';
 		}
 		std::cout << "Using the first format: ";
-		std::cout << string_VkFormat(availableFormats[1].format)
+		int formatIdx = 0;
+		std::cout << string_VkFormat(availableFormats[formatIdx].format)
 		          << " | Color space: " << string_VkColorSpaceKHR(availableFormats[0].colorSpace)
 		          << '\n';
 		// TODO: For some reason this works?
-		return availableFormats[1];
+		return availableFormats[formatIdx];
 	}
 
 	VkPresentModeKHR

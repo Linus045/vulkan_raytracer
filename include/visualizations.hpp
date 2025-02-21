@@ -885,7 +885,7 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_white));
+						//spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_white));
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)

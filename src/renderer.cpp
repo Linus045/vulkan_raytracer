@@ -61,11 +61,18 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	raytracingInfo.raytracingConstants = {
 	    .newtonErrorTolerance = 0.0001f,
+	    .newtonMaxIterations = 5,
+	    .someFloatingScalar = 1.00f,
+	    .someScalar = 1,
 	    .globalLightPosition = glm::vec3(20, 100, -50),
 	    .globalLightColor = vec3(0.6, 0.6, 0.6),
 	    // .environmentColor = vec3(0.58, 0.81, 0.92),
 	    .environmentColor = vec3(0.10, 0.10, 0.20),
 	    .debugShowAABBs = 0.0f,
+	    .renderSide1 = 0.0f,
+	    .renderSide2 = 1.0f,
+	    .renderSide3 = 0.0f,
+	    .renderSide4 = 0.0f,
 	};
 
 	// auto& cameraTransform = camera->transform;

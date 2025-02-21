@@ -75,10 +75,17 @@ END_BINDING();
 
 #define PUSH_CONSTANT_MEMBERS                                                                      \
 	ALIGNAS(4) float newtonErrorTolerance;                                                         \
+	ALIGNAS(4) int newtonMaxIterations;                                                            \
+	ALIGNAS(4) float someFloatingScalar;                                                           \
+	ALIGNAS(4) int someScalar;                                                                     \
 	ALIGNAS(16) vec3 globalLightPosition;                                                          \
 	ALIGNAS(16) vec3 globalLightColor;                                                             \
 	ALIGNAS(16) vec3 environmentColor;                                                             \
-	ALIGNAS(4) float debugShowAABBs;
+	ALIGNAS(4) float debugShowAABBs;                                                               \
+	ALIGNAS(4) float renderSide1;                                                                  \
+	ALIGNAS(4) float renderSide2;                                                                  \
+	ALIGNAS(4) float renderSide3;                                                                  \
+	ALIGNAS(4) float renderSide4;
 
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
 struct RaytracingDataConstants

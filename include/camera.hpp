@@ -33,9 +33,9 @@ class Camera
   public:
 	explicit Camera()
 	{
-		transform.position = glm::vec3(0.85, 1.3, 2.6);
+		transform.position = glm::vec3(0.0, 0, -0.01f);
 		glm::vec3 up = globalUp;
-		transform.rotation = glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, -0.5, -1)), up);
+		transform.rotation = glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, 0, 1)), up);
 		pitchRadians = glm::pitch(transform.rotation);
 		yawRadians = glm::yaw(transform.rotation);
 
@@ -211,7 +211,7 @@ class Camera
 
 	float movementSpeedMin = 0.01f;
 	float movementSpeedMax = 60.0f;
-	float movementSpeed = 10.0f;
+	float movementSpeed = 0.01f;
 
 	float rotationSpeedMin = 1.0f;
 	float rotationSpeedMax = 100.0f;

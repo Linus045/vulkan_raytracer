@@ -162,11 +162,51 @@ void renderRaytracingOptions(UIData& uiData)
 
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
-			                                  0.0f,
-			                                  1.0f,
-			                                  "%.7f",
+			                                  1e-8f,
+			                                  0.1f,
+			                                  "%.8f",
 			                                  ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+
+			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
+			                                &uiData.raytracingDataConstants.newtonMaxIterations,
+			                                0,
+			                                20,
+			                                "%d",
+			                                ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
+
+			valueChanged = ImGui::SliderFloat("Some Floating Scalar Value",
+			                                  &uiData.raytracingDataConstants.someFloatingScalar,
+			                                  1e-8f,
+			                                  1.0f,
+			                                  "%.8f",
+			                                  ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
+
+			valueChanged = ImGui::SliderInt("Some Scalar Value",
+			                                &uiData.raytracingDataConstants.someScalar,
+			                                -1,
+			                                uiData.raytracingDataConstants.newtonMaxIterations,
+			                                "%d",
+			                                ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
+
+			bool renderSide1 = uiData.raytracingDataConstants.renderSide1 > 0;
+			valueChanged = ImGui::Checkbox("Render Side 1", &renderSide1) || valueChanged;
+			uiData.raytracingDataConstants.renderSide1 = static_cast<float>(renderSide1 ? 1 : 0);
+
+			bool renderSide2 = uiData.raytracingDataConstants.renderSide2 > 0;
+			valueChanged = ImGui::Checkbox("Render Side 2", &renderSide2) || valueChanged;
+			uiData.raytracingDataConstants.renderSide2 = static_cast<float>(renderSide2 ? 1 : 0);
+
+			bool renderSide3 = uiData.raytracingDataConstants.renderSide3 > 0;
+			valueChanged = ImGui::Checkbox("Render Side 3", &renderSide3) || valueChanged;
+			uiData.raytracingDataConstants.renderSide3 = static_cast<float>(renderSide3 ? 1 : 0);
+
+			bool renderSide4 = uiData.raytracingDataConstants.renderSide4 > 0;
+			valueChanged = ImGui::Checkbox("Render Side 4", &renderSide4) || valueChanged;
+			uiData.raytracingDataConstants.renderSide4 = static_cast<float>(renderSide4 ? 1 : 0);
 		}
 
 		ImGui::SeparatorText("Environment");

@@ -155,7 +155,15 @@ float BernsteinPolynomial(int i, int n, float x)
 	if(i == 0) {
 		xpowi = 1;
 	}
-	float result =  nChooseK(n, i) * xpowi * pow(1.0 - x, n - i);
+	float powOther = pow(1.0 - x, n - i);
+	if(abs(n - 1) <= 0.0001) {
+		powOther = 1;
+	}
+
+	float result =  nChooseK(n, i) * xpowi * powOther;
+
+	// debugPrintfEXT("BernsteinPolynomial i: %d n: %d x: %f - Result: %f \n", i,n,x,result);
+
 	return result;
 }
 
@@ -239,6 +247,10 @@ int getControlPointIndices(int i, int j, int k)
 vec3 H1(const vec3 controlPoints[10], int n, const float v, const float w)
 {
 	vec3 sum = vec3(0);
+	if(v < 0 || w < 0) {
+		return sum;
+	}
+
 	for (int k = 0; k <= n; k++)
 	{
 		for (int j = 0; j <= n - k; j++)
@@ -305,6 +317,10 @@ vec3 partialH1w2(const vec3 controlPoints[10], const float v, const float w)
 vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 {
 	vec3 sum = vec3(0);
+	if(u < 0 || w < 0) {
+		return sum;
+	}
+
 	for (int k = 0; k <= n; k++)
 	{
 		for (int j = 0; j <= n - k; j++)
@@ -314,9 +330,12 @@ vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 				int idx = getControlPointIndices(i, j, k);
 				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u) *
 					BernsteinPolynomial(j, n, 0) * BernsteinPolynomial(k, n, w);
+	
+
 			}
 		}
 	}
+	// debugPrintfEXT("H2: u: %f w:%f sum: %.2v3f", u, w, sum);
 	return sum;
 }
 
@@ -371,6 +390,10 @@ vec3 partialH2w2(const vec3 controlPoints[10], const float u, const float w)
 vec3 H3(const vec3 controlPoints[10], int n, const float u, const float v)
 {
 	vec3 sum = vec3(0);
+	if(u < 0 || v < 0) {
+		return sum;
+	}
+
 	for (int k = 0; k <= n; k++)
 	{
 		for (int j = 0; j <= n - k; j++)
@@ -437,6 +460,10 @@ vec3 partialH3v2(const vec3 controlPoints[10], const float u, const float v)
 vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
 {
 	vec3 sum = vec3(0);
+	if(r < 0 || t < 0) {
+		return sum;
+	}
+
 	if(r + t <= 1.0) {
 		for (int k = 0; k <= n; k++)
 		{
@@ -445,9 +472,12 @@ vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
 				for (int i = 0; i <= n - k - j; i++)
 				{
 					int idx = getControlPointIndices(i, j, k);
-					sum += controlPoints[idx] * BernsteinPolynomial(i, n, r)
-						* BernsteinPolynomial(j, n, t)
-						* BernsteinPolynomial(k, n, 1.0 - r - t);
+					float u = r;
+					float v = t;
+					float w = 1.0 - r - t;
+					sum += controlPoints[idx] * BernsteinPolynomial(i, n, u)
+						* BernsteinPolynomial(j, n, v)
+						* BernsteinPolynomial(k, n, w);
 				}
 			}
 		}
@@ -694,21 +724,26 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 		const vec3 n1,
 		const vec3 n2)
 {
-	const int max_iterations = 6;
+	const int max_iterations = 21;
 	vec2 u[max_iterations];
 
-	const vec2 tolerance = vec2(2.1f, 2.1f);
+	vec2 tolerance = vec2(raytracingDataConstants.newtonErrorTolerance, raytracingDataConstants.newtonErrorTolerance);
+
 	u[0] = initialGuess;
-	for (int c = 1; c < max_iterations + 1; c++)
+	for (int c = 1; c < max_iterations; c++)
 	{
 		u[c] = vec2(0);
 	}
 
-	vec2 previousError = vec2(0);
-	vec2 error = vec2(100000.0, 100000.0);
+	float previousError = 0;
+	float error = 100000.0;
 
-	for (int c = 0; c < max_iterations - 1; c++)
+	for (int c = 0; c <= raytracingDataConstants.newtonMaxIterations; c++)
 	{
+		if(u[c].x < 0 ||  u[c].y < 0) {
+			return false;
+		}
+
 		mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
 		mat2x2 inv_j = inverseJacobian(j);
 		if(inv_j == mat2x2(0,0,0,0)) {
@@ -717,26 +752,36 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 		}
 
 		vec2 f_value = fSide(controlPoints, side, origin, n1, n2, u[c].x, u[c].y);
-		u[c + 1] = u[c] - (inv_j * f_value);
+		vec2 differenceInUV = inv_j * f_value;
+		debugPrintfEXT("differenceInUV: (%.2v2f), u: %.2v2f, f: (%.2v2f), inv_j:(%.2f, %.2f, %.2f, %.2f), j:(%.2f, %.2f, %.2f, %.2f)",differenceInUV,u[c], f_value,inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1], j[0][0], j[0][1], j[1][0], j[1][1]);
+
+		u[c + 1] = u[c] - differenceInUV * raytracingDataConstants.someFloatingScalar;
 
 		previousError = error;
-		error = abs(f_value);
-		if(c >= 0){
-		debugPrintfEXT("u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f) f: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), previousError: (%.5v2f), error: (%.5v2f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
-				u[0],
-				u[1],
-				u[2],
-				u[3],
-				u[4],
-				u[5],
-				side, n1, n2, f_value, u[c], u[c+1],
-				previousError,
-				error,
-				j[0][0], j[0][1], j[1][0], j[1][1],
-				inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1]);
+		error = length(f_value);
+		if(c == raytracingDataConstants.someScalar) {
+			debugPrintfEXT("u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), 6:(%.2v2f), 7:(%.2v2f), 8:(%.2v2f), 9:(%.2v2f), 10:(%.2v2f), 11:(%.2v2f), 12:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), previousError: (%.5f), error: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
+					u[0],
+					u[1],
+					u[2],
+					u[3],
+					u[4],
+					u[5],
+					u[6],
+					u[7],
+					u[8],
+					u[9],
+					u[10],
+					u[11],
+					u[12],
+					side, n1, n2, f_value, differenceInUV, u[c], u[c+1],
+					previousError,
+					error,
+					j[0][0], j[0][1], j[1][0], j[1][1],
+					inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1]);
 		}
 
-		if (error.x < tolerance.x && error.y < tolerance.y)
+		if (error < tolerance.x)
 		{
 			if(side == 1) {
 				intersectionPoint = H1(controlPoints, 2, u[c+1].x, u[c+1].y);
@@ -750,9 +795,18 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			return true;
 		}
 
-		if (error.x > previousError.x && error.y > previousError.y)
+		if (error > previousError)
 		{
-			intersectionPoint = vec3(0);
+//			int idx = c;
+//			if(side == 1) {
+//				intersectionPoint = H1(controlPoints, 2, u[idx].x, u[idx].y);
+//			}else if(side == 2) {
+//				intersectionPoint = H2(controlPoints, 2, u[idx].x, u[idx].y);
+//			}else if(side == 3) {
+//				intersectionPoint = H3(controlPoints, 2, u[idx].x, u[idx].y);
+//			}else if(side == 4) {
+//				intersectionPoint = H4(controlPoints, 2, u[idx].x, u[idx].y);
+//			}
 			return false;
 		}
 	}
@@ -847,7 +901,7 @@ void main() {
 		// 	}
 		// }
 
-
+		
 	 // debugPrintfEXT("tHit: %f", tHit);
 	 // debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
 		// 	 tHit,
@@ -867,33 +921,26 @@ void main() {
 		float dy = ray.direction.y;
 		float dz = ray.direction.z;
 
-		// if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
-		// 	n1 = vec3(dy, -dx, 0);
-		// }else{
-		// 	n1 = vec3(0, dz, -dy);
-		// }
-		// n2 = cross(n1, ray.direction);
+//		 if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
+//		 	n1 = vec3(dy, -dx, 0);
+//		 }else{
+//		 	n1 = vec3(0, dz, -dy);
+//		 }
+//		 n2 = cross(n1, ray.direction);
 
 		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
 		n1 = normalize(cross(ray.direction, v));
 		n2 = normalize(cross(ray.direction, n1));
 
 		vec3 intersectionPoint;
-		// TODO: figure out what a good intial guess is
-		// vec2 initialGuess = projectPoint(surface.controlPoints[10].xyz, o, n1, n2);
-		vec2 initialGuess = vec2(0.5,0.5);
-
 
 		vec3 v0 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 0)];
 		vec3 v1 = tetrahedron.controlPoints[getControlPointIndices(0, 2, 0)];
 		vec3 v2 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 2)];
-		// spheres.emplace_back(v1, 0.4f, static_cast<int>(ColorIdx::t_red));
-		// spheres.emplace_back(v2, 0.4f, static_cast<int>(ColorIdx::t_red));
-		// spheres.emplace_back(v3, 0.4f, static_cast<int>(ColorIdx::t_red));
 
 		float t;
 		// Side 1
-		if (IntersectTriangle(ray, v0, v1, v2, t))
+		if(raytracingDataConstants.renderSide1 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
 		{
 			vec3 P = o + ray.direction * t;
 			vec3 a = v1 - v0;
@@ -914,19 +961,20 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-			// if (newtonsMethod2(intersectionPoint, 1, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			// {
-			// 	if(tHit == -1 || distance(intersectionPoint, ray.origin) < tHit) {
-			// 		tHit = distance(intersectionPoint, ray.origin);
-			// 	}
-			// }
+			if (newtonsMethod2(intersectionPoint, 1, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
+			{
+				float dist = distance(intersectionPoint, ray.origin);
+				if(tHit == -1 || dist < tHit) {
+					tHit = dist;
+				}
+			}
 		}
 
 		// Side 2
 		v0 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 0)];
 		v1 = tetrahedron.controlPoints[getControlPointIndices(2, 0, 0)];
 		v2 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 2)];
-		if (IntersectTriangle(ray, v0, v1, v2, t))
+		if (raytracingDataConstants.renderSide2 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
 		{
 			vec3 P = o + ray.direction * t;
 			vec3 a = v1 - v0;
@@ -947,19 +995,20 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-		 // 	if (newtonsMethod2(intersectionPoint, 2, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			// {
-			// 	if(tHit == -1 || distance(intersectionPoint, ray.origin) < tHit) {
-			// 		tHit = distance(intersectionPoint, ray.origin);
-			// 	}
-			// }
+			if (newtonsMethod2(intersectionPoint, 2, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
+			{
+				float dist = distance(intersectionPoint, ray.origin);
+				if(tHit == -1 || dist < tHit) {
+					tHit = dist;
+				}
+			}
 		}
 
 		// Side 3
 		v0 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 0)];
 		v1 = tetrahedron.controlPoints[getControlPointIndices(2, 0, 0)];
 		v2 = tetrahedron.controlPoints[getControlPointIndices(0, 2, 0)];
-		if (IntersectTriangle(ray, v0, v1, v2, t))
+		if (raytracingDataConstants.renderSide3 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
 		{
 			vec3 P = o + ray.direction * t;
 			vec3 a = v1 - v0;
@@ -980,19 +1029,20 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-		 // 	if (newtonsMethod2(intersectionPoint, 3, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			// {
-			// 	if(tHit == -1 || distance(intersectionPoint, ray.origin) < tHit) {
-			// 		tHit = distance(intersectionPoint, ray.origin);
-			// 	}
-			// }
+			if (newtonsMethod2(intersectionPoint, 3, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
+			{
+				float dist = distance(intersectionPoint, ray.origin);
+				if(tHit == -1 || dist < tHit) {
+					tHit = dist;
+				}
+			}
 		}
 
 		// Side 4
 		v0 = tetrahedron.controlPoints[getControlPointIndices(2, 0, 0)];
 		v1 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 2)];
 		v2 = tetrahedron.controlPoints[getControlPointIndices(0, 2, 0)];
-		if (IntersectTriangle(ray, v0, v1, v2, t))
+		if (raytracingDataConstants.renderSide4 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
 		{
 			vec3 P = o + ray.direction * t;
 			vec3 a = v1 - v0;
@@ -1015,8 +1065,9 @@ void main() {
 
 		 	if (newtonsMethod2(intersectionPoint, 4, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
 			{
-				if(tHit == -1 || distance(intersectionPoint, ray.origin) < tHit) {
-					tHit = distance(intersectionPoint, ray.origin);
+				float dist = distance(intersectionPoint, ray.origin);
+				if(tHit == -1 || dist < tHit) {
+					tHit = dist;
 				}
 			}
 		}
