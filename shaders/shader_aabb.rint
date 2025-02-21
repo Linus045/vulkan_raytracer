@@ -330,8 +330,6 @@ vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 				int idx = getControlPointIndices(i, j, k);
 				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u) *
 					BernsteinPolynomial(j, n, 0) * BernsteinPolynomial(k, n, w);
-	
-
 			}
 		}
 	}
@@ -360,7 +358,7 @@ vec3 partialH2u2(const vec3 controlPoints[10], const float u, const float w)
 		}
 	}
 
-	return n * sum;
+		return n * sum;
 }
 
 vec3 partialH2w2(const vec3 controlPoints[10], const float u, const float w)
@@ -738,11 +736,26 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 	float previousError = 0;
 	float error = 100000.0;
 
+	if(raytracingDataConstants.newtonMaxIterations == 0) {
+		int idx = 0;
+		if(side == 1) {
+			intersectionPoint = H1(controlPoints, 2, initialGuess.x, initialGuess.y);
+		}else if(side == 2) {
+			intersectionPoint = H2(controlPoints, 2, initialGuess.x, initialGuess.y);
+		}else if(side == 3) {
+			intersectionPoint = H3(controlPoints, 2, initialGuess.x, initialGuess.y);
+		}else if(side == 4) {
+			intersectionPoint = H4(controlPoints, 2, initialGuess.x, initialGuess.y);
+		}
+		return true;
+	}
+
 	for (int c = 0; c <= raytracingDataConstants.newtonMaxIterations; c++)
 	{
-		if(u[c].x < 0 ||  u[c].y < 0) {
-			return false;
-		}
+	
+		//if(u[c].x < 0 ||  u[c].y < 0) {
+		//	return false;
+		//}
 
 		mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
 		mat2x2 inv_j = inverseJacobian(j);
@@ -753,12 +766,13 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 
 		vec2 f_value = fSide(controlPoints, side, origin, n1, n2, u[c].x, u[c].y);
 		vec2 differenceInUV = inv_j * f_value;
-		debugPrintfEXT("differenceInUV: (%.2v2f), u: %.2v2f, f: (%.2v2f), inv_j:(%.2f, %.2f, %.2f, %.2f), j:(%.2f, %.2f, %.2f, %.2f)",differenceInUV,u[c], f_value,inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1], j[0][0], j[0][1], j[1][0], j[1][1]);
+		//debugPrintfEXT("differenceInUV: (%.2v2f), u: %.2v2f, f: (%.2v2f), inv_j:(%.2f, %.2f, %.2f, %.2f), j:(%.2f, %.2f, %.2f, %.2f)",differenceInUV,u[c], f_value,inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1], j[0][0], j[0][1], j[1][0], j[1][1]);
 
 		u[c + 1] = u[c] - differenceInUV * raytracingDataConstants.someFloatingScalar;
 
 		previousError = error;
-		error = length(f_value);
+		//error = length(f_value);
+		error = length(u[c+1] - u[c]);
 		if(c == raytracingDataConstants.someScalar) {
 			debugPrintfEXT("u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), 6:(%.2v2f), 7:(%.2v2f), 8:(%.2v2f), 9:(%.2v2f), 10:(%.2v2f), 11:(%.2v2f), 12:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), previousError: (%.5f), error: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
 					u[0],
@@ -955,15 +969,21 @@ void main() {
 			float denom = dot00 * dot11 - dot01 * dot01;
 			float v = (dot11 * dot20 - dot01 * dot21) / denom;
 			float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			// auto alpha = 1 - v - w;
+			float alpha = 1 - v - w;
 			float beta = v;
 			float gamma = w;
 
 			vec2 guess = vec2(beta, gamma);
 
-			if (newtonsMethod2(intersectionPoint, 1, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
+			//debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
+			//debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT: %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
+			
+			// TODO: Trying to get our origin closer to the actual object so the numbers are staying small (we only have 32-bit float precision)
+			vec3 closeOrigin = P - ray.direction * 0.05;
+			//debugPrintfEXT("origin: %.2v3f, closeOrigin: %.2v3f",o, closeOrigin);
+			if (newtonsMethod2(intersectionPoint, 1, guess, closeOrigin, tetrahedron.controlPoints, n1, n2))
 			{
-				float dist = distance(intersectionPoint, ray.origin);
+				float dist = distance(intersectionPoint, o);
 				if(tHit == -1 || dist < tHit) {
 					tHit = dist;
 				}

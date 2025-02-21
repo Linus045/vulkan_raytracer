@@ -2,7 +2,11 @@
 #extension GL_EXT_ray_tracing : require
 #extension GL_EXT_debug_printf : enable
 
+#extension GL_GOOGLE_include_directive : enable
+
 #define M_PI 3.1415926535897932384626433832795
+
+#include "../include/common_types.h"
 
 layout(location = 0) rayPayloadEXT Payload {
   vec3 rayOrigin;
@@ -32,11 +36,8 @@ layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 
 layout( push_constant ) uniform RaytracingDataConstants
 {
-	float newtonErrorTolerance;
-    vec3 globalLightPosition;
-    vec3 globalLightColor;
-    vec3 environmentColor;
-    float debugShowAABBs;
+	// see common_types.h
+	PUSH_CONSTANT_MEMBERS
 } raytracingDataConstants;
 
 float random(vec2 uv, float seed) {
@@ -62,7 +63,7 @@ void main() {
 
   payload.rayActive = 1;
 
-  for (int x = 0; x < 16; x++) {
+  for (int x = 0; x < raytracingDataConstants.raysPerPixel; x++) {
     traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
                 payload.rayOrigin, 0.001, payload.rayDirection, 1000.0, 0);
   }

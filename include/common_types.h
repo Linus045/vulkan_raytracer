@@ -85,7 +85,8 @@ END_BINDING();
 	ALIGNAS(4) float renderSide1;                                                                  \
 	ALIGNAS(4) float renderSide2;                                                                  \
 	ALIGNAS(4) float renderSide3;                                                                  \
-	ALIGNAS(4) float renderSide4;
+	ALIGNAS(4) float renderSide4;                                                                  \
+	ALIGNAS(4) int raysPerPixel;
 
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
 struct RaytracingDataConstants

@@ -1193,19 +1193,20 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
 
 	float scalar = 0.5f;
+	glm::vec3 offset = glm::vec3(0, 0, 0);
 	[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
-	    glm::vec3(0.0f, 0.0f, 0.0f) * scalar,
-	    glm::vec3(2.0f, 0.0f, 0.0f) * scalar,
-	    glm::vec3(0.0f, 2.0f, 0.0f) * scalar,
-	    glm::vec3(0.0f, 0.0f, 2.0f) * scalar,
+	    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
+	    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
+	    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
+	    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
 
-	    glm::vec3(1.0f, 0.0f, 0.0f) * scalar,
-	    glm::vec3(0.0f, 1.0f, 0.0f) * scalar,
-	    glm::vec3(0.0f, 0.0f, 1.0f) * scalar,
+	    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
+	    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset,
+	    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset,
 
-	    glm::vec3(1.0f, 1.0f, 0.0f) * scalar,
-	    glm::vec3(1.0f, 0.0f, 1.0f) * scalar,
-	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar,
+	    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
+	    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
+	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 	}));
 
 	tetrahedrons2.push_back(tetrahedron2);
@@ -1280,7 +1281,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// visualizePlane(spheres, N1, rayPos, 1, 1);
 		// visualizePlane(spheres, N2, rayPos, 1, 1);
 
-		// visualizeTetrahedron2(spheres, tetrahedron2);
+		visualizeTetrahedron2(spheres, tetrahedron2);
 
 		// glm::vec3 intersectionPoint{};
 		//  TODO: figure out how to get a good initial guess

@@ -163,7 +163,7 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
 			                                  1e-8f,
-			                                  0.1f,
+			                                  5.0f,
 			                                  "%.8f",
 			                                  ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
@@ -207,6 +207,14 @@ void renderRaytracingOptions(UIData& uiData)
 			bool renderSide4 = uiData.raytracingDataConstants.renderSide4 > 0;
 			valueChanged = ImGui::Checkbox("Render Side 4", &renderSide4) || valueChanged;
 			uiData.raytracingDataConstants.renderSide4 = static_cast<float>(renderSide4 ? 1 : 0);
+
+			valueChanged = ImGui::SliderInt("Rays per Pixel",
+			                                &uiData.raytracingDataConstants.raysPerPixel,
+			                                0,
+			                                20,
+			                                "%d",
+			                                ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
 		}
 
 		ImGui::SeparatorText("Environment");
