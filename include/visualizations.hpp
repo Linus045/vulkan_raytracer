@@ -859,7 +859,8 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 				if (u + v + w <= 2)
 				{
 					// auto rayO = glm::vec3(0.5f, 0.8f, 0.6f);
-					auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v, w);
+					// auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v,
+					// w);
 
 					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
 					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
@@ -867,7 +868,7 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
+						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
