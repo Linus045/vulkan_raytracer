@@ -60,7 +60,14 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	}
 
 	raytracingInfo.raytracingConstants = {
-	    .newtonErrorTolerance = 0.01f,
+	    .newtonErrorXTolerance = 0.0001f,
+	    .newtonErrorFTolerance = 0.0001f,
+
+	    .newtonErrorFIgnoreIncrease = 1.0f,
+	    .newtonErrorFHitBelowTolerance = 1.0f,
+	    .newtonErrorXIgnoreIncrease = 1.0f,
+	    .newtonErrorXHitBelowTolerance = 1.0f,
+
 	    .newtonMaxIterations = 5,
 	    .someFloatingScalar = 1.00f,
 	    .someScalar = -1,
@@ -71,10 +78,11 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .environmentColor = vec3(1.0, 1.0, 1.0),
 	    .debugShowAABBs = 0.0f,
 	    .renderSide1 = 1.0f,
-	    .renderSide2 = 1.0f,
-	    .renderSide3 = 1.0f,
-	    .renderSide4 = 1.0f,
+	    .renderSide2 = 0.0f,
+	    .renderSide3 = 0.0f,
+	    .renderSide4 = 0.0f,
 	    .raysPerPixel = 1,
+	    .cameraDir = glm::vec3(0),
 	};
 
 	// auto& cameraTransform = camera->transform;
@@ -187,6 +195,9 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 		resetFrameCountRequested = false;
 	}
 	updateUniformBuffer(currentFrame);
+
+	uiData.raytracingDataConstants.cameraDir = camera.transform.getForward();
+
 	recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
 
 	VkSubmitInfo submitInfo{};

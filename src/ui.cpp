@@ -160,13 +160,53 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugShowAABBs
 			    = static_cast<float>(debugShowAABBs ? 1 : 0);
 
-			valueChanged = ImGui::SliderFloat("Newton Method Tolerance Value",
-			                                  &uiData.raytracingDataConstants.newtonErrorTolerance,
+			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
+			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
 			                                  1e-8f,
-			                                  5.0f,
+			                                  15.0f,
 			                                  "%.8f",
 			                                  ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+
+			valueChanged = ImGui::SliderFloat("Newton Method Tolerance F Value",
+			                                  &uiData.raytracingDataConstants.newtonErrorFTolerance,
+			                                  1e-8f,
+			                                  15.0f,
+			                                  "%.8f",
+			                                  ImGuiSliderFlags_AlwaysClamp)
+			               || valueChanged;
+
+			bool newtonErrorFIgnoreIncrease
+			    = uiData.raytracingDataConstants.newtonErrorFIgnoreIncrease > 0;
+			valueChanged
+			    = ImGui::Checkbox("Newton ErrorF Ignore increases", &newtonErrorFIgnoreIncrease)
+			      || valueChanged;
+			uiData.raytracingDataConstants.newtonErrorFIgnoreIncrease
+			    = static_cast<float>(newtonErrorFIgnoreIncrease ? 1 : 0);
+
+			bool newtonErrorFHitBelowTolerance
+			    = uiData.raytracingDataConstants.newtonErrorFHitBelowTolerance > 0;
+			valueChanged = ImGui::Checkbox("Newton ErrorF Below Tolerance counts as hit ",
+			                               &newtonErrorFHitBelowTolerance)
+			               || valueChanged;
+			uiData.raytracingDataConstants.newtonErrorFHitBelowTolerance
+			    = static_cast<float>(newtonErrorFHitBelowTolerance ? 1 : 0);
+
+			bool newtonErrorXIgnoreIncrease
+			    = uiData.raytracingDataConstants.newtonErrorXIgnoreIncrease > 0;
+			valueChanged
+			    = ImGui::Checkbox("Newton ErrorX Ignore increases", &newtonErrorXIgnoreIncrease)
+			      || valueChanged;
+			uiData.raytracingDataConstants.newtonErrorXIgnoreIncrease
+			    = static_cast<float>(newtonErrorXIgnoreIncrease ? 1 : 0);
+
+			bool newtonErrorXHitBelowTolerance
+			    = uiData.raytracingDataConstants.newtonErrorXHitBelowTolerance > 0;
+			valueChanged = ImGui::Checkbox("Newton ErrorX Below Tolerance counts as hit ",
+			                               &newtonErrorXHitBelowTolerance)
+			               || valueChanged;
+			uiData.raytracingDataConstants.newtonErrorXHitBelowTolerance
+			    = static_cast<float>(newtonErrorXHitBelowTolerance ? 1 : 0);
 
 			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
 			                                &uiData.raytracingDataConstants.newtonMaxIterations,

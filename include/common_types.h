@@ -74,7 +74,12 @@ END_BINDING();
 // clang-format on
 
 #define PUSH_CONSTANT_MEMBERS                                                                      \
-	ALIGNAS(4) float newtonErrorTolerance;                                                         \
+	ALIGNAS(4) float newtonErrorXTolerance;                                                        \
+	ALIGNAS(4) float newtonErrorFTolerance;                                                        \
+	ALIGNAS(4) float newtonErrorFIgnoreIncrease;                                                   \
+	ALIGNAS(4) float newtonErrorFHitBelowTolerance;                                                \
+	ALIGNAS(4) float newtonErrorXIgnoreIncrease;                                                   \
+	ALIGNAS(4) float newtonErrorXHitBelowTolerance;                                                \
 	ALIGNAS(4) int newtonMaxIterations;                                                            \
 	ALIGNAS(4) float someFloatingScalar;                                                           \
 	ALIGNAS(4) int someScalar;                                                                     \
@@ -86,7 +91,8 @@ END_BINDING();
 	ALIGNAS(4) float renderSide2;                                                                  \
 	ALIGNAS(4) float renderSide3;                                                                  \
 	ALIGNAS(4) float renderSide4;                                                                  \
-	ALIGNAS(4) int raysPerPixel;
+	ALIGNAS(4) int raysPerPixel;                                                                   \
+	ALIGNAS(16) vec3 cameraDir;
 
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL
 struct RaytracingDataConstants

@@ -122,7 +122,7 @@ class Application
 	const bool enableValidationLayer = false;
 	const bool enableDebugShaderPrintf = false;
 #else
-	const bool enableValidationLayer = false;
+	const bool enableValidationLayer = true;
 	const bool enableDebugShaderPrintf = true;
 #endif
 

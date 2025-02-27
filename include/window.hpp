@@ -276,7 +276,7 @@ class Window
 			          << '\n';
 		}
 		std::cout << "Using the first format: ";
-		int formatIdx = 0;
+		size_t formatIdx = 1;
 		std::cout << string_VkFormat(availableFormats[formatIdx].format)
 		          << " | Color space: " << string_VkColorSpaceKHR(availableFormats[0].colorSpace)
 		          << '\n';

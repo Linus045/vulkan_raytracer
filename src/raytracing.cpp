@@ -1192,7 +1192,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
 
-	float scalar = 0.5f;
+	float scalar = 1.0f;
 	glm::vec3 offset = glm::vec3(0, 0, 0);
 	[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
 	    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
