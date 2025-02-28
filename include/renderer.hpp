@@ -88,6 +88,7 @@ class Renderer
 			                                           logicalDevice,
 			                                           window.getSwapChainImageFormat(),
 			                                           window.getSwapChainExtent(),
+			                                           *raytracingScene,
 			                                           raytracingInfo);
 		}
 	}
@@ -197,6 +198,8 @@ class Renderer
 	// physical device handle
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	const bool raytracingSupported = false;
+
+	std::unique_ptr<rt::RaytracingScene> raytracingScene;
 
 	// Logical device to interact with
 	VkDevice logicalDevice;

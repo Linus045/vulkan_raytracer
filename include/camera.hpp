@@ -33,11 +33,11 @@ class Camera
   public:
 	explicit Camera()
 	{
-		transform.position = glm::vec3(0.0, 0, -0.01f);
+		transform.setPos(glm::vec3(0.0, 0, -0.01f));
 		glm::vec3 up = globalUp;
-		transform.rotation = glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, 0, 1)), up);
-		pitchRadians = glm::pitch(transform.rotation);
-		yawRadians = glm::yaw(transform.rotation);
+		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, 0, 1)), up));
+		pitchRadians = glm::pitch(transform.getRotation());
+		yawRadians = glm::yaw(transform.getRotation());
 
 		updateViewMatrix();
 	}
@@ -69,7 +69,7 @@ class Camera
 
 	void translate(glm::vec3 translation)
 	{
-		transform.position += translation;
+		transform.translate(translation);
 		updateViewMatrix();
 		cameraMoved = true;
 	}
@@ -83,7 +83,7 @@ class Camera
 	{
 		// Calculate the new alignment
 		glm::quat q = glm::angleAxis(glm::radians(angleDegree), glm::normalize(axis));
-		transform.rotation = glm::normalize(q * transform.rotation);
+		transform.setRotation(glm::normalize(q * transform.getRotation()));
 		updateViewMatrix();
 		cameraMoved = true;
 	}
@@ -101,7 +101,7 @@ class Camera
 			yawRadians += glm::two_pi<float>();
 		}
 
-		transform.rotation = glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0)));
+		transform.setRotation(glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0))));
 
 		updateViewMatrix();
 		cameraMoved = true;
@@ -112,7 +112,7 @@ class Camera
 		pitchRadians += glm::radians(angleDegree);
 		limitPitch();
 
-		transform.rotation = glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0)));
+		transform.setRotation(glm::normalize(glm::quat(glm::vec3(pitchRadians, yawRadians, 0))));
 
 		updateViewMatrix();
 		cameraMoved = true;

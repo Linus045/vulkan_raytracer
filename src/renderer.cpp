@@ -1,6 +1,7 @@
 #include <stdexcept>
 
 #include "renderer.hpp"
+#include "raytracing.hpp"
 #include "model.hpp"
 
 namespace ltracer
@@ -56,7 +57,11 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 		raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
-		ltracer::rt::initRayTracing(physicalDevice, logicalDevice, deletionQueue, raytracingInfo);
+		raytracingScene
+		    = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice, deletionQueue);
+
+		ltracer::rt::initRayTracing(
+		    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, *raytracingScene);
 	}
 
 	raytracingInfo.raytracingConstants = {
@@ -190,6 +195,24 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 	if (raytracingSupported)
 	{
+		if (uiData.recreateAccelerationStructures)
+		{
+			raytracingScene->getWorldObjectSpheres()[0].setPosition(uiData.position);
+			raytracingScene->animateSphere(uiData.position);
+			raytracingScene->recreateAccelerationStructures(raytracingInfo);
+
+			rt::updateAccelerationStructureDescriptorSet(logicalDevice,
+			                                             *raytracingScene,
+			                                             raytracingInfo,
+			                                             VK_NULL_HANDLE,
+			                                             VK_NULL_HANDLE,
+			                                             VK_NULL_HANDLE,
+			                                             raytracingInfo.meshObjects);
+
+			uiData.recreateAccelerationStructures = false;
+			resetFrameCountRequested = true;
+		}
+
 		ltracer::rt::updateRaytraceBuffer(
 		    logicalDevice, raytracingInfo, camera, resetFrameCountRequested);
 		resetFrameCountRequested = false;

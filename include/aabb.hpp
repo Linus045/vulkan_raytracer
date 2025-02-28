@@ -37,7 +37,7 @@ class AABB
 	}
 
 	static AABB
-	fromRectangularBezierSurface(const RectangularBezierSurface2x2& rectangularBezierSurface2x2)
+	fromRectangularBezierSurface2x2(const RectangularBezierSurface2x2& rectangularBezierSurface2x2)
 	{
 		glm::vec3 min = rectangularBezierSurface2x2.controlPoints[0];
 		glm::vec3 max = rectangularBezierSurface2x2.controlPoints[0];

@@ -16,26 +16,72 @@ namespace ltracer
 
 struct Transform
 {
-	glm::vec3 position{0.0f, 0.0f, 0.0f};
-	glm::quat rotation = glm::quat();
-	glm::vec3 scale{1.0f, 1.0f, 1.0f};
+	inline void setPos(glm::vec3 pos)
+	{
+		position = pos;
+	}
 
-	glm::vec3 getForward() const
+	inline void setRotation(glm::quat rot)
+	{
+		rotation = rot;
+	}
+
+	inline void setScale(glm::vec3 s)
+	{
+		scale = s;
+	}
+
+	inline glm::vec3 getPos() const
+	{
+		return position;
+	}
+
+	inline glm::quat getRotation() const
+	{
+		return rotation;
+	}
+
+	inline glm::vec3 getScale() const
+	{
+		return scale;
+	}
+
+	inline float getX() const
+	{
+		return position.x;
+	}
+
+	inline float getY() const
+	{
+		return position.y;
+	}
+
+	inline float getZ() const
+	{
+		return position.z;
+	}
+
+	inline void translate(glm::vec3 offset)
+	{
+		position += offset;
+	}
+
+	inline glm::vec3 getForward() const
 	{
 		return glm::normalize(glm::rotate(rotation, glm::vec3(0, 0, -1)));
 	}
 
-	glm::vec3 getUp() const
+	inline glm::vec3 getUp() const
 	{
 		return glm::normalize(glm::rotate(rotation, glm::vec3(0, 1, 0)));
 	}
 
-	glm::vec3 getRight() const
+	inline glm::vec3 getRight() const
 	{
 		return glm::normalize(glm::rotate(rotation, glm::vec3(1, 0, 0)));
 	}
 
-	VkTransformMatrixKHR getTransformMatrix()
+	VkTransformMatrixKHR getTransformMatrix() const
 	{
 		glm::mat4 matrix = glm::translate(glm::identity<glm::mat4>(), position);
 		matrix = matrix * glm::toMat4(rotation);
@@ -50,6 +96,11 @@ struct Transform
 		};
 		return transformationMatrix;
 	}
+
+  private:
+	glm::vec3 position{0.0f, 0.0f, 0.0f};
+	glm::quat rotation = glm::quat();
+	glm::vec3 scale{1.0f, 1.0f, 1.0f};
 };
 
 } // namespace ltracer

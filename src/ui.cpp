@@ -1,4 +1,5 @@
 #include <array>
+#include <imgui.h>
 #include <string>
 
 #include "ui.hpp"
@@ -90,7 +91,7 @@ void renderCameraProperties(const UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Camera"))
 	{
-		auto cameraPosition = glm::to_string(uiData.camera.transform.position);
+		auto cameraPosition = glm::to_string(uiData.camera.transform.getPos());
 		ImGui::Text("Position: %s", cameraPosition.c_str());
 
 		auto cameraLookDirection = glm::to_string(uiData.camera.transform.getForward());
@@ -99,9 +100,9 @@ void renderCameraProperties(const UIData& uiData)
 		ImGui::Text("Camera pitch (degrees): %f", glm::degrees(uiData.camera.getPitchRadians()));
 
 		auto cameraRotationRadians
-		    = glm::to_string(glm::eulerAngles(uiData.camera.transform.rotation));
+		    = glm::to_string(glm::eulerAngles(uiData.camera.transform.getRotation()));
 		auto cameraRotationDegrees
-		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera.transform.rotation)));
+		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera.transform.getRotation())));
 		ImGui::Text("Camera rotation (radians)(pitch,yaw,roll): %s", cameraRotationRadians.c_str());
 		ImGui::Text("Camera rotation (degrees)(pitch,yaw,roll): %s", cameraRotationDegrees.c_str());
 	}
@@ -304,6 +305,19 @@ void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
 }
 
+void renderPositionSliders(ltracer::ui::UIData& uiData)
+{
+	bool valueChanged = false;
+
+	if (ImGui::CollapsingHeader("Raytracing - Positions"))
+	{
+
+		valueChanged = ImGui::SliderFloat3("Position", &uiData.position.x, -10.0, 10.0, "%.2f")
+		               || valueChanged;
+	}
+	uiData.recreateAccelerationStructures = valueChanged;
+}
+
 void renderMainPanel(UIData& uiData)
 {
 	// ImGui::ShowDemoWindow();
@@ -330,6 +344,8 @@ void renderMainPanel(UIData& uiData)
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
 	renderRaytracingProperties(uiData);
+
+	renderPositionSliders(uiData);
 
 	ImGui::SeparatorText("Configuration");
 	renderRaytracingOptions(uiData);

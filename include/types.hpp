@@ -61,15 +61,20 @@ struct UniformStructure
 
 struct RaytracingObjectBuffers
 {
-	// TODO: convert into a list for the aabbs per blas
-	VkBuffer tetrahedronsBufferHandle = VK_NULL_HANDLE;
-	VkBuffer tetrahedronsAABBBufferHandle = VK_NULL_HANDLE;
+	// TODO: convert into a list of structs that hold the buffer and the device memory (maybe look
+	// at how its done in nvidia's examples)
+	std::vector<VkBuffer> tetrahedronsBufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkBuffer> tetrahedronsAABBBufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> tetrahedronsDeviceMemoryHandles = std::vector<VkDeviceMemory>(0);
 
-	VkBuffer spheresBufferHandle = VK_NULL_HANDLE;
-	VkBuffer spheresAABBBufferHandle = VK_NULL_HANDLE;
+	std::vector<VkBuffer> spheresBufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkBuffer> spheresAABBBufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> spheresDeviceMemoryHandles = std::vector<VkDeviceMemory>(0);
 
-	VkBuffer rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
-	VkBuffer rectangularBezierSurfacesAABB2x2BufferHandle = VK_NULL_HANDLE;
+	std::vector<VkBuffer> rectangularBezierSurfaces2x2BufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkBuffer> rectangularBezierSurfacesAABB2x2BufferHandle = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> rectangularBezierSurfaces2x2DeviceMemoryHandles
+	    = std::vector<VkDeviceMemory>(0);
 
 	VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
 };
@@ -101,6 +106,17 @@ struct RaytracingInfo
 
 	VkAccelerationStructureKHR topLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 
+	VkAccelerationStructureBuildGeometryInfoKHR topLevelAccelerationStructureBuildGeometryInfo;
+	VkAccelerationStructureBuildSizesInfoKHR topLevelAccelerationStructureBuildSizesInfo;
+	VkBuffer topLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
+	VkBuffer topLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
+	VkAccelerationStructureBuildRangeInfoKHR topLevelAccelerationStructureBuildRangeInfo;
+	VkAccelerationStructureGeometryKHR topLevelAccelerationStructureGeometry;
+	VkDeviceMemory blasGeometryInstancesDeviceMemoryHandle;
+
+	VkDeviceMemory topLevelAccelerationStructureDeviceMemoryHandle = VK_NULL_HANDLE;
+	VkDeviceMemory topLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
+
 	VkBuffer uniformBufferHandle = VK_NULL_HANDLE;
 	VkDeviceMemory uniformDeviceMemoryHandle = VK_NULL_HANDLE;
 
@@ -125,8 +141,8 @@ struct RaytracingInfo
 	// the mesh objects that are shown in the scene (loaded obj files)
 	std::vector<MeshObject> meshObjects;
 
-	// the objects that are rendered using ray tracing (with an intersection shader)
-	RaytracingObjectBuffers objectBuffers;
+	// cache sicne it wont change during the lifetime of the program (only if a new device is used)
+	VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
 };
 
 } // namespace ltracer

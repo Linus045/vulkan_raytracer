@@ -79,31 +79,11 @@ class MeshObject : public WorldObject
 	}
 
 	~MeshObject() = default;
-	MeshObject(MeshObject&&) = default;
-	MeshObject(const MeshObject&) = delete;
-	MeshObject& operator=(MeshObject&&) = delete;
+	MeshObject(const MeshObject&) = default;
 	MeshObject& operator=(const MeshObject&) = delete;
 
-	const std::vector<glm::vec3> normals{};
-
-	const uint32_t primitiveCount{};
-	const std::vector<float> vertices{};
-	const std::vector<uint32_t> indices{};
-	const std::vector<tinyobj::shape_t> shapes{};
-	const std::vector<tinyobj::material_t> materials{};
-
-	VkBuffer vertexBufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory vertexBufferDeviceMemoryHandle{};
-	VkDeviceAddress vertexBufferDeviceAddress{};
-
-	VkBuffer indexBufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory indexBufferDeviceMemoryHandle{};
-	VkDeviceAddress indexBufferDeviceAddress{};
-
-	// VkBuffer normalBuffer;
-	// VkDeviceMemory normalBufferMemory;
-
-	// VkBuffer uniformBufferHandle;
+	MeshObject(MeshObject&&) = default;
+	MeshObject& operator=(MeshObject&&) = delete;
 
 	void cleanup([[maybe_unused]] VkDevice device) const
 	{
@@ -180,6 +160,28 @@ class MeshObject : public WorldObject
 			}
 		}
 	}
+
+  private:
+	const std::vector<glm::vec3> normals{};
+
+	[[maybe_unused]] const uint32_t primitiveCount{};
+	const std::vector<float> vertices{};
+	const std::vector<uint32_t> indices{};
+	const std::vector<tinyobj::shape_t> shapes{};
+	const std::vector<tinyobj::material_t> materials{};
+
+	// VkBuffer vertexBufferHandle = VK_NULL_HANDLE;
+	// VkDeviceMemory vertexBufferDeviceMemoryHandle{};
+	// VkDeviceAddress vertexBufferDeviceAddress{};
+
+	// VkBuffer indexBufferHandle = VK_NULL_HANDLE;
+	// VkDeviceMemory indexBufferDeviceMemoryHandle{};
+	// VkDeviceAddress indexBufferDeviceAddress{};
+
+	// VkBuffer normalBuffer;
+	// VkDeviceMemory normalBufferMemory;
+
+	// VkBuffer uniformBufferHandle;
 };
 
 } // namespace ltracer

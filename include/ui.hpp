@@ -4,6 +4,8 @@
 #include <backends/imgui_impl_vulkan.h>
 #include <imgui.h>
 
+#include <glm/ext/vector_float3.hpp>
+
 #include <vulkan/vk_enum_string_helper.h>
 
 // forward declarations
@@ -31,6 +33,9 @@ struct UIData
 	RaytracingDataConstants& raytracingDataConstants;
 	bool mainPanelCollapsed = true;
 	const uint32_t& frameCount;
+
+	glm::vec3 position = glm::vec3(0);
+	bool recreateAccelerationStructures = false;
 
 	UIData(const Camera& camera,
 	       const bool& raytracingSupported,

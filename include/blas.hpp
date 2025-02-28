@@ -14,12 +14,11 @@ namespace ltracer
 namespace rt
 {
 
-struct BLASInstance
+struct BLASBuildData
 {
 	// NOTE: maybe make this a vector of geometries
 	const VkAccelerationStructureGeometryKHR geometry;
 	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
-
 	const ObjectType objectType;
 
 	const VkTransformMatrixKHR transformMatrix = {
@@ -31,16 +30,17 @@ struct BLASInstance
 	};
 };
 
-inline BLASInstance
-createBottomLevelAccelerationStructureAABB(VkDevice logicalDevice,
-                                           VkBuffer tetrahedronsAABBBufferHandle,
-                                           const ObjectType& objectType,
-                                           const uint32_t primitiveCount)
+[[nodiscard]] inline BLASBuildData
+createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
+                                                    VkBuffer tetrahedronAABBBufferHandle,
+                                                    const ObjectType& objectType,
+                                                    VkTransformMatrixKHR modelMatrix
+                                                    /*, const uint32_t primitiveCount*/)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
 	    .pNext = NULL,
-	    .buffer = tetrahedronsAABBBufferHandle,
+	    .buffer = tetrahedronAABBBufferHandle,
 	};
 
 	VkDeviceAddress aabbPositionsDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
@@ -67,33 +67,26 @@ createBottomLevelAccelerationStructureAABB(VkDevice logicalDevice,
 	};
 
 	VkAccelerationStructureBuildRangeInfoKHR bottomLevelAccelerationStructureBuildRangeInfo = {
-	    .primitiveCount = primitiveCount,
+	    .primitiveCount = 1, // primitiveCount,
 	    .primitiveOffset = 0,
 	    .firstVertex = 0,
 	    .transformOffset = 0,
 	};
 
-	return BLASInstance
-	{
-		.geometry = bottomLevelAccelerationStructureGeometry,
-		.buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-		.objectType = objectType,
-		.transformMatrix = {
-			.matrix = {
-				{1, 0, 0, 0},
-				{0, 1, 0, 0},
-				{0, 0, 1, 0},
-			},
-		},
+	return BLASBuildData{
+	    .geometry = bottomLevelAccelerationStructureGeometry,
+	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
+	    .objectType = objectType,
+	    .transformMatrix = modelMatrix,
 	};
 }
 
-inline BLASInstance
-createBottomLevelAccelerationStructureTriangle(uint32_t primitiveCount,
-                                               uint32_t verticesCount,
-                                               VkDeviceAddress vertexBufferDeviceAddress,
-                                               VkDeviceAddress indexBufferDeviceAddress,
-                                               VkTransformMatrixKHR transformMatrix)
+[[nodiscard]] inline BLASBuildData
+createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
+                                                        uint32_t verticesCount,
+                                                        VkDeviceAddress vertexBufferDeviceAddress,
+                                                        VkDeviceAddress indexBufferDeviceAddress,
+                                                        VkTransformMatrixKHR transformMatrix)
 {
 
 	// create Bottom Level Acceleration Structure
@@ -126,7 +119,7 @@ createBottomLevelAccelerationStructureTriangle(uint32_t primitiveCount,
 	    .transformOffset = 0,
 	};
 
-	return BLASInstance{
+	return BLASBuildData{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
 	    .objectType = ObjectType::t_Triangle,
@@ -139,8 +132,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
                                       VkDevice logicalDevice,
                                       DeletionQueue& deletionQueue,
                                       const RaytracingInfo& raytracingInfo,
-                                      VkQueue graphicsQueueHandle,
-                                      const BLASInstance& blas)
+                                      const BLASBuildData blasBuildData)
 {
 	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 
@@ -155,12 +147,13 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	        .srcAccelerationStructure = VK_NULL_HANDLE,
 	        .dstAccelerationStructure = VK_NULL_HANDLE,
 	        .geometryCount = 1,
-	        .pGeometries = &blas.geometry,
+	        .pGeometries = &blasBuildData.geometry,
 	        .ppGeometries = NULL,
 	        .scratchData = {.deviceAddress = 0},
 	    };
 
-	std::vector<uint32_t> bottomLevelMaxPrimitiveCountList = {blas.buildRangeInfo.primitiveCount};
+	std::vector<uint32_t> bottomLevelMaxPrimitiveCountList
+	    = {blasBuildData.buildRangeInfo.primitiveCount};
 
 	VkAccelerationStructureBuildSizesInfoKHR bottomLevelAccelerationStructureBuildSizesInfo = {
 	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
@@ -250,7 +243,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	};
 
 	const VkAccelerationStructureBuildRangeInfoKHR* bottomLevelAccelerationStructureBuildRangeInfos
-	    = &blas.buildRangeInfo;
+	    = &blasBuildData.buildRangeInfo;
 
 	VkCommandBufferBeginInfo bottomLevelCommandBufferBeginInfo = {
 	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -313,7 +306,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    [=]()
 	    { vkDestroyFence(logicalDevice, bottomLevelAccelerationStructureBuildFenceHandle, NULL); });
 
-	result = vkQueueSubmit(graphicsQueueHandle,
+	result = vkQueueSubmit(raytracingInfo.graphicsQueueHandle,
 	                       1,
 	                       &bottomLevelAccelerationStructureBuildSubmitInfo,
 	                       bottomLevelAccelerationStructureBuildFenceHandle);
@@ -332,6 +325,128 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	}
 
 	return bottomLevelAccelerationStructureHandle;
+}
+
+template <typename T>
+inline std::pair<VkBuffer, VkDeviceMemory> createObjectBuffer(VkPhysicalDevice physicalDevice,
+                                                              VkDevice logicalDevice,
+                                                              DeletionQueue& deletionQueue,
+                                                              const T& object)
+{
+	VkBuffer bufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory deviceMemoryHandle = VK_NULL_HANDLE;
+	createBuffer(physicalDevice,
+	             logicalDevice,
+	             deletionQueue,
+	             sizeof(T),
+	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	             memoryAllocateFlagsInfo,
+	             bufferHandle,
+	             deviceMemoryHandle);
+
+	void* memoryBuffer;
+	VkResult result
+	    = vkMapMemory(logicalDevice, deviceMemoryHandle, 0, sizeof(T), 0, &memoryBuffer);
+
+	memcpy(memoryBuffer, &object, sizeof(T));
+
+	if (result != VK_SUCCESS)
+	{
+		throw new std::runtime_error("createObjectsBuffer - vkMapMemory");
+	}
+
+	vkUnmapMemory(logicalDevice, deviceMemoryHandle);
+
+	return std::make_pair(bufferHandle, deviceMemoryHandle);
+}
+
+/**
+ * @brief Creates a buffer for the VkAabbPositionsKHR objects from a vector of AABB objects
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue The buffer will be added to the deletion queue
+ * @param aabbs Vector of AABB objects to copy to the buffer
+ * @return VkBuffer The buffer handle
+ */
+inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
+                                 VkDevice logicalDevice,
+                                 DeletionQueue& deletionQueue,
+                                 const ltracer::AABB& aabb)
+{
+	VkAabbPositionsKHR aabbPosition = aabb.getAabb();
+
+	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
+	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
+
+	VkBuffer bufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
+	createBuffer(physicalDevice,
+	             logicalDevice,
+	             deletionQueue,
+	             blockSize,
+	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	             memoryAllocateFlagsInfo,
+	             bufferHandle,
+	             aabbDeviceMemoryHandle);
+
+	void* aabbPositionsMemoryBuffer;
+	VkResult result = vkMapMemory(
+	    logicalDevice, aabbDeviceMemoryHandle, 0, blockSize, 0, &aabbPositionsMemoryBuffer);
+
+	memcpy(aabbPositionsMemoryBuffer, &aabbPosition, blockSize);
+
+	if (result != VK_SUCCESS)
+	{
+		throw new std::runtime_error(
+		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
+	}
+
+	vkUnmapMemory(logicalDevice, aabbDeviceMemoryHandle);
+
+	return bufferHandle;
+}
+
+/**
+ * @brief creates the bottom level acceleration structure for the model
+ *
+ * @tparam T the type of the objects, e.g. Sphere, Tetrahedron, etc.
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue the acceleration structure is added to the deletion queue
+ * @param objects the list of objects that will be stored in the acceleration structure
+ * @param objectType the type of the objects, this is passed to the shader to determine what
+ * intersection calculation to use
+ * @param aabbs the list of Axis Aligned Bounding Boxes for the objects, see AABB::from* method,
+ * it extracts the aabb from the object
+ * @param blasInstancesData the vector that holds all BLAS (Bottom Level Acceleration Structure)
+ * instances, to which the acceleration structure is added
+ * @param objectsBufferHandle the buffer handle of the objects
+ * @param aabbObjectsBufferHandle the buffer handle of the AABBs for the objects
+ */
+template <typename T>
+[[nodiscard]] inline BLASBuildData
+createBottomLevelAccelerationStructureBuildDataForObject(VkPhysicalDevice physicalDevice,
+                                                         VkDevice logicalDevice,
+                                                         DeletionQueue& deletionQueue,
+                                                         const T& object,
+                                                         const ObjectType objectType,
+                                                         ltracer::AABB& aabb,
+                                                         VkTransformMatrixKHR modelMatrix,
+                                                         VkBuffer& objectBufferHandle,
+                                                         VkDeviceMemory& objectDeviceMemoryHandle,
+                                                         VkBuffer& aabbObjectBufferHandle)
+{
+	std::tie(objectBufferHandle, objectDeviceMemoryHandle)
+	    = createObjectBuffer(physicalDevice, logicalDevice, deletionQueue, object);
+	aabbObjectBufferHandle = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabb);
+
+	// TODO: Make it possible to have multiple BLAS with their individual AABBs
+	return createBottomLevelAccelerationStructureBuildDataAABB(
+	    logicalDevice, aabbObjectBufferHandle, objectType, modelMatrix);
 }
 
 } // namespace rt

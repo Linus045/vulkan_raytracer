@@ -10,6 +10,7 @@
 
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vk_platform.h>
+#include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE

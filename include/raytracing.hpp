@@ -1,11 +1,11 @@
 #pragma once
 
+#include "raytracing_scene.hpp"
 #include <cassert>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <stdexcept>
 #include <sys/types.h>
 #include <vector>
 
@@ -36,9 +36,6 @@ namespace rt
 
 // TODO: utilize https://registry.khronos.org/vulkan/specs/latest/man/html/VK_EXT_debug_utils.html
 // to get better error messages
-
-// TODO: figure out a better way to handle this
-static VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
 
 /**
  * @brief Updates the camera position, forward, up and right vectors in the uniform structure.
@@ -88,20 +85,6 @@ VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
                              VkDevice logicalDevice,
                              DeletionQueue& deletionQueue,
                              const std::vector<T>& objects);
-
-/**
- * @brief Creates a buffer for the VkAabbPositionsKHR objects from a vector of AABB objects
- *
- * @param physicalDevice
- * @param logicalDevice
- * @param deletionQueue The buffer will be added to the deletion queue
- * @param aabbs Vector of AABB objects to copy to the buffer
- * @return VkBuffer The buffer handle
- */
-VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
-                          VkDevice logicalDevice,
-                          DeletionQueue& deletionQueue,
-                          const std::vector<ltracer::AABB>& aabbs);
 
 /**
  * @brief Creates the command pool used for the ray tracing operations
@@ -236,7 +219,11 @@ void createRaytracingPipeline(VkDevice logicalDevice,
  * AABBs with intersection shader
  */
 void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
+                                              const RaytracingScene& raytracingScene,
                                               RaytracingInfo& raytracingInfo,
+                                              VkBuffer sphereBufferHandle,
+                                              VkBuffer tetrahedronBufferHandle,
+                                              VkBuffer rectangularBezierSurface2x2BufferHandle,
                                               const std::vector<MeshObject>& meshObjects);
 
 /**
@@ -255,45 +242,6 @@ void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
                                                MeshObject& meshObject);
 
 /**
- * @brief creates the bottom level acceleration structure for the model
- *
- * @tparam T the type of the objects, e.g. Sphere, Tetrahedron, etc.
- * @param physicalDevice
- * @param logicalDevice
- * @param deletionQueue the acceleration structure is added to the deletion queue
- * @param objects the list of objects that will be stored in the acceleration structure
- * @param objectType the type of the objects, this is passed to the shader to determine what
- * intersection calculation to use
- * @param aabbs the list of Axis Aligned Bounding Boxes for the objects, see AABB::from* method, it
- * extracts the aabb from the object
- * @param blasInstancesData the vector that holds all BLAS (Bottom Level Acceleration Structure)
- * instances, to which the acceleration structure is added
- * @param objectsBufferHandle the buffer handle of the objects
- * @param aabbObjectsBufferHandle the buffer handle of the AABBs for the objects
- */
-template <typename T>
-inline void
-createBottomLevelAccelerationStructuresForObjects(VkPhysicalDevice physicalDevice,
-                                                  VkDevice logicalDevice,
-                                                  DeletionQueue& deletionQueue,
-                                                  const std::vector<T>& objects,
-                                                  const ObjectType objectType,
-                                                  std::vector<ltracer::AABB>& aabbs,
-                                                  std::vector<BLASInstance>& blasInstancesData,
-                                                  VkBuffer& objectsBufferHandle,
-                                                  VkBuffer& aabbObjectsBufferHandle)
-{
-	objectsBufferHandle
-	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, objects);
-
-	aabbObjectsBufferHandle = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabbs);
-
-	// TODO: Make it possible to have multiple BLAS with their individual AABBs
-	blasInstancesData.push_back(createBottomLevelAccelerationStructureAABB(
-	    logicalDevice, aabbObjectsBufferHandle, objectType, static_cast<uint32_t>(aabbs.size())));
-}
-
-/**
  * @brief Initializes the ray tracing pipeline, including the command buffers, command pool, etc.
  *
  * @param physicalDevice
@@ -304,7 +252,8 @@ createBottomLevelAccelerationStructuresForObjects(VkPhysicalDevice physicalDevic
 void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
                     DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo);
+                    RaytracingInfo& raytracingInfo,
+                    RaytracingScene& raytracingScene);
 
 /**
  * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,
@@ -387,6 +336,7 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
                                    VkFormat swapChainImageFormat,
                                    VkExtent2D windowExtent,
+                                   RaytracingScene& raytracingScene,
                                    RaytracingInfo& raytracingInfo);
 
 } // namespace rt

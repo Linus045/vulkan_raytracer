@@ -13,8 +13,11 @@
 #include <tuple>
 
 #include "common_types.h"
+#include "raytracing_scene.hpp"
 
 namespace ltracer
+{
+namespace rt
 {
 
 using HSideFunc = std::function<glm::vec3(
@@ -839,13 +842,14 @@ partialH4t2(const std::array<glm::vec3, 10> controlPoints, const double r, const
 	return sum;
 }
 
-inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedron2& tetrahedron)
+inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingScene,
+                                  [[maybe_unused]] const Tetrahedron2& tetrahedron)
 {
 	// Visualize control points
-	for (auto& point : tetrahedron.controlPoints)
-	{
-		spheres.emplace_back(point, 0.02f, static_cast<int>(ColorIdx::t_black));
-	}
+	// for (auto& point : tetrahedron.controlPoints)
+	// {
+	// 	raytracingScene.addWorldObject(Sphere(point, 0.02f, static_cast<int>(ColorIdx::t_black)));
+	// }
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
 	// Visualize volume
@@ -868,30 +872,35 @@ inline void visualizeTetrahedron2(std::vector<Sphere>& spheres, const Tetrahedro
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_red));
+						// raytracingScene.addWorldObject(
+						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_red)));
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_purple));
+						// raytracingScene.addWorldObject(
+						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_purple)));
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_green));
+						// raytracingScene.addWorldObject(
+						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_green)));
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_white));
+						// raytracingScene.addWorldObject(
+						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_white)));
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						// spheres.emplace_back(p, 0.01f, static_cast<int>(ColorIdx::t_black));
+						// raytracingScene.addWorldObject(
+						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_black)));
 					}
 				}
 			}
@@ -967,4 +976,5 @@ inline bool IntersectTriangle(const glm::vec3 rayOrigin,
 	return false;
 }
 
+} // namespace rt
 } // namespace ltracer

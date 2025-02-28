@@ -3,12 +3,13 @@
 #include <string>
 #include <array>
 
+#include "common_types.h"
 #include "deletion_queue.hpp"
 #include "raytracing.hpp"
-#include "logger.hpp"
+#include "raytracing_scene.hpp"
+#include "raytracing_worldobject.hpp"
 #include "shader_module.hpp"
 #include "tetrahedron.hpp"
-#include "tlas.hpp"
 #include "visualizations.hpp"
 #include "device_procedures.hpp"
 #include "vk_utils.hpp"
@@ -57,40 +58,6 @@ VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatures()
 	// };
 
 	return physicalDeviceRayTracingPipelineFeatures;
-}
-
-template <typename T>
-VkBuffer createObjectsBuffer(VkPhysicalDevice physicalDevice,
-                             VkDevice logicalDevice,
-                             DeletionQueue& deletionQueue,
-                             const std::vector<T>& objects)
-{
-	VkBuffer bufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory deviceMemoryHandle = VK_NULL_HANDLE;
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             sizeof(T) * objects.size(),
-	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             bufferHandle,
-	             deviceMemoryHandle);
-
-	void* memoryBuffer;
-	VkResult result = vkMapMemory(
-	    logicalDevice, deviceMemoryHandle, 0, sizeof(T) * objects.size(), 0, &memoryBuffer);
-
-	memcpy(memoryBuffer, objects.data(), sizeof(T) * objects.size());
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("createObjectsBuffer - vkMapMemory");
-	}
-
-	vkUnmapMemory(logicalDevice, deviceMemoryHandle);
-
-	return bufferHandle;
 }
 
 VkCommandPool createCommandPool(VkDevice logicalDevice,
@@ -273,52 +240,6 @@ void createPipelineLayout(VkDevice logicalDevice,
 	deletionQueue.push_function(
 	    [=, &raytracingInfo]()
 	    { vkDestroyPipelineLayout(logicalDevice, raytracingInfo.pipelineLayoutHandle, NULL); });
-}
-
-VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
-                          VkDevice logicalDevice,
-                          DeletionQueue& deletionQueue,
-                          const std::vector<ltracer::AABB>& aabbs)
-{
-	std::vector<VkAabbPositionsKHR> aabbPositions;
-	for (auto&& aabb : aabbs)
-		aabbPositions.push_back(aabb.getAabb());
-
-	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
-	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
-
-	VkBuffer bufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             blockSize * aabbPositions.size(),
-	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             bufferHandle,
-	             aabbDeviceMemoryHandle);
-
-	void* aabbPositionsMemoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              aabbDeviceMemoryHandle,
-	                              0,
-	                              blockSize * aabbPositions.size(),
-	                              0,
-	                              &aabbPositionsMemoryBuffer);
-
-	memcpy(aabbPositionsMemoryBuffer, aabbPositions.data(), blockSize * aabbPositions.size());
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error(
-		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
-	}
-
-	vkUnmapMemory(logicalDevice, aabbDeviceMemoryHandle);
-
-	return bufferHandle;
 }
 
 VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
@@ -677,9 +598,14 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 	    { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
 }
 
-void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
-                                              RaytracingInfo& raytracingInfo,
-                                              const std::vector<MeshObject>& meshObjects)
+void updateAccelerationStructureDescriptorSet(
+    VkDevice logicalDevice,
+    const RaytracingScene& raytracingScene,
+    RaytracingInfo& raytracingInfo,
+    VkBuffer sphereBufferHandle,
+    VkBuffer tetrahedronBufferHandle,
+    VkBuffer rectangularBezierSurface2x2BufferHandle,
+    [[maybe_unused]] const std::vector<MeshObject>& meshObjects)
 {
 	VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorInfo = {
 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
@@ -694,26 +620,26 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
-	VkDescriptorBufferInfo tetrahedronsDescriptorInfo = {
-	    .buffer = raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
+	VkDescriptorBufferInfo spheresDescriptorInfo = {
+	    .buffer = sphereBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
-	VkDescriptorBufferInfo spheresDescriptorInfo = {
-	    .buffer = raytracingInfo.objectBuffers.spheresBufferHandle,
+	VkDescriptorBufferInfo tetrahedronsDescriptorInfo = {
+	    .buffer = tetrahedronBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo rectangularBezierSurfaces2x2DescriptorInfo = {
-	    .buffer = raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
+	    .buffer = rectangularBezierSurface2x2BufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo slicingPlanesDescriptorInfo = {
-	    .buffer = raytracingInfo.objectBuffers.slicingPlanesBufferHandle,
+	    .buffer = raytracingScene.getObjectBuffers().slicingPlanesBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
@@ -722,46 +648,47 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
 	// descriptor set, for now we are using the same vertex and index buffer
-	VkDescriptorBufferInfo indexDescriptorInfo = {};
-	VkDescriptorBufferInfo vertexDescriptorInfo = {};
+	// VkDescriptorBufferInfo indexDescriptorInfo = {};
+	// VkDescriptorBufferInfo vertexDescriptorInfo = {};
 
-	if (meshObjects.size() > 0)
-	{
-		indexDescriptorInfo.buffer = meshObjects[0].indexBufferHandle;
-		indexDescriptorInfo.offset = 0;
-		indexDescriptorInfo.range = VK_WHOLE_SIZE;
+	// TODO: put meshObjects back
+	// if (meshObjects.size() > 0)
+	// {
+	// 	indexDescriptorInfo.buffer = meshObjects[0].indexBufferHandle;
+	// 	indexDescriptorInfo.offset = 0;
+	// 	indexDescriptorInfo.range = VK_WHOLE_SIZE;
 
-		// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
-		// descriptor set, for now we are using the same vertex and index buffer
-		vertexDescriptorInfo.buffer = meshObjects[0].vertexBufferHandle;
-		vertexDescriptorInfo.offset = 0;
-		vertexDescriptorInfo.range = VK_WHOLE_SIZE;
+	// 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
+	// 	// descriptor set, for now we are using the same vertex and index buffer
+	// 	vertexDescriptorInfo.buffer = meshObjects[0].vertexBufferHandle;
+	// 	vertexDescriptorInfo.offset = 0;
+	// 	vertexDescriptorInfo.range = VK_WHOLE_SIZE;
 
-		writeDescriptorSetList.push_back({
-		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		    .pNext = NULL,
-		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-		    .dstBinding = 2,
-		    .dstArrayElement = 0,
-		    .descriptorCount = 1,
-		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-		    .pImageInfo = NULL,
-		    .pBufferInfo = &indexDescriptorInfo,
-		    .pTexelBufferView = NULL,
-		});
-		writeDescriptorSetList.push_back({
-		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		    .pNext = NULL,
-		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
-		    .dstBinding = 3,
-		    .dstArrayElement = 0,
-		    .descriptorCount = 1,
-		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-		    .pImageInfo = NULL,
-		    .pBufferInfo = &vertexDescriptorInfo,
-		    .pTexelBufferView = NULL,
-		});
-	}
+	// 	writeDescriptorSetList.push_back({
+	// 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	// 	    .pNext = NULL,
+	// 	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+	// 	    .dstBinding = 2,
+	// 	    .dstArrayElement = 0,
+	// 	    .descriptorCount = 1,
+	// 	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	// 	    .pImageInfo = NULL,
+	// 	    .pBufferInfo = &indexDescriptorInfo,
+	// 	    .pTexelBufferView = NULL,
+	// 	});
+	// 	writeDescriptorSetList.push_back({
+	// 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	// 	    .pNext = NULL,
+	// 	    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+	// 	    .dstBinding = 3,
+	// 	    .dstArrayElement = 0,
+	// 	    .descriptorCount = 1,
+	// 	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	// 	    .pImageInfo = NULL,
+	// 	    .pBufferInfo = &vertexDescriptorInfo,
+	// 	    .pTexelBufferView = NULL,
+	// 	});
+	// }
 
 	VkDescriptorImageInfo rayTraceImageDescriptorInfo = {
 	    .sampler = VK_NULL_HANDLE,
@@ -817,7 +744,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (raytracingInfo.objectBuffers.tetrahedronsBufferHandle != VK_NULL_HANDLE)
+	if (tetrahedronBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -833,7 +760,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (raytracingInfo.objectBuffers.spheresBufferHandle != VK_NULL_HANDLE)
+	if (sphereBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -849,7 +776,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle != VK_NULL_HANDLE)
+	if (rectangularBezierSurface2x2BufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -865,7 +792,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		});
 	}
 
-	if (raytracingInfo.objectBuffers.slicingPlanesBufferHandle != VK_NULL_HANDLE)
+	if (raytracingScene.getObjectBuffers().slicingPlanesBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -887,95 +814,95 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	                       NULL);
 }
 
-void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
-                                               VkPhysicalDevice physicalDevice,
-                                               DeletionQueue& deletionQueue,
-                                               MeshObject& meshObject)
-{
+// void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
+//                                                VkPhysicalDevice physicalDevice,
+//                                                DeletionQueue& deletionQueue,
+//                                                MeshObject& meshObject)
+// {
 
-	// =========================================================================
-	// Vertex Buffer
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             sizeof(float) * meshObject.vertices.size() * 3,
-	             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-	                 | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-	                 | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             meshObject.vertexBufferHandle,
-	             meshObject.vertexBufferDeviceMemoryHandle);
+// 	// =========================================================================
+// 	// Vertex Buffer
+// 	createBuffer(physicalDevice,
+// 	             logicalDevice,
+// 	             deletionQueue,
+// 	             sizeof(float) * meshObject.vertices.size() * 3,
+// 	             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+// 	                 | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+// 	                 | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+// 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+// 	             memoryAllocateFlagsInfo,
+// 	             meshObject.vertexBufferHandle,
+// 	             meshObject.vertexBufferDeviceMemoryHandle);
 
-	void* hostVertexMemoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice,
-	                              meshObject.vertexBufferDeviceMemoryHandle,
-	                              0,
-	                              sizeof(float) * meshObject.vertices.size() * 3,
-	                              0,
-	                              &hostVertexMemoryBuffer);
+// 	void* hostVertexMemoryBuffer;
+// 	VkResult result = vkMapMemory(logicalDevice,
+// 	                              meshObject.vertexBufferDeviceMemoryHandle,
+// 	                              0,
+// 	                              sizeof(float) * meshObject.vertices.size() * 3,
+// 	                              0,
+// 	                              &hostVertexMemoryBuffer);
 
-	memcpy(hostVertexMemoryBuffer,
-	       meshObject.vertices.data(),
-	       sizeof(float) * meshObject.vertices.size() * 3);
+// 	memcpy(hostVertexMemoryBuffer,
+// 	       meshObject.vertices.data(),
+// 	       sizeof(float) * meshObject.vertices.size() * 3);
 
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkMapMemory");
-	}
+// 	if (result != VK_SUCCESS)
+// 	{
+// 		throw new std::runtime_error("initRayTracing - vkMapMemory");
+// 	}
 
-	vkUnmapMemory(logicalDevice, meshObject.vertexBufferDeviceMemoryHandle);
+// 	vkUnmapMemory(logicalDevice, meshObject.vertexBufferDeviceMemoryHandle);
 
-	VkBufferDeviceAddressInfo vertexBufferDeviceAddressInfo
-	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-	       .pNext = NULL,
-	       .buffer = meshObject.vertexBufferHandle};
+// 	VkBufferDeviceAddressInfo vertexBufferDeviceAddressInfo
+// 	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+// 	       .pNext = NULL,
+// 	       .buffer = meshObject.vertexBufferHandle};
 
-	meshObject.vertexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
-	    logicalDevice, &vertexBufferDeviceAddressInfo);
+// 	meshObject.vertexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+// 	    logicalDevice, &vertexBufferDeviceAddressInfo);
 
-	// =========================================================================
-	// Index Buffer
+// 	// =========================================================================
+// 	// Index Buffer
 
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             sizeof(uint32_t) * meshObject.indices.size(),
-	             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-	                 | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-	                 | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             meshObject.indexBufferHandle,
-	             meshObject.indexBufferDeviceMemoryHandle);
+// 	createBuffer(physicalDevice,
+// 	             logicalDevice,
+// 	             deletionQueue,
+// 	             sizeof(uint32_t) * meshObject.indices.size(),
+// 	             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
+// 	                 | VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+// 	                 | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+// 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+// 	             memoryAllocateFlagsInfo,
+// 	             meshObject.indexBufferHandle,
+// 	             meshObject.indexBufferDeviceMemoryHandle);
 
-	void* hostIndexMemoryBuffer;
-	result = vkMapMemory(logicalDevice,
-	                     meshObject.indexBufferDeviceMemoryHandle,
-	                     0,
-	                     sizeof(uint32_t) * meshObject.indices.size(),
-	                     0,
-	                     &hostIndexMemoryBuffer);
+// 	void* hostIndexMemoryBuffer;
+// 	result = vkMapMemory(logicalDevice,
+// 	                     meshObject.indexBufferDeviceMemoryHandle,
+// 	                     0,
+// 	                     sizeof(uint32_t) * meshObject.indices.size(),
+// 	                     0,
+// 	                     &hostIndexMemoryBuffer);
 
-	memcpy(hostIndexMemoryBuffer,
-	       meshObject.indices.data(),
-	       sizeof(uint32_t) * meshObject.indices.size());
+// 	memcpy(hostIndexMemoryBuffer,
+// 	       meshObject.indices.data(),
+// 	       sizeof(uint32_t) * meshObject.indices.size());
 
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkMapMemory");
-	}
+// 	if (result != VK_SUCCESS)
+// 	{
+// 		throw new std::runtime_error("initRayTracing - vkMapMemory");
+// 	}
 
-	vkUnmapMemory(logicalDevice, meshObject.indexBufferDeviceMemoryHandle);
+// 	vkUnmapMemory(logicalDevice, meshObject.indexBufferDeviceMemoryHandle);
 
-	VkBufferDeviceAddressInfo indexBufferDeviceAddressInfo
-	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-	       .pNext = NULL,
-	       .buffer = meshObject.indexBufferHandle};
+// 	VkBufferDeviceAddressInfo indexBufferDeviceAddressInfo
+// 	    = {.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+// 	       .pNext = NULL,
+// 	       .buffer = meshObject.indexBufferHandle};
 
-	meshObject.indexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
-	    logicalDevice, &indexBufferDeviceAddressInfo);
-}
+// 	meshObject.indexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+// 	    logicalDevice, &indexBufferDeviceAddressInfo);
+// }
 
 /**
  * @brief [TODO:description]
@@ -988,7 +915,8 @@ void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
 void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
                     DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo)
+                    RaytracingInfo& raytracingInfo,
+                    RaytracingScene& raytracingScene)
 {
 	// Requesting ray tracing properties
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties{};
@@ -1017,7 +945,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		vkGetDeviceQueue(logicalDevice,
 		                 raytracingInfo.queueFamilyIndices.graphicsFamily.value(),
 		                 0,
-		                 &graphicsQueueHandle);
+		                 &raytracingInfo.graphicsQueueHandle);
 	}
 	else
 	{
@@ -1119,15 +1047,13 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	//     // }),
 	// };
 
-	std::vector<Tetrahedron2> tetrahedrons2 = {};
-
-	std::vector<Sphere> spheres{
-	    // show origin
-	    // Sphere{glm::vec3(), 0.15f, static_cast<int>(ColorIdx::t_black)},
-	    // Sphere{glm::vec3(1, 0, 0), 0.1f, static_cast<int>(ColorIdx::t_red)},
-	    // Sphere{glm::vec3(0, 0, 1), 0.1f, static_cast<int>(ColorIdx::t_green)},
-	    // Sphere{glm::vec3(0, 1, 0), 0.1f, static_cast<int>(ColorIdx::t_blue)},
-	};
+	// std::vector<Sphere> spheres{
+	//     // show origin
+	//     // Sphere{glm::vec3(), 0.15f, static_cast<int>(ColorIdx::t_black)},
+	//     // Sphere{glm::vec3(1, 0, 0), 0.1f, static_cast<int>(ColorIdx::t_red)},
+	//     // Sphere{glm::vec3(0, 0, 1), 0.1f, static_cast<int>(ColorIdx::t_green)},
+	//     // Sphere{glm::vec3(0, 1, 0), 0.1f, static_cast<int>(ColorIdx::t_blue)},
+	// };
 
 	// {
 	// 	std::random_device rd;
@@ -1158,36 +1084,33 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// 	}
 	// }
 
-	auto surfaceTest = RectangularBezierSurface(3,
-	                                            3,
-	                                            {
-	                                                glm::vec3(0, 0, 0),
-	                                                glm::vec3(5, 0, 0),
-	                                                glm::vec3(10, 0, 0),
-	                                                glm::vec3(15, 0, 0),
+	// auto surfaceTest = RectangularBezierSurface(3,
+	//                                             3,
+	//                                             {
+	//                                                 glm::vec3(0, 0, 0),
+	//                                                 glm::vec3(5, 0, 0),
+	//                                                 glm::vec3(10, 0, 0),
+	//                                                 glm::vec3(15, 0, 0),
 
-	                                                glm::vec3(0, 0, 5),
-	                                                glm::vec3(5, 0, 5),
-	                                                glm::vec3(10, 0, 5),
-	                                                glm::vec3(15, 0, 5),
+	//                                                 glm::vec3(0, 0, 5),
+	//                                                 glm::vec3(5, 0, 5),
+	//                                                 glm::vec3(10, 0, 5),
+	//                                                 glm::vec3(15, 0, 5),
 
-	                                                glm::vec3(0, 0, 10),
-	                                                glm::vec3(5, 0, 10),
-	                                                glm::vec3(10, 0, 10),
-	                                                glm::vec3(15, 0, 10),
+	//                                                 glm::vec3(0, 0, 10),
+	//                                                 glm::vec3(5, 0, 10),
+	//                                                 glm::vec3(10, 0, 10),
+	//                                                 glm::vec3(15, 0, 10),
 
-	                                                glm::vec3(0, 5, 15),
-	                                                glm::vec3(5, 5, 15),
-	                                                glm::vec3(10, 5, 15),
-	                                                glm::vec3(15, 5, 15),
-	                                            });
+	//                                                 glm::vec3(0, 5, 15),
+	//                                                 glm::vec3(5, 5, 15),
+	//                                                 glm::vec3(10, 5, 15),
+	//                                                 glm::vec3(15, 5, 15),
+	//                                             });
 
-	std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
-	    // surfaceTest,
-	};
-
-	// create vector to hold all BLAS instances
-	std::vector<BLASInstance> blasInstancesData;
+	// std::vector<RectangularBezierSurface> rectangularBezierSurfaces = {
+	//     // surfaceTest,
+	// };
 
 	// =========================================================================
 	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
@@ -1209,30 +1132,17 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 	}));
 
-	tetrahedrons2.push_back(tetrahedron2);
+	// auto obj = RaytracingWorldObject(
+	//     ObjectType::t_Tetrahedron2, AABB::fromTetrahedron2(tetrahedron2), tetrahedron2);
+	// raytracingScene.addWorldObject(obj);
 
-	if (tetrahedrons2.size() > 0)
-	{
-		// TODO: create some kind of tetrahedron collection and add a getAABBs() method to that or
-		// something like that
-		std::vector<ltracer::AABB> aabbsTetrahedrons;
-		for (auto&& tetrahedron : tetrahedrons2)
-		{
-			aabbsTetrahedrons.push_back(ltracer::AABB::fromTetrahedron2(tetrahedron));
-		}
+	raytracingScene.addWorldObject(
+	    Sphere{glm::vec3(0, 0, 0), 0.2f, static_cast<int>(ColorIdx::t_red)}, glm::vec3(0, 0, 0));
 
-		createBottomLevelAccelerationStructuresForObjects<Tetrahedron2>(
-		    physicalDevice,
-		    logicalDevice,
-		    deletionQueue,
-		    tetrahedrons2,
-		    ObjectType::t_Tetrahedron2,
-		    aabbsTetrahedrons,
-		    blasInstancesData,
-		    raytracingInfo.objectBuffers.tetrahedronsBufferHandle,
-		    raytracingInfo.objectBuffers.tetrahedronsAABBBufferHandle);
-	}
+	raytracingScene.addWorldObject(
+	    Sphere{glm::vec3(1, 0, 0), 0.3f, static_cast<int>(ColorIdx::t_yellow)}, glm::vec3(0, 0, 0));
 
+	// if (tetrahedrons2.size() > 0)
 	{
 		// auto rayPos = glm::vec3(-0.2f, 0.4f, 0.3f);
 		// auto rayDirection = glm::vec3(1, -0.1, -0.8);
@@ -1281,7 +1191,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		// visualizePlane(spheres, N1, rayPos, 1, 1);
 		// visualizePlane(spheres, N2, rayPos, 1, 1);
 
-		visualizeTetrahedron2(spheres, tetrahedron2);
+		visualizeTetrahedron2(raytracingScene, tetrahedron2);
 
 		// glm::vec3 intersectionPoint{};
 		//  TODO: figure out how to get a good initial guess
@@ -1424,302 +1334,181 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
 	// }
 
-	if (rectangularBezierSurfaces.size() > 0)
-	{
-
-		std::vector<RectangularBezierSurface2x2> rectangularBezierSurfaces2x2;
-		if (!rectangularBezierSurfaces[0].tryConvertToRectangularSurfaces2x2(
-		        rectangularBezierSurfaces2x2))
-		{
-			throw std::runtime_error("failed to convert rectangularBezierSurfaces[0] to 2x2");
-		}
-
-		std::vector<ltracer::AABB> aabbsRectangularSurfaces2x2;
-		for (auto&& rectangularBezierSurface2x2 : rectangularBezierSurfaces2x2)
-		{
-			aabbsRectangularSurfaces2x2.push_back(
-			    ltracer::AABB::fromRectangularBezierSurface(rectangularBezierSurface2x2));
-		}
-
-		createBottomLevelAccelerationStructuresForObjects<RectangularBezierSurface2x2>(
-		    physicalDevice,
-		    logicalDevice,
-		    deletionQueue,
-		    rectangularBezierSurfaces2x2,
-		    ObjectType::t_RectangularBezierSurface2x2,
-		    aabbsRectangularSurfaces2x2,
-		    blasInstancesData,
-		    raytracingInfo.objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
-		    raytracingInfo.objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandle);
-	}
-
-	if (spheres.size() > 0)
-	{
-		std::vector<ltracer::AABB> aabbsSpheres;
-		for (auto&& sphere : spheres)
-		{
-			aabbsSpheres.push_back(AABB::fromSphere(sphere));
-		}
-
-		createBottomLevelAccelerationStructuresForObjects<Sphere>(
-		    physicalDevice,
-		    logicalDevice,
-		    deletionQueue,
-		    spheres,
-		    ObjectType::t_Sphere,
-		    aabbsSpheres,
-		    blasInstancesData,
-		    raytracingInfo.objectBuffers.spheresBufferHandle,
-		    raytracingInfo.objectBuffers.spheresAABBBufferHandle);
-	}
-
 	// =========================================================================
-	// convert to bottom level acceleration structure
-	for (auto&& obj : raytracingInfo.meshObjects)
-	{
-		loadAndCreateVertexAndIndexBufferForModel(
-		    logicalDevice, physicalDevice, deletionQueue, obj);
-
-		// =========================================================================
-		// Bottom Level Acceleration Structure
-		BLASInstance triangleBLAS = createBottomLevelAccelerationStructureTriangle(
-		    obj.primitiveCount,
-		    static_cast<uint32_t>(obj.vertices.size()),
-		    obj.vertexBufferDeviceAddress,
-		    obj.indexBufferDeviceAddress,
-		    obj.transform.getTransformMatrix());
-		blasInstancesData.push_back(triangleBLAS);
-	}
-
-	// =========================================================================
-	// Top Level Acceleration Structure
-
-	std::vector<VkAccelerationStructureInstanceKHR> instances;
-
-	for (auto&& blasData : blasInstancesData)
-	{
-		VkAccelerationStructureKHR bottomLevelAccelerationStructure
-		    = buildBottomLevelAccelerationStructure(physicalDevice,
-		                                            logicalDevice,
-		                                            deletionQueue,
-		                                            raytracingInfo,
-		                                            graphicsQueueHandle,
-		                                            blasData);
-		VkAccelerationStructureDeviceAddressInfoKHR
-		    bottomLevelAccelerationStructureDeviceAddressInfo
-		    = {
-		        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-		        .pNext = NULL,
-		        .accelerationStructure = bottomLevelAccelerationStructure,
-		    };
-
-		VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress
-		    = ltracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
-		        logicalDevice, &bottomLevelAccelerationStructureDeviceAddressInfo);
-
-		auto bottomLevelGeometryInstance = VkAccelerationStructureInstanceKHR{
-		    .transform = blasData.transformMatrix,
-		    // TODO: maybe add a method that makes sure objectType does not exceed 24 bits see:
-		    // https://registry.khronos.org/vulkan/specs/latest/man/html/InstanceCustomIndexKHR.html
-		    // only grab 24 bits
-		    .instanceCustomIndex = static_cast<uint32_t>(blasData.objectType) & 0xFFFFFF,
-
-		    .mask = 0xFF,
-		    .instanceShaderBindingTableRecordOffset = 0,
-		    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
-		    .accelerationStructureReference = bottomLevelAccelerationStructureDeviceAddress,
-		};
-
-		instances.push_back(std::move(bottomLevelGeometryInstance));
-	}
-
-	if (instances.size() > 0)
-	{
-		createAndBuildTopLevelAccelerationStructure(instances,
-		                                            deletionQueue,
-		                                            logicalDevice,
-		                                            physicalDevice,
-		                                            raytracingInfo,
-		                                            graphicsQueueHandle);
-		// =========================================================================
-		// Uniform Buffer
-		{
-			createBuffer(physicalDevice,
-			             logicalDevice,
-			             deletionQueue,
-			             sizeof(UniformStructure),
-			             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-			             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			             memoryAllocateFlagsInfo,
-			             raytracingInfo.uniformBufferHandle,
-			             raytracingInfo.uniformDeviceMemoryHandle);
-
-			void* hostUniformMemoryBuffer;
-			result = vkMapMemory(logicalDevice,
-			                     raytracingInfo.uniformDeviceMemoryHandle,
-			                     0,
-			                     sizeof(UniformStructure),
-			                     0,
-			                     &hostUniformMemoryBuffer);
-			if (result != VK_SUCCESS)
-			{
-				throw new std::runtime_error("initRayTraci - vkMapMemory");
-			}
-			memcpy(hostUniformMemoryBuffer,
-			       &raytracingInfo.uniformStructure,
-			       sizeof(UniformStructure));
-
-			vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
-		}
-	}
+	// Bottom and Top Level Acceleration Structure
+	raytracingScene.createAccelerationStructures(raytracingInfo);
 
 	// =========================================================================
 	// Update Descriptor Set
-	if (raytracingInfo.meshObjects.size() > 0)
-	{
-		updateAccelerationStructureDescriptorSet(
-		    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
-	}
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice,
+	    raytracingScene,
+	    raytracingInfo,
+	    raytracingScene.getObjectBuffers().spheresBufferHandle[0],
+	    VK_NULL_HANDLE,
+	    VK_NULL_HANDLE,
+	    raytracingInfo.meshObjects);
+
+	Fix this
+
+	// TODO: only the last updated sphere buffer is active, idk how to pass in all BLAS
+	// clang-format off
+	// without creating a bunch of bindings or merging all BLAS buffers into one big buffer? idk
+	// Store a generic "data object" that has a type idenitifier and a index into the corresponding buffer
+	// eg. {Type::Sphere, 0} would be the first sphere in the buffer
+	// {Type::Tetrahedron2, 0} would be the first tetrahedron in the spheres buffer
+	// {Type::Tetrahedron2, 1} would be the second tetrahedron in the tetrahedron buffer
+	// this requires us to merge all BLAS buffers of one type into one big buffer
+	// clang-format on
+	updateAccelerationStructureDescriptorSet(
+	    logicalDevice,
+	    raytracingScene,
+	    raytracingInfo,
+	    raytracingScene.getObjectBuffers().spheresBufferHandle[1],
+	    VK_NULL_HANDLE,
+	    VK_NULL_HANDLE,
+	    raytracingInfo.meshObjects);
+
 	// =========================================================================
 	// Material Index Buffer
 
-	if (raytracingInfo.meshObjects.size() > 0)
-	{
-		std::vector<uint32_t> materialIndexList;
-		// TODO: Material list needs to include all possible materials from all objects, for now
-		// we only have one object
-		for (tinyobj::shape_t shape : raytracingInfo.meshObjects[0].shapes)
-		{
-			for (int index : shape.mesh.material_ids)
-			{
-				materialIndexList.push_back(static_cast<uint32_t>(index));
-			}
-		}
+	// if (raytracingInfo.meshObjects.size() > 0)
+	// {
+	// 	std::vector<uint32_t> materialIndexList;
+	// 	// TODO: Material list needs to include all possible materials from all objects, for now
+	// 	// we only have one object
+	// 	for (tinyobj::shape_t shape : raytracingInfo.meshObjects[0].shapes)
+	// 	{
+	// 		for (int index : shape.mesh.material_ids)
+	// 		{
+	// 			materialIndexList.push_back(static_cast<uint32_t>(index));
+	// 		}
+	// 	}
 
-		VkBuffer materialIndexBufferHandle = VK_NULL_HANDLE;
-		VkDeviceMemory materialIndexDeviceMemoryHandle = VK_NULL_HANDLE;
-		createBuffer(physicalDevice,
-		             logicalDevice,
-		             deletionQueue,
-		             sizeof(uint32_t) * materialIndexList.size(),
-		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		             memoryAllocateFlagsInfo,
-		             materialIndexBufferHandle,
-		             materialIndexDeviceMemoryHandle);
+	// 	VkBuffer materialIndexBufferHandle = VK_NULL_HANDLE;
+	// 	VkDeviceMemory materialIndexDeviceMemoryHandle = VK_NULL_HANDLE;
+	// 	createBuffer(physicalDevice,
+	// 	             logicalDevice,
+	// 	             deletionQueue,
+	// 	             sizeof(uint32_t) * materialIndexList.size(),
+	// 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+	// 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	// 	             memoryAllocateFlagsInfo,
+	// 	             materialIndexBufferHandle,
+	// 	             materialIndexDeviceMemoryHandle);
 
-		void* hostMaterialIndexMemoryBuffer;
-		result = vkMapMemory(logicalDevice,
-		                     materialIndexDeviceMemoryHandle,
-		                     0,
-		                     sizeof(uint32_t) * materialIndexList.size(),
-		                     0,
-		                     &hostMaterialIndexMemoryBuffer);
+	// 	void* hostMaterialIndexMemoryBuffer;
+	// 	result = vkMapMemory(logicalDevice,
+	// 	                     materialIndexDeviceMemoryHandle,
+	// 	                     0,
+	// 	                     sizeof(uint32_t) * materialIndexList.size(),
+	// 	                     0,
+	// 	                     &hostMaterialIndexMemoryBuffer);
 
-		memcpy(hostMaterialIndexMemoryBuffer,
-		       materialIndexList.data(),
-		       sizeof(uint32_t) * materialIndexList.size());
+	// 	memcpy(hostMaterialIndexMemoryBuffer,
+	// 	       materialIndexList.data(),
+	// 	       sizeof(uint32_t) * materialIndexList.size());
 
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error("initRayTraci - vkMapMemory");
-		}
+	// 	if (result != VK_SUCCESS)
+	// 	{
+	// 		throw new std::runtime_error("initRayTraci - vkMapMemory");
+	// 	}
 
-		vkUnmapMemory(logicalDevice, materialIndexDeviceMemoryHandle);
+	// 	vkUnmapMemory(logicalDevice, materialIndexDeviceMemoryHandle);
 
-		// =========================================================================
-		// Material Buffer
+	// 	// =========================================================================
+	// 	// Material Buffer
 
-		// TODO: Material list needs to include all possible materials from all objects, for now
-		// we only have one object
-		std::vector<Material> materialList(raytracingInfo.meshObjects[0].materials.size());
-		for (uint32_t i = 0; i < raytracingInfo.meshObjects[0].materials.size(); i++)
-		{
-			memcpy(&materialList[i].ambient,
-			       raytracingInfo.meshObjects[0].materials[i].ambient,
-			       sizeof(float) * 3);
-			memcpy(&materialList[i].diffuse,
-			       raytracingInfo.meshObjects[0].materials[i].diffuse,
-			       sizeof(float) * 3);
-			memcpy(&materialList[i].specular,
-			       raytracingInfo.meshObjects[0].materials[i].specular,
-			       sizeof(float) * 3);
-			memcpy(&materialList[i].emission,
-			       raytracingInfo.meshObjects[0].materials[i].emission,
-			       sizeof(float) * 3);
-		}
+	// 	// TODO: Material list needs to include all possible materials from all objects, for now
+	// 	// we only have one object
+	// 	std::vector<Material> materialList(raytracingInfo.meshObjects[0].materials.size());
+	// 	for (uint32_t i = 0; i < raytracingInfo.meshObjects[0].materials.size(); i++)
+	// 	{
+	// 		memcpy(&materialList[i].ambient,
+	// 		       raytracingInfo.meshObjects[0].materials[i].ambient,
+	// 		       sizeof(float) * 3);
+	// 		memcpy(&materialList[i].diffuse,
+	// 		       raytracingInfo.meshObjects[0].materials[i].diffuse,
+	// 		       sizeof(float) * 3);
+	// 		memcpy(&materialList[i].specular,
+	// 		       raytracingInfo.meshObjects[0].materials[i].specular,
+	// 		       sizeof(float) * 3);
+	// 		memcpy(&materialList[i].emission,
+	// 		       raytracingInfo.meshObjects[0].materials[i].emission,
+	// 		       sizeof(float) * 3);
+	// 	}
 
-		VkBuffer materialBufferHandle = VK_NULL_HANDLE;
-		VkDeviceMemory materialDeviceMemoryHandle = VK_NULL_HANDLE;
-		createBuffer(physicalDevice,
-		             logicalDevice,
-		             deletionQueue,
-		             sizeof(Material) * materialList.size(),
-		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		             memoryAllocateFlagsInfo,
-		             materialBufferHandle,
-		             materialDeviceMemoryHandle);
+	// 	VkBuffer materialBufferHandle = VK_NULL_HANDLE;
+	// 	VkDeviceMemory materialDeviceMemoryHandle = VK_NULL_HANDLE;
+	// 	createBuffer(physicalDevice,
+	// 	             logicalDevice,
+	// 	             deletionQueue,
+	// 	             sizeof(Material) * materialList.size(),
+	// 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+	// 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	// 	             memoryAllocateFlagsInfo,
+	// 	             materialBufferHandle,
+	// 	             materialDeviceMemoryHandle);
 
-		void* hostMaterialMemoryBuffer;
-		result = vkMapMemory(logicalDevice,
-		                     materialDeviceMemoryHandle,
-		                     0,
-		                     sizeof(Material) * materialList.size(),
-		                     0,
-		                     &hostMaterialMemoryBuffer);
+	// 	void* hostMaterialMemoryBuffer;
+	// 	result = vkMapMemory(logicalDevice,
+	// 	                     materialDeviceMemoryHandle,
+	// 	                     0,
+	// 	                     sizeof(Material) * materialList.size(),
+	// 	                     0,
+	// 	                     &hostMaterialMemoryBuffer);
 
-		memcpy(
-		    hostMaterialMemoryBuffer, materialList.data(), sizeof(Material) * materialList.size());
+	// 	memcpy(
+	// 	    hostMaterialMemoryBuffer, materialList.data(), sizeof(Material) * materialList.size());
 
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error("initRayTraci - vkMapMemory");
-		}
+	// 	if (result != VK_SUCCESS)
+	// 	{
+	// 		throw new std::runtime_error("initRayTraci - vkMapMemory");
+	// 	}
 
-		vkUnmapMemory(logicalDevice, materialDeviceMemoryHandle);
-		// =========================================================================
-		// Update Material Descriptor Set
+	// 	vkUnmapMemory(logicalDevice, materialDeviceMemoryHandle);
+	// 	// =========================================================================
+	// 	// Update Material Descriptor Set
 
-		VkDescriptorBufferInfo materialIndexDescriptorInfo
-		    = {.buffer = materialIndexBufferHandle, .offset = 0, .range = VK_WHOLE_SIZE};
+	// 	VkDescriptorBufferInfo materialIndexDescriptorInfo
+	// 	    = {.buffer = materialIndexBufferHandle, .offset = 0, .range = VK_WHOLE_SIZE};
 
-		VkDescriptorBufferInfo materialDescriptorInfo
-		    = {.buffer = materialBufferHandle, .offset = 0, .range = VK_WHOLE_SIZE};
+	// 	VkDescriptorBufferInfo materialDescriptorInfo
+	// 	    = {.buffer = materialBufferHandle, .offset = 0, .range = VK_WHOLE_SIZE};
 
-		std::vector<VkWriteDescriptorSet> materialWriteDescriptorSetList = {
-		    {
-		        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		        .pNext = NULL,
-		        .dstSet = raytracingInfo.descriptorSetHandleList[1],
-		        .dstBinding = 0,
-		        .dstArrayElement = 0,
-		        .descriptorCount = 1,
-		        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-		        .pImageInfo = NULL,
-		        .pBufferInfo = &materialIndexDescriptorInfo,
-		        .pTexelBufferView = NULL,
-		    },
-		    {
-		        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-		        .pNext = NULL,
-		        .dstSet = raytracingInfo.descriptorSetHandleList[1],
-		        .dstBinding = 1,
-		        .dstArrayElement = 0,
-		        .descriptorCount = 1,
-		        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-		        .pImageInfo = NULL,
-		        .pBufferInfo = &materialDescriptorInfo,
-		        .pTexelBufferView = NULL,
-		    },
-		};
+	// 	std::vector<VkWriteDescriptorSet> materialWriteDescriptorSetList = {
+	// 	    {
+	// 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	// 	        .pNext = NULL,
+	// 	        .dstSet = raytracingInfo.descriptorSetHandleList[1],
+	// 	        .dstBinding = 0,
+	// 	        .dstArrayElement = 0,
+	// 	        .descriptorCount = 1,
+	// 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	// 	        .pImageInfo = NULL,
+	// 	        .pBufferInfo = &materialIndexDescriptorInfo,
+	// 	        .pTexelBufferView = NULL,
+	// 	    },
+	// 	    {
+	// 	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	// 	        .pNext = NULL,
+	// 	        .dstSet = raytracingInfo.descriptorSetHandleList[1],
+	// 	        .dstBinding = 1,
+	// 	        .dstArrayElement = 0,
+	// 	        .descriptorCount = 1,
+	// 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	// 	        .pImageInfo = NULL,
+	// 	        .pBufferInfo = &materialDescriptorInfo,
+	// 	        .pTexelBufferView = NULL,
+	// 	    },
+	// 	};
 
-		vkUpdateDescriptorSets(logicalDevice,
-		                       static_cast<uint32_t>(materialWriteDescriptorSetList.size()),
-		                       materialWriteDescriptorSetList.data(),
-		                       0,
-		                       NULL);
-	}
+	// 	vkUpdateDescriptorSets(logicalDevice,
+	// 	                       static_cast<uint32_t>(materialWriteDescriptorSetList.size()),
+	// 	                       materialWriteDescriptorSetList.data(),
+	// 	                       0,
+	// 	                       NULL);
+	// }
 
 	// =========================================================================
 	// Shader Binding Table
@@ -1920,7 +1709,7 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
 	if (resetFrameCountRequested)
 	{
 		updateUniformStructure(raytracingInfo,
-		                       camera.transform.position,
+		                       camera.transform.getPos(),
 		                       camera.transform.getForward(),
 		                       camera.transform.getUp(),
 		                       camera.transform.getRight());
@@ -2100,6 +1889,7 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
                                    VkFormat swapChainImageFormat,
                                    VkExtent2D windowExtent,
+                                   RaytracingScene& raytracingScene,
                                    RaytracingInfo& raytracingInfo)
 {
 	freeRaytraceImageAndImageView(logicalDevice,
@@ -2113,8 +1903,13 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	raytracingInfo.rayTraceImageViewHandle = createRaytracingImageView(
 	    logicalDevice, swapChainImageFormat, raytracingInfo.rayTraceImageHandle);
 
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice, raytracingInfo, raytracingInfo.meshObjects);
+	updateAccelerationStructureDescriptorSet(logicalDevice,
+	                                         raytracingScene,
+	                                         raytracingInfo,
+	                                         VK_NULL_HANDLE,
+	                                         VK_NULL_HANDLE,
+	                                         VK_NULL_HANDLE,
+	                                         raytracingInfo.meshObjects);
 
 	// reset frame count so the window gets refreshed properly
 	resetFrameCount(raytracingInfo);
