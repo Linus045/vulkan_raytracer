@@ -190,7 +190,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		}
 
 		deletionQueue.push_function(
-		    [=]()
+		    [=, &raytracingInfo]()
 		    {
 			    ltracer::procedures::pvkDestroyAccelerationStructureKHR(
 			        logicalDevice, raytracingInfo.topLevelAccelerationStructureHandle, NULL);
