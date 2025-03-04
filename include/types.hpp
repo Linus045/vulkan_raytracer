@@ -61,19 +61,26 @@ struct UniformStructure
 
 struct RaytracingObjectBuffers
 {
+	VkBuffer gpuObjectsBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
+
 	// TODO: convert into a list of structs that hold the buffer and the device memory (maybe look
 	// at how its done in nvidia's examples)
-	std::vector<VkBuffer> tetrahedronsBufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkBuffer> tetrahedronsAABBBufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkDeviceMemory> tetrahedronsDeviceMemoryHandles = std::vector<VkDeviceMemory>(0);
+	VkBuffer tetrahedronsBufferHandle = VkBuffer(0);
+	VkDeviceMemory tetrahedronsDeviceMemoryHandles = VkDeviceMemory(0);
+	std::vector<VkBuffer> tetrahedronsAABBBufferHandles = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> tetrahedronsAABBDeviceMemoryHandles
+	    = std::vector<VkDeviceMemory>(0);
 
-	std::vector<VkBuffer> spheresBufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkBuffer> spheresAABBBufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkDeviceMemory> spheresDeviceMemoryHandles = std::vector<VkDeviceMemory>(0);
+	VkBuffer spheresBufferHandle = VkBuffer(0);
+	VkDeviceMemory spheresDeviceMemoryHandles = VkDeviceMemory(0);
+	std::vector<VkBuffer> spheresAABBBufferHandles = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> spheresAABBDeviceMemoryHandles = std::vector<VkDeviceMemory>(0);
 
-	std::vector<VkBuffer> rectangularBezierSurfaces2x2BufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkBuffer> rectangularBezierSurfacesAABB2x2BufferHandle = std::vector<VkBuffer>(0);
-	std::vector<VkDeviceMemory> rectangularBezierSurfaces2x2DeviceMemoryHandles
+	VkBuffer rectangularBezierSurfaces2x2BufferHandle = VkBuffer(0);
+	VkDeviceMemory rectangularBezierSurfaces2x2DeviceMemoryHandles = VkDeviceMemory(0);
+	std::vector<VkBuffer> rectangularBezierSurfacesAABB2x2BufferHandles = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles
 	    = std::vector<VkDeviceMemory>(0);
 
 	VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;

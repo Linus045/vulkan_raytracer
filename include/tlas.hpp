@@ -45,24 +45,11 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	if (onlyUpdate)
 	{
 		// Copy new instances to the buffer
-		VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
-		void* hostAccelerationStructureInstancesMemoryBuffer;
-		result = vkMapMemory(logicalDevice,
-		                     raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
-		                     0,
-		                     bufferSize,
-		                     0,
-		                     &hostAccelerationStructureInstancesMemoryBuffer);
 
-		memcpy(hostAccelerationStructureInstancesMemoryBuffer, instances.data(), bufferSize);
-
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error(
-			    "createAndBuildTopLevelAccelerationStructure - vkMapMemory");
-		}
-
-		vkUnmapMemory(logicalDevice, raytracingInfo.blasGeometryInstancesDeviceMemoryHandle);
+		copyDataToBuffer(logicalDevice,
+		                 raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+		                 instances.data(),
+		                 sizeof(VkAccelerationStructureInstanceKHR) * instances.size());
 
 		// set flags to update instead of rebuild the acceleration structure
 		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.mode
@@ -88,23 +75,10 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		             blasGeometryInstancesBufferHandle,
 		             raytracingInfo.blasGeometryInstancesDeviceMemoryHandle);
 
-		void* hostAccelerationStructureInstancesMemoryBuffer;
-		result = vkMapMemory(logicalDevice,
-		                     raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
-		                     0,
-		                     bufferSize,
-		                     0,
-		                     &hostAccelerationStructureInstancesMemoryBuffer);
-
-		memcpy(hostAccelerationStructureInstancesMemoryBuffer, instances.data(), bufferSize);
-
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error(
-			    "createAndBuildTopLevelAccelerationStructure - vkMapMemory");
-		}
-
-		vkUnmapMemory(logicalDevice, raytracingInfo.blasGeometryInstancesDeviceMemoryHandle);
+		copyDataToBuffer(logicalDevice,
+		                 raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+		                 instances.data(),
+		                 bufferSize);
 
 		//=================================================================================================
 		// create top level acceleration structure geometry

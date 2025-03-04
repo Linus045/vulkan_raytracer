@@ -40,6 +40,11 @@ layout(set = 0, binding=8, scalar) buffer SlicingPlanes
 	SlicingPlane[] slicingPlanes;
 };
 
+layout(set = 0, binding=9, scalar) buffer GPUInstances
+{
+	GPUInstance[] gpuInstances;
+};
+
 
 layout( push_constant ) uniform RaytracingDataConstants
 {
@@ -826,9 +831,9 @@ void main() {
 	ray.origin    = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;
 
-
-	int objectType = gl_InstanceCustomIndexEXT;
-	// debugPrintfEXT("objectType: %d", objectType);
+	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
+	int objectType = instance.type;
+	// debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d", gl_InstanceCustomIndexEXT, gl_PrimitiveID);
 
 	// Tetrahedron data
 
@@ -886,7 +891,6 @@ void main() {
 		// 	}
 		// }
 
-		
 	 // debugPrintfEXT("tHit: %f", tHit);
 	 // debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
 		// 	 tHit,
@@ -898,7 +902,7 @@ void main() {
 	}
 	else if(objectType == t_Tetrahedron2)
 	{
-		Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
+		Tetrahedron2 tetrahedron = tetrahedrons[instance.bufferIndex];
 		vec3 o = ray.origin;
 		vec3 n1, n2;
 
@@ -1083,18 +1087,20 @@ void main() {
 	}
 	else if(objectType == t_Triangle)
 	{
-		// Triangle triangle = triangles[gl_PrimitiveID];
+		// Triangle triangle = triangles[instance.bufferIndex];
 		// tHit = IntersectTriangle(ray, triangle.a, triangle.b, triangle.c);
 	}
 	else if (objectType == t_Sphere)
 	{
 		// Sphere intersection
-		Sphere sphere = spheres[gl_PrimitiveID];
+		Sphere sphere = spheres[instance.bufferIndex];
+		// debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ", instance.bufferIndex, sphere.radius, sphere.center, sphere.colorIdx);
+
 		tHit = hitSphere(sphere, ray);
 	}
 	else if (objectType == t_RectangularBezierSurface2x2)
 	{
-		RectangularBezierSurface2x2 surface = rectangularBezierSurfaces2x2[gl_PrimitiveID];
+		RectangularBezierSurface2x2 surface = rectangularBezierSurfaces2x2[instance.bufferIndex];
 		vec3 o = ray.origin;
 		vec3 n1, n2;
 

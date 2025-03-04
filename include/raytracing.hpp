@@ -220,11 +220,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
  */
 void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
                                               const RaytracingScene& raytracingScene,
-                                              RaytracingInfo& raytracingInfo,
-                                              VkBuffer sphereBufferHandle,
-                                              VkBuffer tetrahedronBufferHandle,
-                                              VkBuffer rectangularBezierSurface2x2BufferHandle,
-                                              const std::vector<MeshObject>& meshObjects);
+                                              RaytracingInfo& raytracingInfo);
 
 /**
  * @brief creates the vertex and index buffer for the model and copies the data from the meshObject

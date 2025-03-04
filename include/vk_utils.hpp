@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstring>
 #include <stdexcept>
 #include <fstream>
 
@@ -138,6 +139,24 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
 
 	deletionQueue.push_function([=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
 	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+}
+
+inline void copyDataToBuffer(VkDevice logicalDevice,
+                             VkDeviceMemory bufferMemory,
+                             const void* data,
+                             VkDeviceSize size)
+{
+	void* memoryBuffer;
+	VkResult result = vkMapMemory(logicalDevice, bufferMemory, 0, size, 0, &memoryBuffer);
+
+	if (result != VK_SUCCESS)
+	{
+		throw new std::runtime_error("createBLASBuildDataForScene - vkMapMemory");
+	}
+
+	memcpy(memoryBuffer, data, size);
+
+	vkUnmapMemory(logicalDevice, bufferMemory);
 }
 
 inline std::vector<char> readFile(const std::string& filename)

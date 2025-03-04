@@ -19,7 +19,7 @@ struct BLASBuildData
 	// NOTE: maybe make this a vector of geometries
 	const VkAccelerationStructureGeometryKHR geometry;
 	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
-	const ObjectType objectType;
+	const int instanceCustomIndex;
 
 	const VkTransformMatrixKHR transformMatrix = {
 		.matrix = {
@@ -32,15 +32,15 @@ struct BLASBuildData
 
 [[nodiscard]] inline BLASBuildData
 createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
-                                                    VkBuffer tetrahedronAABBBufferHandle,
-                                                    const ObjectType& objectType,
+                                                    VkBuffer aabbBufferHandle,
+                                                    const int customIndex,
                                                     VkTransformMatrixKHR modelMatrix
                                                     /*, const uint32_t primitiveCount*/)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
 	    .pNext = NULL,
-	    .buffer = tetrahedronAABBBufferHandle,
+	    .buffer = aabbBufferHandle,
 	};
 
 	VkDeviceAddress aabbPositionsDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
@@ -76,7 +76,7 @@ createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
 	return BLASBuildData{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-	    .objectType = objectType,
+	    .instanceCustomIndex = customIndex,
 	    .transformMatrix = modelMatrix,
 	};
 }
@@ -86,6 +86,7 @@ createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
                                                         uint32_t verticesCount,
                                                         VkDeviceAddress vertexBufferDeviceAddress,
                                                         VkDeviceAddress indexBufferDeviceAddress,
+                                                        const int customIndex,
                                                         VkTransformMatrixKHR transformMatrix)
 {
 
@@ -122,7 +123,7 @@ createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
 	return BLASBuildData{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-	    .objectType = ObjectType::t_Triangle,
+	    .instanceCustomIndex = customIndex,
 	    .transformMatrix = transformMatrix,
 	};
 }
@@ -345,18 +346,7 @@ inline std::pair<VkBuffer, VkDeviceMemory> createObjectBuffer(VkPhysicalDevice p
 	             bufferHandle,
 	             deviceMemoryHandle);
 
-	void* memoryBuffer;
-	VkResult result
-	    = vkMapMemory(logicalDevice, deviceMemoryHandle, 0, sizeof(T), 0, &memoryBuffer);
-
-	memcpy(memoryBuffer, &object, sizeof(T));
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("createObjectsBuffer - vkMapMemory");
-	}
-
-	vkUnmapMemory(logicalDevice, deviceMemoryHandle);
+	copyDataToBuffer(logicalDevice, deviceMemoryHandle, &object, sizeof(T));
 
 	return std::make_pair(bufferHandle, deviceMemoryHandle);
 }
@@ -370,45 +360,38 @@ inline std::pair<VkBuffer, VkDeviceMemory> createObjectBuffer(VkPhysicalDevice p
  * @param aabbs Vector of AABB objects to copy to the buffer
  * @return VkBuffer The buffer handle
  */
-inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
-                                 VkDevice logicalDevice,
-                                 DeletionQueue& deletionQueue,
-                                 const ltracer::AABB& aabb)
-{
-	VkAabbPositionsKHR aabbPosition = aabb.getAabb();
+// inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
+//                                  VkDevice logicalDevice,
+//                                  DeletionQueue& deletionQueue,
+//                                  const std::vector<ltracer::AABB>& aabbs)
+// {
+// 	std::vector<VkAabbPositionsKHR> aabbPositions = std::vector<VkAabbPositionsKHR>(0);
+// 	aabbPositions.reserve(aabbs.size());
+// 	for (const auto& aabb : aabbs)
+// 	{
+// 		aabbPositions.push_back(aabb.getAabbPositions());
+// 	}
 
-	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
-	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
+// 	// we need an alignment of 8 bytes, VkAabbPositionsKHR is 24 bytes
+// 	uint32_t blockSize = sizeof(VkAabbPositionsKHR);
 
-	VkBuffer bufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
-	createBuffer(physicalDevice,
-	             logicalDevice,
-	             deletionQueue,
-	             blockSize,
-	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
-	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-	             memoryAllocateFlagsInfo,
-	             bufferHandle,
-	             aabbDeviceMemoryHandle);
+// 	VkBuffer bufferHandle = VK_NULL_HANDLE;
+// 	VkDeviceMemory aabbDeviceMemoryHandle = VK_NULL_HANDLE;
+// 	createBuffer(physicalDevice,
+// 	             logicalDevice,
+// 	             deletionQueue,
+// 	             blockSize,
+// 	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+// 	                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+// 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+// 	             memoryAllocateFlagsInfo,
+// 	             bufferHandle,
+// 	             aabbDeviceMemoryHandle);
 
-	void* aabbPositionsMemoryBuffer;
-	VkResult result = vkMapMemory(
-	    logicalDevice, aabbDeviceMemoryHandle, 0, blockSize, 0, &aabbPositionsMemoryBuffer);
+// 	copyDataToBuffer(logicalDevice, aabbDeviceMemoryHandle, &aabbPositions, blockSize);
 
-	memcpy(aabbPositionsMemoryBuffer, &aabbPosition, blockSize);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error(
-		    "createAndBuildBottomLevelAccelerationStructureAABB - vkMapMemory");
-	}
-
-	vkUnmapMemory(logicalDevice, aabbDeviceMemoryHandle);
-
-	return bufferHandle;
-}
+// 	return bufferHandle;
+// }
 
 /**
  * @brief creates the bottom level acceleration structure for the model
@@ -429,24 +412,14 @@ inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
  */
 template <typename T>
 [[nodiscard]] inline BLASBuildData
-createBottomLevelAccelerationStructureBuildDataForObject(VkPhysicalDevice physicalDevice,
-                                                         VkDevice logicalDevice,
-                                                         DeletionQueue& deletionQueue,
-                                                         const T& object,
-                                                         const ObjectType objectType,
-                                                         ltracer::AABB& aabb,
+createBottomLevelAccelerationStructureBuildDataForObject(VkDevice logicalDevice,
+                                                         const int customIndex,
                                                          VkTransformMatrixKHR modelMatrix,
-                                                         VkBuffer& objectBufferHandle,
-                                                         VkDeviceMemory& objectDeviceMemoryHandle,
                                                          VkBuffer& aabbObjectBufferHandle)
 {
-	std::tie(objectBufferHandle, objectDeviceMemoryHandle)
-	    = createObjectBuffer(physicalDevice, logicalDevice, deletionQueue, object);
-	aabbObjectBufferHandle = createAABBBuffer(physicalDevice, logicalDevice, deletionQueue, aabb);
-
 	// TODO: Make it possible to have multiple BLAS with their individual AABBs
 	return createBottomLevelAccelerationStructureBuildDataAABB(
-	    logicalDevice, aabbObjectBufferHandle, objectType, modelMatrix);
+	    logicalDevice, aabbObjectBufferHandle, customIndex, modelMatrix);
 }
 
 } // namespace rt

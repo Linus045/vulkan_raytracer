@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <vulkan/vulkan_core.h>
 
 #include "blas.hpp"
 #include "common_types.h"
@@ -97,6 +98,52 @@ class RaytracingScene
 		return rectangularBezierSurfaces2x2;
 	}
 
+	void createBuffers()
+	{
+		if (spheres.size() > 0)
+		{
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             deletionQueue,
+			             spheres.size() * sizeof(Sphere),
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.spheresBufferHandle,
+			             objectBuffers.spheresDeviceMemoryHandles);
+		}
+
+		if (tetrahedrons2.size() > 0)
+		{
+			createBuffer(physicalDevice,
+
+			             logicalDevice,
+			             deletionQueue,
+			             tetrahedrons2.size() * sizeof(Tetrahedron2),
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.tetrahedronsBufferHandle,
+			             objectBuffers.tetrahedronsDeviceMemoryHandles);
+		}
+
+		if (rectangularBezierSurfaces2x2.size() > 0)
+		{
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             deletionQueue,
+			             rectangularBezierSurfaces2x2.size() * sizeof(RectangularBezierSurface2x2),
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
+			             objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles);
+		}
+
+		size_t size = spheres.size() + tetrahedrons2.size() + rectangularBezierSurfaces2x2.size();
+		gpuObjects.resize(size);
+	}
+
 	void createAccelerationStructures(RaytracingInfo& raytracingInfo)
 	{
 		auto buildData = createBLASBuildDataForScene();
@@ -107,10 +154,9 @@ class RaytracingScene
 	void recreateAccelerationStructures(RaytracingInfo& raytracingInfo)
 	{
 		freeBottomLevelAndTopLevelAccelerationStructure(raytracingInfo);
+
 		// We dont want to recreate the BLAS's but only update the related transform matrix inside
 		// the TLAS that links to the particular BLAS
-
-		// createBLASInstances();
 		createTLAS(true, raytracingInfo);
 	}
 
@@ -121,32 +167,69 @@ class RaytracingScene
 		// of them!
 	}
 
-	void animateSphere(const glm::vec3& position)
+	void moveSphere(const size_t index, const glm::vec3& position)
 	{
-		VkDeviceMemory bufferMemory = getObjectBuffers().spheresDeviceMemoryHandles[0];
-
-		void* memoryBuffer;
-		VkResult result
-		    = vkMapMemory(logicalDevice, bufferMemory, 0, sizeof(Sphere), 0, &memoryBuffer);
-
-		auto sphere = &spheres[0].getGeometry().getData();
-		sphere->center = position;
-		memcpy(memoryBuffer, sphere, sizeof(Sphere));
-
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error("createObjectsBuffer - vkMapMemory");
-		}
-
-		vkUnmapMemory(logicalDevice, bufferMemory);
-
-		blasInstances[0].transform = {
+		getWorldObjectSpheres()[index].setPosition(position);
+		blasInstances[index].transform = {
 			.matrix = {
 			{1, 0, 0, position.x},
 			{0, 1, 0, position.y},
 			{0, 0, 1, position.z},
 			},
 		};
+	}
+
+	/// Copies the spheres, tetrhedrons and rectangular bezier surfaces to the corresponding buffers
+	/// on the GPU
+	void copyObjectsToBuffers()
+	{
+		if (spheres.size() > 0)
+		{
+			std::vector<Sphere> spheresList;
+			for (size_t i = 0; i < spheres.size(); i++)
+			{
+				auto& obj = spheres[i];
+				std::cout << "Idx: " << i << " Sphere Pos: ("
+				          << obj.getGeometry().getData().center.x << ", "
+				          << obj.getGeometry().getData().center.y << ", "
+				          << obj.getGeometry().getData().center.z << ")" << std::endl;
+
+				spheresList.push_back(obj.getGeometry().getData());
+			}
+			copyDataToBuffer(logicalDevice,
+			                 objectBuffers.spheresDeviceMemoryHandles,
+			                 spheresList.data(),
+			                 sizeof(Sphere) * spheresList.size());
+		}
+
+		if (tetrahedrons2.size() > 0)
+		{
+			std::vector<Tetrahedron2> tetrahedrons2List;
+			for (size_t i = 0; i < tetrahedrons2.size(); i++)
+			{
+				auto& obj = tetrahedrons2[i];
+				tetrahedrons2List.push_back(obj.getGeometry().getData());
+			}
+			copyDataToBuffer(logicalDevice,
+			                 objectBuffers.tetrahedronsDeviceMemoryHandles,
+			                 tetrahedrons2List.data(),
+			                 sizeof(Tetrahedron2) * tetrahedrons2List.size());
+		}
+
+		if (rectangularBezierSurfaces2x2.size() > 0)
+		{
+			std::vector<RectangularBezierSurface2x2> rectangularSurfaces2x2List;
+			for (size_t i = 0; i < rectangularBezierSurfaces2x2.size(); i++)
+			{
+				auto& obj = rectangularBezierSurfaces2x2[i];
+				rectangularSurfaces2x2List.push_back(obj.getGeometry().getData());
+			}
+			copyDataToBuffer(logicalDevice,
+			                 objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles,
+			                 rectangularSurfaces2x2List.data(),
+			                 sizeof(RectangularBezierSurface2x2)
+			                     * rectangularSurfaces2x2List.size());
+		}
 	}
 
   private:
@@ -160,75 +243,160 @@ class RaytracingScene
 		std::vector<Tetrahedron2> tetrahedrons2List;
 		std::vector<RectangularBezierSurface2x2> rectangularSurfaces2x2List;
 
-		for (auto&& obj : spheres)
+		if (spheres.size() > 0)
 		{
-			aabbsSpheres.push_back(obj.getGeometry().getAABB());
-			spheresList.push_back(obj.getGeometry().getData());
+			objectBuffers.spheresAABBBufferHandles.resize(spheres.size());
+			objectBuffers.spheresAABBDeviceMemoryHandles.resize(spheres.size());
+			for (size_t i = 0; i < spheres.size(); i++)
+			{
+				auto& obj = spheres[i];
+				aabbsSpheres.push_back(obj.getGeometry().getAABB());
+				spheresList.push_back(obj.getGeometry().getData());
+
+				// Note: for now, all instances only contain one AABB, so we only need to copy one
+				// object into the buffer
+				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
+
+				createBuffer(physicalDevice,
+				             logicalDevice,
+				             deletionQueue,
+				             sizeof(VkAabbPositionsKHR),
+				             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+				                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				             memoryAllocateFlagsInfo,
+				             objectBuffers.spheresAABBBufferHandles[i],
+				             objectBuffers.spheresAABBDeviceMemoryHandles[i]);
+
+				copyDataToBuffer(logicalDevice,
+				                 objectBuffers.spheresAABBDeviceMemoryHandles[i],
+				                 &aabbPositions,
+				                 sizeof(AABB));
+			}
 		}
 
-		for (auto&& obj : tetrahedrons2)
+		if (tetrahedrons2.size() > 0)
 		{
-			aabbsTetrahedrons.push_back(obj.getGeometry().getAABB());
-			tetrahedrons2List.push_back(obj.getGeometry().getData());
+			objectBuffers.tetrahedronsAABBBufferHandles.resize(tetrahedrons2.size());
+			objectBuffers.tetrahedronsAABBDeviceMemoryHandles.resize(tetrahedrons2.size());
+			for (size_t i = 0; i < tetrahedrons2.size(); i++)
+			{
+				auto& obj = tetrahedrons2[i];
+				aabbsTetrahedrons.push_back(obj.getGeometry().getAABB());
+				tetrahedrons2List.push_back(obj.getGeometry().getData());
+
+				createBuffer(physicalDevice,
+				             logicalDevice,
+				             deletionQueue,
+				             sizeof(VkAabbPositionsKHR),
+				             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+				                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				             memoryAllocateFlagsInfo,
+				             objectBuffers.tetrahedronsAABBBufferHandles[i],
+				             objectBuffers.tetrahedronsAABBDeviceMemoryHandles[i]);
+
+				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
+				copyDataToBuffer(logicalDevice,
+				                 objectBuffers.tetrahedronsAABBDeviceMemoryHandles[i],
+				                 &aabbPositions,
+				                 sizeof(AABB));
+			}
 		}
 
-		for (auto&& obj : rectangularBezierSurfaces2x2)
+		if (rectangularBezierSurfaces2x2.size() > 0)
 		{
-			aabbsRectangularSurfaces2x2.push_back(obj.getGeometry().getAABB());
-			rectangularSurfaces2x2List.push_back(obj.getGeometry().getData());
+			objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles.resize(
+			    rectangularBezierSurfaces2x2.size());
+			objectBuffers.rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles.resize(
+			    rectangularBezierSurfaces2x2.size());
+			for (size_t i = 0; i < rectangularBezierSurfaces2x2.size(); i++)
+			{
+				auto& obj = rectangularBezierSurfaces2x2[i];
+				aabbsRectangularSurfaces2x2.push_back(obj.getGeometry().getAABB());
+				rectangularSurfaces2x2List.push_back(obj.getGeometry().getData());
+
+				createBuffer(
+				    physicalDevice,
+				    logicalDevice,
+				    deletionQueue,
+				    sizeof(VkAabbPositionsKHR),
+				    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
+				        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+				    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+				    memoryAllocateFlagsInfo,
+				    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles[i],
+				    objectBuffers.rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles[i]);
+
+				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
+				copyDataToBuffer(
+				    logicalDevice,
+				    objectBuffers.rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles[i],
+				    &aabbPositions,
+				    sizeof(AABB));
+			}
 		}
+
+		copyObjectsToBuffers();
 
 		// TODO: create TLAS for each object in the scene
+		VkDeviceSize instancesCount
+		    = spheresList.size() + tetrahedrons2List.size() + rectangularSurfaces2x2List.size();
+
+		assert(
+		    instancesCount == gpuObjects.size()
+		    && "Amount of objects in the scene does not match the "
+		       "previous amount of objects in the GPU buffer. Changing the object count is not yet "
+		       "supported!");
+
+		gpuObjects.clear();
+
+		// TODO: the size of the elements does not change as of now, we need to  implement
+		// recreation/resizing of the buffer otherwise
+		assert(objectBuffers.gpuObjectsBufferHandle == VK_NULL_HANDLE
+		       && "GPU buffer already created");
+
+		createBuffer(physicalDevice,
+		             logicalDevice,
+		             deletionQueue,
+		             sizeof(GPUInstance) * instancesCount,
+		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		             memoryAllocateFlagsInfo,
+		             objectBuffers.gpuObjectsBufferHandle,
+		             objectBuffers.gpuObjectsDeviceMemoryHandle);
 
 		std::vector<BLASBuildData> blasBuildDataList;
 		if (spheresList.size() > 0)
 		{
 			// create vector to hold all BLAS instances
-			objectBuffers.spheresBufferHandle.resize(spheresList.size());
-			objectBuffers.spheresDeviceMemoryHandles.resize(spheresList.size());
-			objectBuffers.spheresAABBBufferHandle.resize(spheresList.size());
 			for (size_t i = 0; i < spheresList.size(); i++)
 			{
-				auto aabb = aabbsSpheres[i];
-				auto sphere = spheresList[i];
-				auto buildData = createBottomLevelAccelerationStructureBuildDataForObject<Sphere>(
-				    physicalDevice,
-				    logicalDevice,
-				    deletionQueue,
-				    sphere,
-				    ObjectType::t_Sphere,
-				    aabb,
-				    spheres[i].getTransformMatrix(),
-				    objectBuffers.spheresBufferHandle[i],
-				    objectBuffers.spheresDeviceMemoryHandles[i],
-				    objectBuffers.spheresAABBBufferHandle[i]);
+				size_t instanceCustomIndex = gpuObjects.size();
 
+				auto buildData = createBottomLevelAccelerationStructureBuildDataAABB(
+				    logicalDevice,
+				    objectBuffers.spheresAABBBufferHandles[i],
+				    static_cast<int>(instanceCustomIndex),
+				    spheres[i].getTransformMatrix());
+
+				gpuObjects.push_back(GPUInstance(ObjectType::t_Sphere, i));
 				blasBuildDataList.push_back(buildData);
 			}
 		}
 
 		if (tetrahedrons2List.size() > 0)
 		{
-			objectBuffers.tetrahedronsBufferHandle.resize(tetrahedrons2List.size());
-			objectBuffers.tetrahedronsDeviceMemoryHandles.resize(tetrahedrons2List.size());
-			objectBuffers.tetrahedronsAABBBufferHandle.resize(tetrahedrons2List.size());
 			for (size_t i = 0; i < tetrahedrons2List.size(); i++)
 			{
-				auto aabb = aabbsTetrahedrons[i];
-				auto tetrahedron2 = tetrahedrons2List[i];
-				auto buildData
-				    = createBottomLevelAccelerationStructureBuildDataForObject<Tetrahedron2>(
-				        physicalDevice,
-				        logicalDevice,
-				        deletionQueue,
-				        tetrahedron2,
-				        ObjectType::t_Tetrahedron2,
-				        aabb,
-				        tetrahedrons2[i].getTransformMatrix(),
-				        objectBuffers.tetrahedronsBufferHandle[i],
-				        objectBuffers.tetrahedronsDeviceMemoryHandles[i],
-				        objectBuffers.tetrahedronsAABBBufferHandle[i]);
+				size_t instanceCustomIndex = gpuObjects.size();
+				auto buildData = createBottomLevelAccelerationStructureBuildDataAABB(
+				    logicalDevice,
+				    objectBuffers.tetrahedronsAABBBufferHandles[i],
+				    static_cast<int>(instanceCustomIndex),
+				    tetrahedrons2[i].getTransformMatrix());
 				blasBuildDataList.push_back(buildData);
+				gpuObjects.push_back(GPUInstance(ObjectType::t_Tetrahedron2, i));
 			}
 		}
 
@@ -236,26 +404,14 @@ class RaytracingScene
 		{
 			for (size_t i = 0; i < rectangularSurfaces2x2List.size(); i++)
 			{
-				objectBuffers.rectangularBezierSurfaces2x2BufferHandle.resize(
-				    rectangularSurfaces2x2List.size());
-				objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles.resize(
-				    rectangularSurfaces2x2List.size());
-				objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandle.resize(
-				    rectangularSurfaces2x2List.size());
-				auto aabb = aabbsTetrahedrons[i];
-				auto rectangularBezierSurface2x2 = rectangularSurfaces2x2List[i];
-				auto buildData = createBottomLevelAccelerationStructureBuildDataForObject<
-				    RectangularBezierSurface2x2>(
-				    physicalDevice,
+				size_t instanceCustomIndex = gpuObjects.size();
+				auto buildData = createBottomLevelAccelerationStructureBuildDataAABB(
 				    logicalDevice,
-				    deletionQueue,
-				    rectangularBezierSurface2x2,
-				    ObjectType::t_RectangularBezierSurface2x2,
-				    aabb,
-				    rectangularBezierSurfaces2x2[i].getTransformMatrix(),
-				    objectBuffers.rectangularBezierSurfaces2x2BufferHandle[i],
-				    objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles[i],
-				    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandle[i]);
+				    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles[i],
+				    static_cast<int>(instanceCustomIndex),
+				    rectangularBezierSurfaces2x2[i].getTransformMatrix());
+
+				gpuObjects.push_back(GPUInstance(ObjectType::t_RectangularBezierSurface2x2, i));
 				blasBuildDataList.push_back(buildData);
 			}
 		}
@@ -275,6 +431,12 @@ class RaytracingScene
 		// 	    obj.getTransform().getTransformMatrix());
 		// 	blasInstancesData.push_back(triangleBLAS);
 		// }
+
+		// update buffer data
+		copyDataToBuffer(logicalDevice,
+		                 objectBuffers.gpuObjectsDeviceMemoryHandle,
+		                 gpuObjects.data(),
+		                 sizeof(GPUInstance) * instancesCount);
 
 		return blasBuildDataList;
 	}
@@ -337,7 +499,8 @@ class RaytracingScene
 			    // see:
 			    // https://registry.khronos.org/vulkan/specs/latest/man/html/InstanceCustomIndexKHR.html
 			    // only grab 24 bits
-			    .instanceCustomIndex = static_cast<uint32_t>(buildData.objectType) & 0xFFFFFF,
+			    .instanceCustomIndex
+			    = static_cast<uint32_t>(buildData.instanceCustomIndex) & 0xFFFFFF,
 			    .mask = 0xFF,
 			    .instanceShaderBindingTableRecordOffset = 0,
 			    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -373,27 +536,16 @@ class RaytracingScene
 				             raytracingInfo.uniformBufferHandle,
 				             raytracingInfo.uniformDeviceMemoryHandle);
 
-				void* hostUniformMemoryBuffer;
-				VkResult result = vkMapMemory(logicalDevice,
-				                              raytracingInfo.uniformDeviceMemoryHandle,
-				                              0,
-				                              sizeof(UniformStructure),
-				                              0,
-				                              &hostUniformMemoryBuffer);
-				if (result != VK_SUCCESS)
-				{
-					throw new std::runtime_error("initRayTraci - vkMapMemory");
-				}
-				memcpy(hostUniformMemoryBuffer,
-				       &raytracingInfo.uniformStructure,
-				       sizeof(UniformStructure));
-
-				vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+				copyDataToBuffer(logicalDevice,
+				                 raytracingInfo.uniformDeviceMemoryHandle,
+				                 &raytracingInfo.uniformStructure,
+				                 sizeof(UniformStructure));
 			}
 		}
 	}
 
   private:
+	std::vector<GPUInstance> gpuObjects;
 	std::vector<RaytracingWorldObject<Sphere>> spheres;
 	std::vector<RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
 	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>> rectangularBezierSurfaces2x2;

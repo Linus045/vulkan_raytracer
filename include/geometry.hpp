@@ -2,6 +2,7 @@
 #pragma once
 
 #include "aabb.hpp"
+#include <stdexcept>
 namespace ltracer
 {
 
@@ -13,14 +14,14 @@ class Geometry
 	{
 	}
 
-	~Geometry() = default;
+	virtual ~Geometry() = default;
 	Geometry(const Geometry&) = default;
 	Geometry& operator=(const Geometry&) = delete;
 
 	Geometry(Geometry&&) noexcept = default;
 	Geometry& operator=(Geometry&&) noexcept = delete;
 
-	AABB getAABB() const
+	const AABB& getAABB() const
 	{
 		return aabb;
 	}
@@ -30,8 +31,14 @@ class Geometry
 		return data;
 	}
 
+	virtual void recalculateAABB()
+	{
+		throw new std::runtime_error("recalculateAABB not implemented for type T. Please add a "
+		                             "specialization in geometry.cpp");
+	}
+
   private:
-	const AABB aabb;
+	AABB aabb;
 	T data;
 };
 

@@ -38,6 +38,24 @@ class RaytracingWorldObject : public WorldObject
 		return type;
 	}
 
+	void setPosition(const glm::vec3) override
+	{
+		throw new std::runtime_error("setPosition not implemented for type T. Please add a "
+		                             "specialization in raytracing_worldobject.cpp");
+	}
+
+	void translate(const glm::vec3) override
+	{
+		throw new std::runtime_error("setPosition not implemented for type T. Please add a "
+		                             "specialization in raytracing_worldobject.cpp");
+	}
+
+	void translate(const float, const float, const float) override
+	{
+		throw new std::runtime_error("setPosition not implemented for type T. Please add a "
+		                             "specialization in raytracing_worldobject.cpp");
+	}
+
 	const VkTransformMatrixKHR getTransformMatrix() const
 	{
 		auto pos = getTransform().getPos();
@@ -62,7 +80,7 @@ class RaytracingWorldObject : public WorldObject
 	// 	return tlasInstance;
 	// }
 
-  private:
+  protected:
 	Geometry<T> geometry;
 	const ObjectType type;
 	// TLASInstance& tlasInstance;

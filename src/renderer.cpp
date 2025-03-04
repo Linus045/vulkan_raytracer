@@ -197,17 +197,21 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	{
 		if (uiData.recreateAccelerationStructures)
 		{
-			raytracingScene->getWorldObjectSpheres()[0].setPosition(uiData.position);
-			raytracingScene->animateSphere(uiData.position);
+			// TODO: remove this testing code
+			raytracingScene->getWorldObjectTetrahedrons()[0]
+			    .getGeometry()
+			    .getData()
+			    .controlPoints[0]
+			    = uiData.position;
+			raytracingScene->getWorldObjectTetrahedrons()[0].getGeometry().recalculateAABB();
+
+			raytracingScene->moveSphere(0, uiData.position);
+
+			raytracingScene->copyObjectsToBuffers();
 			raytracingScene->recreateAccelerationStructures(raytracingInfo);
 
-			rt::updateAccelerationStructureDescriptorSet(logicalDevice,
-			                                             *raytracingScene,
-			                                             raytracingInfo,
-			                                             VK_NULL_HANDLE,
-			                                             VK_NULL_HANDLE,
-			                                             VK_NULL_HANDLE,
-			                                             raytracingInfo.meshObjects);
+			rt::updateAccelerationStructureDescriptorSet(
+			    logicalDevice, *raytracingScene, raytracingInfo);
 
 			uiData.recreateAccelerationStructures = false;
 			resetFrameCountRequested = true;

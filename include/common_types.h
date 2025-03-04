@@ -105,6 +105,27 @@ struct RaytracingDataConstants
 // we could also use a macro but I prefer the more explicit way
 #endif
 
+// stores the type and the index of the object to look it up in the respective buffer e.g. Spheres,
+// Tetrahedrons, AABBs buffer
+// type is the ObjectType enum
+struct GPUInstance
+{
+	int type;
+	int bufferIndex;
+	int test;
+
+#ifdef __cplusplus
+	GPUInstance() : type(0), bufferIndex(0), test(100)
+	{
+	}
+
+	GPUInstance(ObjectType type, size_t bufferIndex)
+	    : type(static_cast<int>(type)), bufferIndex(static_cast<int>(bufferIndex)), test(100)
+	{
+	}
+#endif
+};
+
 struct Aabb
 {
 	vec3 minimum;

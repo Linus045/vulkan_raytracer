@@ -3,6 +3,7 @@
 #include <string>
 #include <array>
 
+#include "blas.hpp"
 #include "common_types.h"
 #include "deletion_queue.hpp"
 #include "raytracing.hpp"
@@ -315,6 +316,14 @@ VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
 	        .pImmutableSamplers = NULL,
 	    },
+	    {
+	        .binding = 9,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
 	};
 
 	std::vector<VkDescriptorBindingFlags> bindingFlags = std::vector<VkDescriptorBindingFlags>(
@@ -598,14 +607,9 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 	    { vkDestroyPipeline(logicalDevice, raytracingInfo.rayTracingPipelineHandle, NULL); });
 }
 
-void updateAccelerationStructureDescriptorSet(
-    VkDevice logicalDevice,
-    const RaytracingScene& raytracingScene,
-    RaytracingInfo& raytracingInfo,
-    VkBuffer sphereBufferHandle,
-    VkBuffer tetrahedronBufferHandle,
-    VkBuffer rectangularBezierSurface2x2BufferHandle,
-    [[maybe_unused]] const std::vector<MeshObject>& meshObjects)
+void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
+                                              const RaytracingScene& raytracingScene,
+                                              RaytracingInfo& raytracingInfo)
 {
 	VkWriteDescriptorSetAccelerationStructureKHR accelerationStructureDescriptorInfo = {
 	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR,
@@ -620,20 +624,26 @@ void updateAccelerationStructureDescriptorSet(
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo gpuObjectsDescriptorInfo = {
+	    .buffer = raytracingScene.getObjectBuffers().gpuObjectsBufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	VkDescriptorBufferInfo spheresDescriptorInfo = {
-	    .buffer = sphereBufferHandle,
+	    .buffer = raytracingScene.getObjectBuffers().spheresBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo tetrahedronsDescriptorInfo = {
-	    .buffer = tetrahedronBufferHandle,
+	    .buffer = raytracingScene.getObjectBuffers().tetrahedronsBufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
 
 	VkDescriptorBufferInfo rectangularBezierSurfaces2x2DescriptorInfo = {
-	    .buffer = rectangularBezierSurface2x2BufferHandle,
+	    .buffer = raytracingScene.getObjectBuffers().rectangularBezierSurfaces2x2BufferHandle,
 	    .offset = 0,
 	    .range = VK_WHOLE_SIZE,
 	};
@@ -744,7 +754,7 @@ void updateAccelerationStructureDescriptorSet(
 		});
 	}
 
-	if (tetrahedronBufferHandle != VK_NULL_HANDLE)
+	if (raytracingScene.getObjectBuffers().tetrahedronsBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -760,7 +770,7 @@ void updateAccelerationStructureDescriptorSet(
 		});
 	}
 
-	if (sphereBufferHandle != VK_NULL_HANDLE)
+	if (raytracingScene.getObjectBuffers().spheresBufferHandle != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -776,7 +786,8 @@ void updateAccelerationStructureDescriptorSet(
 		});
 	}
 
-	if (rectangularBezierSurface2x2BufferHandle != VK_NULL_HANDLE)
+	if (raytracingScene.getObjectBuffers().rectangularBezierSurfaces2x2BufferHandle
+	    != VK_NULL_HANDLE)
 	{
 		writeDescriptorSetList.push_back({
 		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
@@ -807,6 +818,23 @@ void updateAccelerationStructureDescriptorSet(
 		    .pTexelBufferView = NULL,
 		});
 	}
+
+	if (raytracingScene.getObjectBuffers().gpuObjectsBufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 9,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &gpuObjectsDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
+
 	vkUpdateDescriptorSets(logicalDevice,
 	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
 	                       writeDescriptorSetList.data(),
@@ -1132,9 +1160,11 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 	}));
 
-	// auto obj = RaytracingWorldObject(
-	//     ObjectType::t_Tetrahedron2, AABB::fromTetrahedron2(tetrahedron2), tetrahedron2);
-	// raytracingScene.addWorldObject(obj);
+	auto obj = RaytracingWorldObject(ObjectType::t_Tetrahedron2,
+	                                 AABB::fromTetrahedron2(tetrahedron2),
+	                                 tetrahedron2,
+	                                 glm::vec3(0));
+	raytracingScene.addWorldObject(obj);
 
 	raytracingScene.addWorldObject(
 	    Sphere{glm::vec3(0, 0, 0), 0.2f, static_cast<int>(ColorIdx::t_red)}, glm::vec3(0, 0, 0));
@@ -1334,22 +1364,17 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
 	// }
 
+	// TODO: for now we don't change the amount of objects in the scene
+	// so we can create the buffers only once
+	// if we want to add/remove objects from the scene we need to recreate the buffers
+	raytracingScene.createBuffers();
+
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
 	raytracingScene.createAccelerationStructures(raytracingInfo);
 
 	// =========================================================================
 	// Update Descriptor Set
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice,
-	    raytracingScene,
-	    raytracingInfo,
-	    raytracingScene.getObjectBuffers().spheresBufferHandle[0],
-	    VK_NULL_HANDLE,
-	    VK_NULL_HANDLE,
-	    raytracingInfo.meshObjects);
-
-	Fix this
 
 	// TODO: only the last updated sphere buffer is active, idk how to pass in all BLAS
 	// clang-format off
@@ -1360,14 +1385,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// {Type::Tetrahedron2, 1} would be the second tetrahedron in the tetrahedron buffer
 	// this requires us to merge all BLAS buffers of one type into one big buffer
 	// clang-format on
-	updateAccelerationStructureDescriptorSet(
-	    logicalDevice,
-	    raytracingScene,
-	    raytracingInfo,
-	    raytracingScene.getObjectBuffers().spheresBufferHandle[1],
-	    VK_NULL_HANDLE,
-	    VK_NULL_HANDLE,
-	    raytracingInfo.meshObjects);
+	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingScene, raytracingInfo);
 
 	// =========================================================================
 	// Material Index Buffer
@@ -1903,13 +1921,7 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	raytracingInfo.rayTraceImageViewHandle = createRaytracingImageView(
 	    logicalDevice, swapChainImageFormat, raytracingInfo.rayTraceImageHandle);
 
-	updateAccelerationStructureDescriptorSet(logicalDevice,
-	                                         raytracingScene,
-	                                         raytracingInfo,
-	                                         VK_NULL_HANDLE,
-	                                         VK_NULL_HANDLE,
-	                                         VK_NULL_HANDLE,
-	                                         raytracingInfo.meshObjects);
+	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingScene, raytracingInfo);
 
 	// reset frame count so the window gets refreshed properly
 	resetFrameCount(raytracingInfo);
@@ -1937,6 +1949,5 @@ void updateUniformStructure(RaytracingInfo& raytracingInfo,
 	raytracingInfo.uniformStructure.cameraRight[1] = right[1];
 	raytracingInfo.uniformStructure.cameraRight[2] = right[2];
 }
-
 } // namespace rt
 } // namespace ltracer

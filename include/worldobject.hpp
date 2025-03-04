@@ -30,23 +30,23 @@ class WorldObject
 	WorldObject& operator=(WorldObject&&) noexcept = default;
 
 	// TODO: make this a more generic rotation function
-	void updateRotation(float time)
+	void updateRotation(const float time)
 	{
 		transform.setRotation(
 		    glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 0.0f)));
 	}
 
-	void translate(glm::vec3 translation)
+	virtual void translate(const glm::vec3 translation)
 	{
 		transform.translate(translation);
 	}
 
-	void translate(float x, float y, float z)
+	virtual void translate(const float x, const float y, const float z)
 	{
 		translate(glm::vec3(x, y, z));
 	}
 
-	void setPosition(glm::vec3 position)
+	virtual void setPosition(const glm::vec3 position)
 	{
 		transform.setPos(position);
 	}
@@ -65,7 +65,7 @@ class WorldObject
 		return transform;
 	}
 
-  private:
+  protected:
 	// geometry is only present if its not a mesh model e.g. we wanna use raytracing to render it
 	Transform transform;
 };

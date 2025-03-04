@@ -68,6 +68,11 @@ layout(set = 0, binding=6, scalar) buffer Spheres
 	Sphere[] spheres;
 };
 
+layout(set = 0, binding=9, scalar) buffer GPUInstances
+{
+	GPUInstance[] gpuInstances;
+};
+
 float random(vec2 uv, float seed) {
   return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
                43758.5453);
