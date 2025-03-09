@@ -172,7 +172,8 @@ class Window
 	                     SwapChainSupportDetails swapChainSupport)
 	{
 
-		VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
+		VkSurfaceFormatKHR surfaceFormat
+		    = chooseSwapSurfaceFormat(physicalDevice, swapChainSupport.formats);
 		VkPresentModeKHR presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
 
 		// debug_print("Minimum image count required for swap chain: %d\n",
@@ -253,13 +254,29 @@ class Window
 	}
 
 	VkSurfaceFormatKHR
-	chooseSwapSurfaceFormat(const std::vector<VkSurfaceFormatKHR>& availableFormats)
+	chooseSwapSurfaceFormat(VkPhysicalDevice physicalDevice,
+	                        const std::vector<VkSurfaceFormatKHR>& availableFormats)
 	{
 
 		// try to find the good SRGB format with 8-bit RGB colors
 		for (const auto& availableFormat : availableFormats)
 		{
-			if (availableFormat.format == VK_FORMAT_B8G8R8_SRGB
+			VkPhysicalDeviceImageFormatInfo2 formatInfo = {};
+			formatInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2;
+			formatInfo.format = availableFormat.format;
+			formatInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+			                   | VK_IMAGE_USAGE_STORAGE_BIT;
+			formatInfo.type = VK_IMAGE_TYPE_2D;
+			formatInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			formatInfo.flags = 0;
+
+			VkImageFormatProperties2 properties{};
+			properties.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+
+			VkResult result = vkGetPhysicalDeviceImageFormatProperties2(
+			    physicalDevice, &formatInfo, &properties);
+
+			if (result == VK_SUCCESS && availableFormat.format == VK_FORMAT_B8G8R8_SRGB
 			    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
 				return availableFormat;
@@ -267,21 +284,39 @@ class Window
 		}
 
 		// if the good format cannot be found, just use the first one
-		std::cout << "Warning: Could not find the good format\nAvailable Formats:\n";
+		std::cout << "Warning: Could not find the good format\nChoosing first valid format:\n";
 
-		for (const auto& availableFormat : availableFormats)
+		for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
 		{
+			VkPhysicalDeviceImageFormatInfo2 formatInfo = {};
+			formatInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2;
+			formatInfo.format = availableFormat.format;
+			formatInfo.usage = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT
+			                   | VK_IMAGE_USAGE_STORAGE_BIT;
+			formatInfo.type = VK_IMAGE_TYPE_2D;
+			formatInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
+			formatInfo.flags = 0;
+
+			VkImageFormatProperties2 properties{};
+			properties.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+
+			VkResult result = vkGetPhysicalDeviceImageFormatProperties2(
+			    physicalDevice, &formatInfo, &properties);
+
 			std::cout << "  + Format:" << string_VkFormat(availableFormat.format)
 			          << " | Color space: " << string_VkColorSpaceKHR(availableFormat.colorSpace)
-			          << '\n';
+			          << " | Error: " << result << '\n';
+
+			if (result == VK_SUCCESS)
+			{
+				std::cout << "Found format: " << string_VkFormat(availableFormat.format)
+				          << " | Color space: "
+				          << string_VkColorSpaceKHR(availableFormat.colorSpace) << '\n';
+				return availableFormat;
+			}
 		}
-		std::cout << "Using the first format: ";
-		size_t formatIdx = 1;
-		std::cout << string_VkFormat(availableFormats[formatIdx].format)
-		          << " | Color space: " << string_VkColorSpaceKHR(availableFormats[0].colorSpace)
-		          << '\n';
-		// TODO: For some reason this works?
-		return availableFormats[formatIdx];
+
+		throw std::runtime_error("failed to find suitable surface format!");
 	}
 
 	VkPresentModeKHR
