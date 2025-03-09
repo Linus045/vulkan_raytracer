@@ -116,6 +116,7 @@ class Renderer
 	{
 		ltracer::ui::beginFrame();
 		ltracer::ui::renderMainPanel(uiData);
+		ltracer::ui::renderCrosshair(uiData);
 		ltracer::ui::endFrame();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	}

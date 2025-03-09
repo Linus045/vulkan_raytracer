@@ -37,6 +37,20 @@ class Window
 	Window(Window&&) noexcept = delete;
 	Window& operator=(Window&&) noexcept = delete;
 
+	int getWidth() const
+	{
+		auto width = 0, _height = 0;
+		glfwGetWindowSize(glfwWindow, &width, &_height);
+		return width;
+	}
+
+	int getHeight() const
+	{
+		auto _width = 0, height = 0;
+		glfwGetWindowSize(glfwWindow, &_width, &height);
+		return height;
+	}
+
 	/// Returns the GLFW window
 	GLFWwindow*& getGLFWWindow()
 	{

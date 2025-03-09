@@ -44,6 +44,7 @@ void Application::run()
 	createRenderer();
 
 	uiData = std::make_unique<ltracer::ui::UIData>(camera,
+	                                               window,
 	                                               raytracingSupported,
 	                                               physicalDeviceProperties,
 	                                               renderer->getRaytracingDataConstants(),

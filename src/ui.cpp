@@ -318,6 +318,18 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 	uiData.recreateAccelerationStructures = valueChanged;
 }
 
+void renderCrosshair(const UIData& uiData)
+{
+
+	auto draw = ImGui::GetBackgroundDrawList();
+	auto windowWidth = static_cast<float>(uiData.window.getWidth());
+	auto windowHeight = static_cast<float>(uiData.window.getHeight());
+	draw->AddCircle(
+	    ImVec2(windowWidth / 2.0f, windowHeight / 2.0f), 6, IM_COL32(0, 0, 0, 255), 100, 0.0f);
+	draw->AddCircle(
+	    ImVec2(windowWidth / 2.0f, windowHeight / 2.0f), 1, IM_COL32(255, 255, 255, 255), 10, 1.0f);
+}
+
 void renderMainPanel(UIData& uiData)
 {
 	// ImGui::ShowDemoWindow();

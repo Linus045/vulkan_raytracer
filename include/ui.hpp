@@ -28,6 +28,7 @@ struct UIData
 {
 	bool configurationChanged = false;
 	const Camera& camera;
+	const Window& window;
 	const bool& raytracingSupported;
 	const VkPhysicalDeviceProperties& physicalDeviceProperties;
 	RaytracingDataConstants& raytracingDataConstants;
@@ -38,11 +39,12 @@ struct UIData
 	bool recreateAccelerationStructures = false;
 
 	UIData(const Camera& camera,
+	       const Window& window,
 	       const bool& raytracingSupported,
 	       const VkPhysicalDeviceProperties& physicalDeviceProperties,
 	       RaytracingDataConstants& raytracingDataConstants,
 	       const uint32_t& frameCount)
-	    : camera(camera), raytracingSupported(raytracingSupported),
+	    : camera(camera), window(window), raytracingSupported(raytracingSupported),
 	      physicalDeviceProperties(physicalDeviceProperties),
 	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount)
 	{
@@ -80,6 +82,8 @@ void renderRaytracingOptions(UIData& uiData);
 void renderHelpInfo(const ltracer::ui::UIData& uiData);
 
 void renderRaytracingProperties(const ltracer::ui::UIData& uiData);
+
+void renderCrosshair(const UIData& uiData);
 
 void renderMainPanel(UIData& uiData);
 
