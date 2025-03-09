@@ -1721,16 +1721,10 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 
 void updateRaytraceBuffer(VkDevice logicalDevice,
                           RaytracingInfo& raytracingInfo,
-                          const ltracer::Camera& camera,
                           const bool resetFrameCountRequested)
 {
 	if (resetFrameCountRequested)
 	{
-		updateUniformStructure(raytracingInfo,
-		                       camera.transform.getPos(),
-		                       camera.transform.getForward(),
-		                       camera.transform.getUp(),
-		                       camera.transform.getRight());
 		resetFrameCount(raytracingInfo);
 	}
 	else
@@ -1927,27 +1921,5 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	resetFrameCount(raytracingInfo);
 }
 
-void updateUniformStructure(RaytracingInfo& raytracingInfo,
-                            const glm::vec3& position,
-                            const glm::vec3& forward,
-                            const glm::vec3& up,
-                            const glm::vec3& right)
-{
-	raytracingInfo.uniformStructure.cameraPosition[0] = position[0];
-	raytracingInfo.uniformStructure.cameraPosition[1] = position[1];
-	raytracingInfo.uniformStructure.cameraPosition[2] = position[2];
-
-	raytracingInfo.uniformStructure.cameraForward[0] = forward[0];
-	raytracingInfo.uniformStructure.cameraForward[1] = forward[1];
-	raytracingInfo.uniformStructure.cameraForward[2] = forward[2];
-
-	raytracingInfo.uniformStructure.cameraUp[0] = up[0];
-	raytracingInfo.uniformStructure.cameraUp[1] = up[1];
-	raytracingInfo.uniformStructure.cameraUp[2] = up[2];
-
-	raytracingInfo.uniformStructure.cameraRight[0] = right[0];
-	raytracingInfo.uniformStructure.cameraRight[1] = right[1];
-	raytracingInfo.uniformStructure.cameraRight[2] = right[2];
-}
 } // namespace rt
 } // namespace ltracer

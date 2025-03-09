@@ -38,21 +38,6 @@ namespace rt
 // to get better error messages
 
 /**
- * @brief Updates the camera position, forward, up and right vectors in the uniform structure.
- *
- * @param raytracingInfo The raytracingInfo object that should be updated
- * @param position camera position
- * @param forward camera forward
- * @param up camera up
- * @param right camera right
- */
-void updateUniformStructure(RaytracingInfo& raytracingInfo,
-                            const glm::vec3& position,
-                            const glm::vec3& forward,
-                            const glm::vec3& up,
-                            const glm::vec3& right);
-
-/**
  * @brief resets the frameCount forcing the ray tracing to start anew
  *
  * @param raytracingInfo The raytracing info object that should be reset
@@ -275,7 +260,6 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
  */
 void updateRaytraceBuffer(VkDevice logicalDevice,
                           RaytracingInfo& raytracingInfo,
-                          const ltracer::Camera& camera,
                           const bool resetFrameCountRequested);
 
 /**

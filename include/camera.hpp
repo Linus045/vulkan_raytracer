@@ -182,13 +182,16 @@ class Camera
 
 	void updateViewMatrix()
 	{
+		glm::mat4 mat = glm::identity<glm::mat4>();
+		mat = glm::translate(mat, transform.getPos());
+		mat = glm::scale(mat, transform.getScale()); // should have no effect
+
 		auto cameraUp = globalUp;
 		auto cameraRight = glm::vec3(1, 0, 0);
-		glm::mat4 cameraRotation = glm::mat4();
-		cameraRotation = glm::rotate(cameraRotation, yawRadians, cameraUp);
-		cameraRotation = glm::rotate(cameraRotation, pitchRadians, cameraRight);
+		mat = glm::rotate(mat, yawRadians, cameraUp);
+		mat = glm::rotate(mat, pitchRadians, cameraRight);
 
-		viewMatrix = glm::inverse(cameraRotation);
+		viewMatrix = glm::inverse(mat);
 	}
 
   private:

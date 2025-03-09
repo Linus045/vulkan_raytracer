@@ -22,15 +22,18 @@ layout(location = 0) rayPayloadEXT Payload {
 payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, set = 0) uniform Camera {
+layout(binding = 1, set = 0) uniform UniformStructure {
+  mat4 viewProj;
+  mat4 viewInverse;
+  mat4 projInverse;
+
   vec4 position;
   vec4 right;
   vec4 up;
   vec4 forward;
 
   uint frameCount;
-}
-camera;
+} ubo;
 
 layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 
@@ -47,14 +50,16 @@ float random(vec2 uv, float seed) {
 }
 
 void main() {
-  vec2 uv = gl_LaunchIDEXT.xy +
-            vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
+  vec2 uv = gl_LaunchIDEXT.xy + vec2(0.5); // + vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
   uv /= vec2(gl_LaunchSizeEXT.xy);
-  uv = (uv * 2.0f - 1.0f) * vec2(1.0f, -1.0f);
+  uv =  uv *  2.0f - 1.0f;
 
-  payload.rayOrigin = camera.position.xyz;
-  payload.rayDirection =
-      normalize(uv.x * camera.right + uv.y * camera.up + camera.forward).xyz;
+  vec4 origin    = ubo.viewInverse * vec4(0, 0, 0, 1);
+  vec4 target    = ubo.projInverse * vec4(uv.x, uv.y, 1, 1);
+  vec4 direction = ubo.viewInverse * vec4(normalize(target.xyz), 0);
+
+  payload.rayOrigin = origin.xyz;
+  payload.rayDirection = direction.xyz;
   payload.previousNormal = vec3(0.0, 0.0, 0.0);
 
   payload.directColor= raytracingDataConstants.environmentColor;
@@ -70,12 +75,12 @@ void main() {
 
   vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);
 
-  if (camera.frameCount > 0) {
+  if (ubo.frameCount > 0) {
     vec4 previousColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
-    previousColor *= camera.frameCount;
+    previousColor *= ubo.frameCount;
 
     color += previousColor;
-    color /= (camera.frameCount + 1);
+    color /= (ubo.frameCount + 1);
   }
 
    imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);

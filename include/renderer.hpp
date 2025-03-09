@@ -132,6 +132,9 @@ class Renderer
 
 		//   memcpy(obj.uniformBuffersMapped[currentImage], &ubo, sizeof(ubo));
 		// }
+		raytracingInfo.uniformStructure.viewProj = projectionMatrix * viewMatrix;
+		raytracingInfo.uniformStructure.viewInverse = glm::inverse(viewMatrix);
+		raytracingInfo.uniformStructure.projInverse = glm::inverse(projectionMatrix);
 	}
 
 	inline void requestResetFrameCount()

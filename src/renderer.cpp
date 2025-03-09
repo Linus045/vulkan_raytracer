@@ -1,3 +1,4 @@
+#include <glm/ext/matrix_transform.hpp>
 #include <stdexcept>
 
 #include "renderer.hpp"
@@ -217,8 +218,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 			resetFrameCountRequested = true;
 		}
 
-		ltracer::rt::updateRaytraceBuffer(
-		    logicalDevice, raytracingInfo, camera, resetFrameCountRequested);
+		ltracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
 		resetFrameCountRequested = false;
 	}
 	updateUniformBuffer(currentFrame);

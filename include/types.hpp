@@ -37,12 +37,6 @@ struct SwapChainSupportDetails
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
-struct UniformBufferObject
-{
-	alignas(16) glm::mat4 modelMatrix;
-	alignas(16) std::vector<glm::vec3> modelNormals;
-};
-
 struct SharedInfo
 {
 	alignas(16) glm::mat4 view;
@@ -51,10 +45,9 @@ struct SharedInfo
 
 struct UniformStructure
 {
-	float cameraPosition[4];
-	float cameraRight[4];
-	float cameraUp[4];
-	float cameraForward[4];
+	glm::mat4 viewProj;
+	glm::mat4 viewInverse;
+	glm::mat4 projInverse;
 
 	uint32_t frameCount;
 };
