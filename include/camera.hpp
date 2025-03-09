@@ -164,6 +164,17 @@ class Camera
 		return rotationSpeed;
 	}
 
+	float getFOVY() const
+	{
+		return fovy_degree;
+	}
+
+	void setFOVY(const float fovy)
+	{
+		fovy_degree = fovy;
+		updateProjectionMatrix();
+	}
+
   private:
 	void updateProjectionMatrix()
 	{

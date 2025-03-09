@@ -27,7 +27,7 @@ namespace ui
 struct UIData
 {
 	bool configurationChanged = false;
-	const Camera& camera;
+	Camera& camera;
 	const Window& window;
 	const bool& raytracingSupported;
 	const VkPhysicalDeviceProperties& physicalDeviceProperties;
@@ -38,7 +38,7 @@ struct UIData
 	glm::vec3 position = glm::vec3(0);
 	bool recreateAccelerationStructures = false;
 
-	UIData(const Camera& camera,
+	UIData(Camera& camera,
 	       const Window& window,
 	       const bool& raytracingSupported,
 	       const VkPhysicalDeviceProperties& physicalDeviceProperties,

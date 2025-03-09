@@ -87,8 +87,9 @@ void initImgui(VkInstance vulkanInstance,
 	deletionQueue.push_function([]() { ImGui_ImplVulkan_Shutdown(); });
 }
 
-void renderCameraProperties(const UIData& uiData)
+bool renderCameraProperties(UIData& uiData)
 {
+	bool valueChanged = false;
 	if (ImGui::CollapsingHeader("Camera"))
 	{
 		auto cameraPosition = glm::to_string(uiData.camera.transform.getPos());
@@ -105,7 +106,16 @@ void renderCameraProperties(const UIData& uiData)
 		    = glm::to_string(glm::degrees(glm::eulerAngles(uiData.camera.transform.getRotation())));
 		ImGui::Text("Camera rotation (radians)(pitch,yaw,roll): %s", cameraRotationRadians.c_str());
 		ImGui::Text("Camera rotation (degrees)(pitch,yaw,roll): %s", cameraRotationDegrees.c_str());
+
+		float fovy_degree = uiData.camera.getFOVY();
+		valueChanged
+		    = ImGui::SliderFloat(
+		          "Camera FOV", &fovy_degree, 0.1f, 180.0f, "%.1f", ImGuiSliderFlags_AlwaysClamp)
+		      || valueChanged;
+		uiData.camera.setFOVY(fovy_degree);
 	}
+
+	return valueChanged;
 }
 
 void renderGPUProperties(const UIData& uiData)
