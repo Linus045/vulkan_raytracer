@@ -35,7 +35,7 @@ class Camera
 	{
 		transform.setPos(glm::vec3(0.0, 0, -0.01f));
 		glm::vec3 up = globalUp;
-		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(0.0, 0, 1)), up));
+		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(1, 0, 0)), up));
 		pitchRadians = glm::pitch(transform.getRotation());
 		yawRadians = glm::yaw(transform.getRotation());
 
