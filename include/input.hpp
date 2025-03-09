@@ -43,8 +43,20 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 
 		// TODO: for some reason sometimes after capturing the mouse cursor (pressing G) the delta
 		// values are huge which results in weird camera snapping
-		userData.camera.rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
-		userData.camera.rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
+		// so a workaround is to ignore the first mouse movement event
+		// I suspect this is due to the mouse cursor being moved by glfw when switching the cursor
+		// input mode
+		if (userData.ignoreFirstMouseMovement)
+		{
+			userData.ignoreFirstMouseMovement = false;
+			std::cout << "Ignoring first mouse movement" << std::endl;
+			std::cout << "Delta X: " << deltaX << " Delta Y: " << deltaY << std::endl;
+		}
+		else
+		{
+			userData.camera.rotateYawY(static_cast<float>(-deltaX * mouse_sensitivity));
+			userData.camera.rotatePitchX(static_cast<float>(-deltaY * mouse_sensitivity));
+		}
 	}
 	else
 	{
@@ -54,6 +66,8 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 	// always store the last mouse position which prevents the snapping problems a bit
 	userData.lastMouseX = static_cast<float>(xpos);
 	userData.lastMouseY = static_cast<float>(ypos);
+
+	// std::cout << "Mouse position: " << xpos << ", " << ypos << std::endl;
 }
 
 inline void updateMovement(CustomUserData& userData, double delta)
@@ -130,6 +144,8 @@ inline void handleInputCallback(GLFWwindow* window, int key, int scancode, int a
 	{
 		userData.window.setMouseCursorCapturedEnabled(
 		    !userData.window.getMouseCursorCaptureEnabled());
+		userData.ignoreFirstMouseMovement = true;
+
 		std::cout << "Cursor capture enabled: "
 		          << (userData.window.getMouseCursorCaptureEnabled() ? "True" : "False")
 		          << std::endl;

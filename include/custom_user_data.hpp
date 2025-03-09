@@ -35,6 +35,9 @@ struct CustomUserData
 	std::map<GLFWKEY, GLFW_KEY_STATE> keyStateMap;
 	float lastMouseX = 0.0;
 	float lastMouseY = 0.0;
+	// used to prevent weird cursor movement issues when switching cursor input mode, see
+	// handleMouseMovementCallback in input.cpp
+	bool ignoreFirstMouseMovement = false;
 };
 
 } // namespace ltracer
