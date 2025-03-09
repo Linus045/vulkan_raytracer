@@ -9,7 +9,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference2 : require
 
-
 #include "../include/common_types.h"
 
 // TODO; put this in a common file
@@ -20,57 +19,53 @@ struct Ray
 	vec3 direction;
 };
 
-layout(set = 0, binding=5, scalar) buffer Tetrahedrons
+layout(set = 0, binding = 5, scalar) buffer Tetrahedrons
 {
 	Tetrahedron2[] tetrahedrons;
 };
 
-layout(set = 0, binding=6, scalar) buffer Spheres
+layout(set = 0, binding = 6, scalar) buffer Spheres
 {
 	Sphere[] spheres;
 };
 
-layout(set = 0, binding=7, scalar) buffer RectangularBezierSurfaces
+layout(set = 0, binding = 7, scalar) buffer RectangularBezierSurfaces
 {
 	RectangularBezierSurface2x2[] rectangularBezierSurfaces2x2;
 };
 
-layout(set = 0, binding=8, scalar) buffer SlicingPlanes
+layout(set = 0, binding = 8, scalar) buffer SlicingPlanes
 {
 	SlicingPlane[] slicingPlanes;
 };
 
-layout(set = 0, binding=9, scalar) buffer GPUInstances
+layout(set = 0, binding = 9, scalar) buffer GPUInstances
 {
 	GPUInstance[] gpuInstances;
 };
 
-
-layout( push_constant ) uniform RaytracingDataConstants
-{
-	// see common_types.h
-	PUSH_CONSTANT_MEMBERS
-} raytracingDataConstants;
+layout(push_constant) uniform RaytracingDataConstants{
+    // see common_types.h
+    PUSH_CONSTANT_MEMBERS} raytracingDataConstants;
 
 // Ray-Sphere intersection
 // http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
 float hitSphere(const Sphere s, const Ray r)
 {
-  vec3  oc           = r.origin - s.center;
-  float a            = dot(r.direction, r.direction);
-  float b            = 2.0 * dot(oc, r.direction);
-  float c            = dot(oc, oc) - s.radius * s.radius;
-  float discriminant = b * b - 4 * a * c;
-  if(discriminant < 0)
-  {
-    return -1.0;
-  }
-  else
-  {
-    return (-b - sqrt(discriminant)) / (2.0 * a);
-  }
+	vec3 oc = r.origin - s.center;
+	float a = dot(r.direction, r.direction);
+	float b = 2.0 * dot(oc, r.direction);
+	float c = dot(oc, oc) - s.radius * s.radius;
+	float discriminant = b * b - 4 * a * c;
+	if (discriminant < 0)
+	{
+		return -1.0;
+	}
+	else
+	{
+		return (-b - sqrt(discriminant)) / (2.0 * a);
+	}
 }
-
 
 // Ray-AABB intersection
 // float hitAabb(const Aabb aabb, const Ray r)
@@ -85,38 +80,33 @@ float hitSphere(const Sphere s, const Ray r)
 // 	return t1 > max(t0, 0.0) ? t0 : -1.0;
 // }
 
-
-float PointInOrOn(vec3 P1, vec3 P2, vec3 A, vec3 B )
+float PointInOrOn(vec3 P1, vec3 P2, vec3 A, vec3 B)
 {
-    vec3 CP1 = cross(B - A, P1 - A);
-    vec3 CP2 = cross(B - A, P2 - A);
-    return step(0.0, dot(CP1, CP2));
+	vec3 CP1 = cross(B - A, P1 - A);
+	vec3 CP2 = cross(B - A, P2 - A);
+	return step(0.0, dot(CP1, CP2));
 }
 
-float PointInTriangle( vec3 px, vec3 p0, vec3 p1, vec3 p2 )
+float PointInTriangle(vec3 px, vec3 p0, vec3 p1, vec3 p2)
 {
-    return
-        PointInOrOn(px, p0, p1, p2) *
-        PointInOrOn(px, p1, p2, p0) *
-        PointInOrOn(px, p2, p0, p1);
+	return PointInOrOn(px, p0, p1, p2) * PointInOrOn(px, p1, p2, p0) * PointInOrOn(px, p2, p0, p1);
 }
-
 
 vec3 IntersectPlane(Ray ray, vec3 p0, vec3 p1, vec3 p2)
 {
-    vec3 D = ray.direction;
-    vec3 N = cross(p1-p0, p2-p0);
-    vec3 X = ray.origin + D * dot(p0 - ray.origin, N) / dot(D, N);
+	vec3 D = ray.direction;
+	vec3 N = cross(p1 - p0, p2 - p0);
+	vec3 X = ray.origin + D * dot(p0 - ray.origin, N) / dot(D, N);
 
-    return X;
+	return X;
 }
-
 
 bool IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2, out float t)
 {
-    vec3 X = IntersectPlane(ray, p0, p1, p2);
+	vec3 X = IntersectPlane(ray, p0, p1, p2);
 
-    if(PointInTriangle(X, p0, p1, p2) > 0) {
+	if (PointInTriangle(X, p0, p1, p2) > 0)
+	{
 		// debugPrintfEXT("IntersectPlane: %f, %f, %f", X.x,X.y,X.z);
 		float dist = distance(ray.origin, X);
 		// debugPrintfEXT("Dist: %f", dist);
@@ -125,8 +115,6 @@ bool IntersectTriangle(Ray ray, vec3 p0, vec3 p1, vec3 p2, out float t)
 	}
 	return false;
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -151,21 +139,22 @@ float nChooseK(int N, int K)
 	return r;
 }
 
-
 float BernsteinPolynomial(int i, int n, float x)
 {
 	// pow(0,0) is undefined at runtime! (but 0 when then arguments are known at compile time)
 	// http://hacksoflife.blogspot.com/2009/01/pow00-nan-sometimes.html
 	float xpowi = pow(x, i);
-	if(i == 0) {
+	if (i == 0)
+	{
 		xpowi = 1;
 	}
 	float powOther = pow(1.0 - x, n - i);
-	if(abs(n - 1) <= 0.0001) {
+	if (abs(n - 1) <= 0.0001)
+	{
 		powOther = 1;
 	}
 
-	float result =  nChooseK(n, i) * xpowi * powOther;
+	float result = nChooseK(n, i) * xpowi * powOther;
 
 	// debugPrintfEXT("BernsteinPolynomial i: %d n: %d x: %f - Result: %f \n", i,n,x,result);
 
@@ -179,14 +168,13 @@ int convert2Dto1D_index(int columns, int i, int j)
 
 vec3 bezierSurfacePoint(const vec3 controlPoints[16], int n, int m, float u, float v)
 {
-	vec3 sum = vec3(0,0,0);
+	vec3 sum = vec3(0, 0, 0);
 	for (int i = 0; i <= n; i++)
 	{
 		for (int j = 0; j <= m; j++)
 		{
 			int idx = convert2Dto1D_index(n + 1, i, j);
-			sum += controlPoints[idx]
-				* BernsteinPolynomial(i, n, u) * BernsteinPolynomial(j, m, v);
+			sum += controlPoints[idx] * BernsteinPolynomial(i, n, u) * BernsteinPolynomial(j, m, v);
 		}
 	}
 	return sum;
@@ -194,15 +182,15 @@ vec3 bezierSurfacePoint(const vec3 controlPoints[16], int n, int m, float u, flo
 
 vec3 partialDerivativeBezierSurfaceU(const vec3 controlPoints[16], int n, int m, float u, float v)
 {
-	vec3 sum = vec3(0,0,0);
+	vec3 sum = vec3(0, 0, 0);
 	for (int i = 0; i <= n - 1; i++)
 	{
 		for (int j = 0; j <= m; j++)
 		{
 			int p_a = convert2Dto1D_index(n + 1, i + 1, j);
 			int p_b = convert2Dto1D_index(n + 1, i, j);
-			sum += (controlPoints[p_a] - controlPoints[p_b])
-				* BernsteinPolynomial(i, n - 1, u) * BernsteinPolynomial(j, m, v);
+			sum += (controlPoints[p_a] - controlPoints[p_b]) * BernsteinPolynomial(i, n - 1, u)
+			       * BernsteinPolynomial(j, m, v);
 		}
 	};
 
@@ -211,15 +199,15 @@ vec3 partialDerivativeBezierSurfaceU(const vec3 controlPoints[16], int n, int m,
 
 vec3 partialDerivativeBezierSurfaceV(const vec3 controlPoints[16], int n, int m, float u, float v)
 {
-	vec3 sum = vec3(0,0,0);
+	vec3 sum = vec3(0, 0, 0);
 	for (int i = 0; i <= n; i++)
 	{
 		for (int j = 0; j <= m - 1; j++)
 		{
 			int p_a = convert2Dto1D_index(n + 1, i, j + 1);
 			int p_b = convert2Dto1D_index(n + 1, i, j);
-			sum += (controlPoints[p_a] - controlPoints[p_b])
-				* BernsteinPolynomial(i, n, u) * BernsteinPolynomial(j, m - 1, v);
+			sum += (controlPoints[p_a] - controlPoints[p_b]) * BernsteinPolynomial(i, n, u)
+			       * BernsteinPolynomial(j, m - 1, v);
 		}
 	};
 
@@ -228,8 +216,7 @@ vec3 partialDerivativeBezierSurfaceV(const vec3 controlPoints[16], int n, int m,
 
 vec2 projectPoint(const vec3 point, const vec3 origin, const vec3 n1, const vec3 n2)
 {
-	return vec2(dot(point, n1) - dot(n1, origin),
-			dot(point, n2) - dot(n2, origin));
+	return vec2(dot(point, n1) - dot(n1, origin), dot(point, n2) - dot(n2, origin));
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -249,19 +236,22 @@ int getControlPointIndices(int i, int j, int k)
 	return 0;
 }
 
-vec3 partialHu(const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
+vec3 partialHu(
+    const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
 	vec3 sum = vec3(0);
 
-	 for (int k = 0; k <= n - 1; k++)
-	 {
-	 	for (int j = 0; j <= n - 1 - k; j++)
-	 	{
-	 		for (int i = 0; i <= n - 1 - k - j; i++)
-	 		{
-	 			int idx1 = getControlPointIndices(i + 1, j, k);
-	 			int idx2 = getControlPointIndices(i, j, k);
-				sum +=  (controlPoints[idx1] - controlPoints[idx2]) * BernsteinPolynomial(i, n - 1, u)* BernsteinPolynomial(j, n - 1, v)* BernsteinPolynomial(k, n - 1, w);
+	for (int k = 0; k <= n - 1; k++)
+	{
+		for (int j = 0; j <= n - 1 - k; j++)
+		{
+			for (int i = 0; i <= n - 1 - k - j; i++)
+			{
+				int idx1 = getControlPointIndices(i + 1, j, k);
+				int idx2 = getControlPointIndices(i, j, k);
+				sum += (controlPoints[idx1] - controlPoints[idx2])
+				       * BernsteinPolynomial(i, n - 1, u) * BernsteinPolynomial(j, n - 1, v)
+				       * BernsteinPolynomial(k, n - 1, w);
 			}
 		}
 	}
@@ -269,19 +259,22 @@ vec3 partialHu(const vec3 controlPoints[10], const int n, const float u, const f
 	return n * sum;
 }
 
-vec3 partialHv(const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
+vec3 partialHv(
+    const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
 	vec3 sum = vec3(0);
 
-	 for (int k = 0; k <= n - 1; k++)
-	 {
-	 	for (int j = 0; j <= n - 1 - k; j++)
-	 	{
-	 		for (int i = 0; i <= n - 1 - k - j; i++)
-	 		{
-	 			int idx1 = getControlPointIndices(i, j+1, k);
-	 			int idx2 = getControlPointIndices(i, j, k);
-				sum +=  (controlPoints[idx1] - controlPoints[idx2]) * BernsteinPolynomial(i, n - 1, u)* BernsteinPolynomial(j, n - 1, v)* BernsteinPolynomial(k, n - 1, w);
+	for (int k = 0; k <= n - 1; k++)
+	{
+		for (int j = 0; j <= n - 1 - k; j++)
+		{
+			for (int i = 0; i <= n - 1 - k - j; i++)
+			{
+				int idx1 = getControlPointIndices(i, j + 1, k);
+				int idx2 = getControlPointIndices(i, j, k);
+				sum += (controlPoints[idx1] - controlPoints[idx2])
+				       * BernsteinPolynomial(i, n - 1, u) * BernsteinPolynomial(j, n - 1, v)
+				       * BernsteinPolynomial(k, n - 1, w);
 			}
 		}
 	}
@@ -289,31 +282,34 @@ vec3 partialHv(const vec3 controlPoints[10], const int n, const float u, const f
 	return n * sum;
 }
 
-vec3 partialHw(const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
+vec3 partialHw(
+    const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
 	vec3 sum = vec3(0);
 
-	 for (int k = 0; k <= n - 1; k++)
-	 {
-	 	for (int j = 0; j <= n - 1 - k; j++)
-	 	{
-	 		for (int i = 0; i <= n - 1 - k - j; i++)
-	 		{
-	 			int idx1 = getControlPointIndices(i, j, k + 1);
-	 			int idx2 = getControlPointIndices(i, j, k);
-				sum +=  (controlPoints[idx1] - controlPoints[idx2]) * BernsteinPolynomial(i, n - 1, u)* BernsteinPolynomial(j, n - 1, v)* BernsteinPolynomial(k, n - 1, w);
+	for (int k = 0; k <= n - 1; k++)
+	{
+		for (int j = 0; j <= n - 1 - k; j++)
+		{
+			for (int i = 0; i <= n - 1 - k - j; i++)
+			{
+				int idx1 = getControlPointIndices(i, j, k + 1);
+				int idx2 = getControlPointIndices(i, j, k);
+				sum += (controlPoints[idx1] - controlPoints[idx2])
+				       * BernsteinPolynomial(i, n - 1, u) * BernsteinPolynomial(j, n - 1, v)
+				       * BernsteinPolynomial(k, n - 1, w);
 			}
 		}
 	}
 
 	return n * sum;
 }
-
 
 vec3 H1(const vec3 controlPoints[10], int n, const float v, const float w)
 {
 	vec3 sum = vec3(0);
-	if(v < 0 || w < 0 || v > 1 || w > 1) {
+	if (v < 0 || w < 0 || v > 1 || w > 1)
+	{
 		return sum;
 	}
 
@@ -336,7 +332,8 @@ vec3 H1(const vec3 controlPoints[10], int n, const float v, const float w)
 vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 {
 	vec3 sum = vec3(0);
-	if(u < 0 || w < 0) {
+	if (u < 0 || w < 0)
+	{
 		return sum;
 	}
 
@@ -348,8 +345,8 @@ vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 			for (int i = 0; i <= n - k - j; i++)
 			{
 				int idx = getControlPointIndices(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u) *
-					BernsteinPolynomial(j, n, 0) * BernsteinPolynomial(k, n, w);
+				sum += controlPoints[idx] * BernsteinPolynomial(i, n, u)
+				       * BernsteinPolynomial(j, n, 0) * BernsteinPolynomial(k, n, w);
 			}
 		}
 	}
@@ -359,7 +356,8 @@ vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
 vec3 H3(const vec3 controlPoints[10], int n, const float u, const float v)
 {
 	vec3 sum = vec3(0);
-	if(u < 0 || v < 0) {
+	if (u < 0 || v < 0)
+	{
 		return sum;
 	}
 
@@ -382,12 +380,14 @@ vec3 H3(const vec3 controlPoints[10], int n, const float u, const float v)
 vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
 {
 	vec3 sum = vec3(0);
-	if(r < 0 || t < 0) {
+	if (r < 0 || t < 0)
+	{
 		return sum;
 	}
 
 	// TODO: remove this loop and write out the formula
-	if(r + t <= 1.0) {
+	if (r + t <= 1.0)
+	{
 		for (int k = 0; k <= n; k++)
 		{
 			for (int j = 0; j <= n - k; j++)
@@ -399,8 +399,7 @@ vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
 					float v = t;
 					float w = 1.0 - r - t;
 					sum += controlPoints[idx] * BernsteinPolynomial(i, n, u)
-						* BernsteinPolynomial(j, n, v)
-						* BernsteinPolynomial(k, n, w);
+					       * BernsteinPolynomial(j, n, v) * BernsteinPolynomial(k, n, w);
 				}
 			}
 		}
@@ -422,12 +421,13 @@ vec3 partialH4r2(const vec3 controlPoints[10], const float r, const float t)
 			{
 				int idx = getControlPointIndices(i, j, k);
 
-				if(r+t <= 1.0) {
+				if (r + t <= 1.0)
+				{
 					float u = r;
 					float v = t;
 					float w = 1.0 - r - t;
-					float Bi = BernsteinPolynomial(i - 1, n - 1, u)
-						- BernsteinPolynomial(i, n - 1, u);
+					float Bi
+					    = BernsteinPolynomial(i - 1, n - 1, u) - BernsteinPolynomial(i, n - 1, u);
 					float Bj = BernsteinPolynomial(j, n, v);
 					float Bk = BernsteinPolynomial(k, n, w);
 					sum += controlPoints[idx] * Bi * Bj * Bk;
@@ -453,13 +453,14 @@ vec3 partialH4t2(const vec3 controlPoints[10], const float r, const float t)
 			{
 				int idx = getControlPointIndices(i, j, k);
 
-				if(r+t <= 1.0) {
+				if (r + t <= 1.0)
+				{
 					float u = r;
 					float v = t;
 					float w = 1.0 - r - t;
 					float Bi = BernsteinPolynomial(i, n, u);
-					float Bj = BernsteinPolynomial(j - 1, n - 1, v)
-						- BernsteinPolynomial(j, n - 1, v);
+					float Bj
+					    = BernsteinPolynomial(j - 1, n - 1, v) - BernsteinPolynomial(j, n - 1, v);
 					float Bk = BernsteinPolynomial(k, n, w);
 					sum += controlPoints[idx] * Bi * Bj * Bk;
 				}
@@ -473,137 +474,137 @@ vec3 partialH4t2(const vec3 controlPoints[10], const float r, const float t)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 mat2x2 jacobian(const vec3 controlPoints[16],
-		const int n,
-		const int m,
-		const vec3 n1,
-		const vec3 n2,
-		const float u,
-		const float v)
+                const int n,
+                const int m,
+                const vec3 n1,
+                const vec3 n2,
+                const float u,
+                const float v)
 {
 	vec3 partialDerivtiveU = partialDerivativeBezierSurfaceU(controlPoints, n, m, u, v);
 	vec3 partialDerivativeV = partialDerivativeBezierSurfaceV(controlPoints, n, m, u, v);
-	return mat2x2(
-		dot(n1, partialDerivtiveU),
-			dot(n1, partialDerivativeV),
-			dot(n2, partialDerivtiveU),
-			dot(n2, partialDerivativeV)
-	);
+	return mat2x2(dot(n1, partialDerivtiveU),
+	              dot(n1, partialDerivativeV),
+	              dot(n2, partialDerivtiveU),
+	              dot(n2, partialDerivativeV));
 }
 
 mat2x2 jacobian2(const vec3 controlPoints[10],
-		int mode,
-		const vec3 n1,
-		const vec3 n2,
-		const float v,
-		const float w)
+                 int mode,
+                 const vec3 n1,
+                 const vec3 n2,
+                 const float v,
+                 const float w)
 {
 	vec3 partialDerivative1 = vec3(0);
 	vec3 partialDerivative2 = vec3(0);
-	if(mode == 1) {
+	if (mode == 1)
+	{
 		partialDerivative1 = partialHv(controlPoints, 2, 0, v, w);
 		partialDerivative2 = partialHw(controlPoints, 2, 0, v, w);
-	}else if(mode == 2) {
-		partialDerivative1 = partialHu(controlPoints,2, v, 0, w);
-		partialDerivative2 = partialHw(controlPoints,2, v, 0, w);
-	}else if(mode == 3) {
-		partialDerivative1 = partialHu(controlPoints,2, v, w, 0);
-		partialDerivative2 = partialHv(controlPoints,2, v, w, 0);
-	}else if(mode == 4) {
+	}
+	else if (mode == 2)
+	{
+		partialDerivative1 = partialHu(controlPoints, 2, v, 0, w);
+		partialDerivative2 = partialHw(controlPoints, 2, v, 0, w);
+	}
+	else if (mode == 3)
+	{
+		partialDerivative1 = partialHu(controlPoints, 2, v, w, 0);
+		partialDerivative2 = partialHv(controlPoints, 2, v, w, 0);
+	}
+	else if (mode == 4)
+	{
 		partialDerivative1 = partialH4r2(controlPoints, v, w);
 		partialDerivative2 = partialH4t2(controlPoints, v, w);
 	}
 
-
-	return mat2x2(
-		dot(n1, partialDerivative1),
-		dot(n1, partialDerivative2),
-		dot(n2, partialDerivative1),
-		dot(n2, partialDerivative2)
-	);
+	return mat2x2(dot(n1, partialDerivative1),
+	              dot(n1, partialDerivative2),
+	              dot(n2, partialDerivative1),
+	              dot(n2, partialDerivative2));
 }
 
-mat2x2 inverseJacobian(const mat2x2 J) {
+mat2x2 inverseJacobian(const mat2x2 J)
+{
 	float d = determinant(J);
-	if(abs(d) < 0.00001) {
-		return mat2x2(0,0,0,0);
+	if (abs(d) < 0.00001)
+	{
+		return mat2x2(0, 0, 0, 0);
 	}
 
-	mat2x2 mat = 1.0 / d * mat2x2(
-			J[1][1],
-			-J[0][1],
-			-J[1][0],
-			J[0][0]
-		);
+	mat2x2 mat = 1.0 / d * mat2x2(J[1][1], -J[0][1], -J[1][0], J[0][0]);
 	return mat;
 }
 
 vec2 f(const vec3 controlPoints[16],
-		const vec3 origin,
-		const int n,
-		const int m,
-		const vec3 n1,
-		const vec3 n2,
-		const float u,
-		const float v)
+       const vec3 origin,
+       const int n,
+       const int m,
+       const vec3 n1,
+       const vec3 n2,
+       const float u,
+       const float v)
 {
 	vec3 surfacePoint = bezierSurfacePoint(controlPoints, n, m, u, v);
 	float d1 = dot(-n1, origin);
 	float d2 = dot(-n2, origin);
-	return vec2(
-			dot(n1, surfacePoint) + d1,
-			dot(n2, surfacePoint) + d2
-			);
+	return vec2(dot(n1, surfacePoint) + d1, dot(n2, surfacePoint) + d2);
 }
 
 vec2 fSide(const vec3[10] controlPoints,
-                       int side,
-                       const vec3 origin,
-                       const vec3 n1,
-                       const vec3 n2,
-                       const float v,
-                       const float w)
+           int side,
+           const vec3 origin,
+           const vec3 n1,
+           const vec3 n2,
+           const float v,
+           const float w)
 {
 	vec3 surfacePoint = vec3(0);
-	if(side == 1) {
- 		surfacePoint = H1(controlPoints, 2, v, w);
-	}else if(side == 2) {
- 		surfacePoint = H2(controlPoints, 2, v, w);
-	}else if(side == 3) {
- 		surfacePoint = H3(controlPoints, 2, v, w);
-	}else if(side == 4) {
- 		surfacePoint = H4(controlPoints, 2, v, w);
+	if (side == 1)
+	{
+		surfacePoint = H1(controlPoints, 2, v, w);
+	}
+	else if (side == 2)
+	{
+		surfacePoint = H2(controlPoints, 2, v, w);
+	}
+	else if (side == 3)
+	{
+		surfacePoint = H3(controlPoints, 2, v, w);
+	}
+	else if (side == 4)
+	{
+		surfacePoint = H4(controlPoints, 2, v, w);
 	}
 
 	// project onto planes
 	float d1 = dot(-n1, origin);
 	float d2 = dot(-n2, origin);
-	return vec2(
-	    dot(n1, surfacePoint) + d1,
-	    dot(n2, surfacePoint) + d2
-	);
+	return vec2(dot(n1, surfacePoint) + d1, dot(n2, surfacePoint) + d2);
 }
 
-
 bool newtonsMethod(inout vec3 intersectionPoint,
-		const vec2 initialGuess,
-		const vec3 origin,
-		const vec3 controlPoints[16],
-		int n,
-		int m,
-		const vec3 n1,
-		const vec3 n2)
+                   const vec2 initialGuess,
+                   const vec3 origin,
+                   const vec3 controlPoints[16],
+                   int n,
+                   int m,
+                   const vec3 n1,
+                   const vec3 n2)
 {
-	intersectionPoint = vec3(0,0,0);
+	intersectionPoint = vec3(0, 0, 0);
 
 	// vec2 initialGuess = vec2(0.5, 0.2);
 	const int max_iterations = 10;
 	vec2 u[max_iterations + 1];
 
-	vec2 tolerance = vec2(raytracingDataConstants.newtonErrorXTolerance, raytracingDataConstants.newtonErrorXTolerance);
+	vec2 tolerance = vec2(raytracingDataConstants.newtonErrorXTolerance,
+	                      raytracingDataConstants.newtonErrorXTolerance);
 
 	u[0] = initialGuess;
 
-	vec2 previousError = vec2(0,0);
+	vec2 previousError = vec2(0, 0);
 	vec2 error = vec2(100000, 100000);
 
 	for (int c = 0; c < max_iterations; c++)
@@ -611,8 +612,9 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 		// WARN: IDK if jacobian is calculated correctly
 		mat2x2 j = jacobian(controlPoints, n, m, n1, n2, u[c].x, u[c].y);
 		mat2x2 inv_j = inverseJacobian(j);
-		if(inv_j == mat2x2(0,0,0,0)) {
-			intersectionPoint = vec3(0,0,0);
+		if (inv_j == mat2x2(0, 0, 0, 0))
+		{
+			intersectionPoint = vec3(0, 0, 0);
 			return false;
 		}
 
@@ -642,19 +644,19 @@ bool newtonsMethod(inout vec3 intersectionPoint,
 
 const float M_PI = 3.1415926535897932384626433832795;
 
-float random(vec2 uv, float seed) {
-  return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
-               43758.5453);
+float random(vec2 uv, float seed)
+{
+	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
 }
 
 bool newtonsMethod2(inout vec3 intersectionPoint,
-		int side,
-		const vec2 initialGuess,
-		const vec3 origin,
-		const vec3[10] controlPoints,
-		const vec3 n1,
-		const vec3 n2,
-		const bool shouldPrint)
+                    int side,
+                    const vec2 initialGuess,
+                    const vec3 origin,
+                    const vec3[10] controlPoints,
+                    const vec3 n1,
+                    const vec3 n2,
+                    const bool shouldPrint)
 {
 	bool hit = false;
 	const int max_iterations = 21;
@@ -663,8 +665,10 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 	float toleranceX = raytracingDataConstants.newtonErrorXTolerance;
 	float toleranceF = raytracingDataConstants.newtonErrorFTolerance;
 
-	if(shouldPrint) {
-		debugPrintfEXT("old initialGuess: (%.2v2f), new initialGuess: (%.2v2f)", initialGuess, initialGuess);
+	if (shouldPrint)
+	{
+		debugPrintfEXT(
+		    "old initialGuess: (%.2v2f), new initialGuess: (%.2v2f)", initialGuess, initialGuess);
 	}
 
 	u[0] = initialGuess;
@@ -673,23 +677,26 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 		u[c] = vec2(0);
 	}
 
-
-
 	int c = 0;
-	if(raytracingDataConstants.newtonMaxIterations == 0) {
+	if (raytracingDataConstants.newtonMaxIterations == 0)
+	{
 
-		if(initialGuess.x >= 0 || initialGuess.y >= 0 || initialGuess.x <= 1 || initialGuess.y <= 1) {
-			u[c+1] = initialGuess;
+		if (initialGuess.x >= 0 || initialGuess.y >= 0 || initialGuess.x <= 1
+		    || initialGuess.y <= 1)
+		{
+			u[c + 1] = initialGuess;
 			hit = true;
 		}
-	}else{
+	}
+	else
+	{
 		float previousErrorF = 100000.0;
 		float errorF = 100000.0;
 
 		float previousErrorX = 100000.0;
 		float errorX = 100000.0;
 
-		for(; c <= raytracingDataConstants.newtonMaxIterations; c++)
+		for (; c <= raytracingDataConstants.newtonMaxIterations; c++)
 		{
 			mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
 
@@ -702,8 +709,10 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			// }
 
 			mat2x2 inv_j = inverseJacobian(j);
-			if(inv_j == mat2x2(0,0,0,0)) {
-				if(shouldPrint) {
+			if (inv_j == mat2x2(0, 0, 0, 0))
+			{
+				if (shouldPrint)
+				{
 					debugPrintfEXT("abort: inv_j is 0");
 				}
 				hit = false;
@@ -713,21 +722,29 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			vec2 f_value = fSide(controlPoints, side, origin, n1, n2, u[c].x, u[c].y);
 
 			// TODO: figure out if and why this scaling of the newton step is needed
-			// f_value *=  ((c+1) / float(raytracingDataConstants.newtonMaxIterations + 1)) * raytracingDataConstants.someFloatingScalar;
+			// f_value *=  ((c+1) / float(raytracingDataConstants.newtonMaxIterations + 1)) *
+			// raytracingDataConstants.someFloatingScalar;
 
 			previousErrorF = errorF;
 			errorF = abs(f_value[0]) + abs(f_value[1]);
-			if(raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0 && errorF > previousErrorF) {
-				if(shouldPrint) {
-					debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",errorF,previousErrorF);
+			if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0
+			    && errorF > previousErrorF)
+			{
+				if (shouldPrint)
+				{
+					debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
+					               errorF,
+					               previousErrorF);
 				}
 				hit = false;
 				break;
 			}
 
-			if(errorF <= toleranceF) {
+			if (errorF <= toleranceF)
+			{
 				hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
-				if(shouldPrint) {
+				if (shouldPrint)
+				{
 					debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
 				}
 				break;
@@ -746,81 +763,117 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			// 	break;
 			// }
 
-
 			previousErrorX = errorX;
 			errorX = abs(differenceInUV[0]) + abs(differenceInUV[1]);
-			if(raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0 && errorX > previousErrorX) {
-				if(shouldPrint) {
-					debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f", errorX, previousErrorX);
+			if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0
+			    && errorX > previousErrorX)
+			{
+				if (shouldPrint)
+				{
+					debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
+					               errorX,
+					               previousErrorX);
 				}
 				hit = false;
 				break;
 			}
 
 			// TODO: maybe we want different tolerances for errorX and errorF
-			if(errorX <= toleranceX) {
+			if (errorX <= toleranceX)
+			{
 				hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
-				if(shouldPrint) {
+				if (shouldPrint)
+				{
 					debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
 				}
 				break;
 			}
 
-			if(shouldPrint) {
-				debugPrintfEXT("c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
-						c,
-						u[0],
-						u[1],
-						u[2],
-						u[3],
-						u[4],
-						u[5],
-						side, n1, n2, f_value, differenceInUV, u[c], u[c+1],
-						errorX,
-						errorF,
-						j[0][0], j[0][1], j[1][0], j[1][1],
-						inv_j[0][0], inv_j[0][1], inv_j[1][0], inv_j[1][1]);
+			if (shouldPrint)
+			{
+				debugPrintfEXT(
+				    "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
+				    c,
+				    u[0],
+				    u[1],
+				    u[2],
+				    u[3],
+				    u[4],
+				    u[5],
+				    side,
+				    n1,
+				    n2,
+				    f_value,
+				    differenceInUV,
+				    u[c],
+				    u[c + 1],
+				    errorX,
+				    errorF,
+				    j[0][0],
+				    j[0][1],
+				    j[1][0],
+				    j[1][1],
+				    inv_j[0][0],
+				    inv_j[0][1],
+				    inv_j[1][0],
+				    inv_j[1][1]);
 			}
 		}
 	}
 
-	if(shouldPrint) {
+	if (shouldPrint)
+	{
 		debugPrintfEXT("loop ended: hit: %d", hit);
 	}
 
 	intersectionPoint = vec3(0);
-	if(hit) {
+	if (hit)
+	{
 		int idx = c;
-		if(side == 1) {
+		if (side == 1)
+		{
 			intersectionPoint = H1(controlPoints, 2, u[idx].x, u[idx].y);
-		}else if(side == 2) {
+		}
+		else if (side == 2)
+		{
 			intersectionPoint = H2(controlPoints, 2, u[idx].x, u[idx].y);
-		}else if(side == 3) {
+		}
+		else if (side == 3)
+		{
 			intersectionPoint = H3(controlPoints, 2, u[idx].x, u[idx].y);
-		}else if(side == 4) {
+		}
+		else if (side == 4)
+		{
 			intersectionPoint = H4(controlPoints, 2, u[idx].x, u[idx].y);
 		}
 	}
 	return hit;
 }
 
-
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
-bool intersectWithPlane(const vec3 planeNormal,const vec3 planeOrigin,const vec3 rayOrigin,const vec3 rayDirection, out float t) {
-	// debugPrintfEXT("Test intesection with Plane: RayOrigin: (%v3f) rayDirection: (%v3f) PlaneNormal(%v3f) PlanePosition:(%v3f)",rayOrigin, rayDirection, planeNormal, planeOrigin);
-  float denom = dot(planeNormal, rayDirection);
-  if (denom > 1e-6) {
-	vec3 rayToPlanePoint = planeOrigin - rayOrigin;
-	t = dot(rayToPlanePoint, planeNormal) / denom;
-	return t >= 0;
-  }
-  return false;
+bool intersectWithPlane(const vec3 planeNormal,
+                        const vec3 planeOrigin,
+                        const vec3 rayOrigin,
+                        const vec3 rayDirection,
+                        out float t)
+{
+	// debugPrintfEXT("Test intesection with Plane: RayOrigin: (%v3f) rayDirection: (%v3f)
+	// PlaneNormal(%v3f) PlanePosition:(%v3f)",rayOrigin, rayDirection, planeNormal, planeOrigin);
+	float denom = dot(planeNormal, rayDirection);
+	if (denom > 1e-6)
+	{
+		vec3 rayToPlanePoint = planeOrigin - rayOrigin;
+		t = dot(rayToPlanePoint, planeNormal) / denom;
+		return t >= 0;
+	}
+	return false;
 }
 
-
-void main() {
+void main()
+{
 	// Debugging, display aabb boxes
-	if(raytracingDataConstants.debugShowAABBs > 0.0) {
+	if (raytracingDataConstants.debugShowAABBs > 0.0)
+	{
 		// here we should actually calculate the intersection with the AABB but
 		// for simple debugging this is enough to show the AABBs
 		reportIntersectionEXT(0.001, t_AABBDebug);
@@ -828,26 +881,27 @@ void main() {
 	}
 
 	Ray ray;
-	ray.origin    = gl_WorldRayOriginEXT;
+	ray.origin = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;
 
 	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
 	int objectType = instance.type;
-	// debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d", gl_InstanceCustomIndexEXT, gl_PrimitiveID);
+	// debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d", gl_InstanceCustomIndexEXT,
+	// gl_PrimitiveID);
 
 	// Tetrahedron data
 
 	// debugPrintfEXT("gl_InstanceCustomIndexEXT: %d", gl_InstanceCustomIndexEXT);
-	// debugPrintfEXT("Tetrahedron: a: %f, %f, %f", tetrahedron.a.x,tetrahedron.a.y,tetrahedron.a.z);
-	// debugPrintfEXT("Tetrahedron: b: %f, %f, %f", tetrahedron.b.x,tetrahedron.b.y,tetrahedron.b.z);
-	// debugPrintfEXT("Tetrahedron: c: %f, %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
+	// debugPrintfEXT("Tetrahedron: a: %f, %f, %f",
+	// tetrahedron.a.x,tetrahedron.a.y,tetrahedron.a.z); debugPrintfEXT("Tetrahedron: b: %f, %f,
+	// %f", tetrahedron.b.x,tetrahedron.b.y,tetrahedron.b.z); debugPrintfEXT("Tetrahedron: c: %f,
+	// %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
 	float tHit = -1;
-	if(objectType == t_Tetrahedron1)
+	if (objectType == t_Tetrahedron1)
 	{
-		// TODO: i dont know if this is the best approach, here we are checking 4 sides, since the degree is 1
-		// this is the simplest method
-		// intersect test with tetrahedron of degree 1
+		// TODO: i dont know if this is the best approach, here we are checking 4 sides, since the
+		// degree is 1 this is the simplest method intersect test with tetrahedron of degree 1
 		// Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
 
 		// float t =-1;
@@ -891,8 +945,8 @@ void main() {
 		// 	}
 		// }
 
-	 // debugPrintfEXT("tHit: %f", tHit);
-	 // debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
+		// debugPrintfEXT("tHit: %f", tHit);
+		// debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
 		// 	 tHit,
 		// 	 tetrahedron.controlPoints[0],
 		// 	 tetrahedron.controlPoints[1],
@@ -900,7 +954,7 @@ void main() {
 		// 	 tetrahedron.controlPoints[3]
 		// 	 );
 	}
-	else if(objectType == t_Tetrahedron2)
+	else if (objectType == t_Tetrahedron2)
 	{
 		Tetrahedron2 tetrahedron = tetrahedrons[instance.bufferIndex];
 		vec3 o = ray.origin;
@@ -910,12 +964,12 @@ void main() {
 		float dy = ray.direction.y;
 		float dz = ray.direction.z;
 
-//		 if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
-//		 	n1 = vec3(dy, -dx, 0);
-//		 }else{
-//		 	n1 = vec3(0, dz, -dy);
-//		 }
-//		 n2 = cross(n1, ray.direction);
+		//		 if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
+		//		 	n1 = vec3(dy, -dx, 0);
+		//		 }else{
+		//		 	n1 = vec3(0, dz, -dy);
+		//		 }
+		//		 n2 = cross(n1, ray.direction);
 
 		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
 		n1 = normalize(cross(ray.direction, v));
@@ -927,17 +981,17 @@ void main() {
 		vec3 v1 = tetrahedron.controlPoints[getControlPointIndices(0, 2, 0)];
 		vec3 v2 = tetrahedron.controlPoints[getControlPointIndices(0, 0, 2)];
 
-
 		vec3 cameraDir = raytracingDataConstants.cameraDir;
 
 		bool shouldPrint = false;
-		if(length(normalize(ray.direction) - normalize(cameraDir)) < 0.001) {
+		if (length(normalize(ray.direction) - normalize(cameraDir)) < 0.001)
+		{
 			shouldPrint = true;
 		}
 
 		float t;
 		// Side 1
-		if(raytracingDataConstants.renderSide1 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
+		if (raytracingDataConstants.renderSide1 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
 		{
 			vec3 p = o + ray.direction * t;
 			vec3 a = v1 - v0;
@@ -963,21 +1017,32 @@ void main() {
 			// vec2 guess = vec2(dot(n1, p) + d1, dot(n2, p) + d2);
 
 			// if(shouldPrint) {
-			//  	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1: %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
+			//  	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
+			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
 			//  }
 
+			// debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
+			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:
+			// %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
 
-			//debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
-			//debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT: %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
-
-			// TODO: Trying to get our origin closer to the actual object so the numbers are staying small (we only have 32-bit float precision)
-			// p - ray.direction * 0.05; this wont work, we need the intersection point with the AABB to ensure the point lies outside of the tetrahedron
+			// TODO: Trying to get our origin closer to the actual object so the numbers are staying
+			// small (we only have 32-bit float precision) p - ray.direction * 0.05; this wont work,
+			// we need the intersection point with the AABB to ensure the point lies outside of the
+			// tetrahedron
 			vec3 closeOrigin = o;
-			//debugPrintfEXT("origin: %.2v3f, closeOrigin: %.2v3f",o, closeOrigin);
-			if (newtonsMethod2(intersectionPoint, 1, guess, closeOrigin, tetrahedron.controlPoints, n1, n2, shouldPrint))
+			// debugPrintfEXT("origin: %.2v3f, closeOrigin: %.2v3f",o, closeOrigin);
+			if (newtonsMethod2(intersectionPoint,
+			                   1,
+			                   guess,
+			                   closeOrigin,
+			                   tetrahedron.controlPoints,
+			                   n1,
+			                   n2,
+			                   shouldPrint))
 			{
 				float dist = distance(intersectionPoint, o);
-				if(tHit == -1 || dist < tHit) {
+				if (tHit == -1 || dist < tHit)
+				{
 					tHit = dist;
 				}
 			}
@@ -1008,10 +1073,18 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-			if (newtonsMethod2(intersectionPoint, 2, guess, ray.origin, tetrahedron.controlPoints, n1, n2, shouldPrint))
+			if (newtonsMethod2(intersectionPoint,
+			                   2,
+			                   guess,
+			                   ray.origin,
+			                   tetrahedron.controlPoints,
+			                   n1,
+			                   n2,
+			                   shouldPrint))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
-				if(tHit == -1 || dist < tHit) {
+				if (tHit == -1 || dist < tHit)
+				{
 					tHit = dist;
 				}
 			}
@@ -1042,10 +1115,18 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-			if (newtonsMethod2(intersectionPoint, 3, guess, ray.origin, tetrahedron.controlPoints, n1, n2, shouldPrint))
+			if (newtonsMethod2(intersectionPoint,
+			                   3,
+			                   guess,
+			                   ray.origin,
+			                   tetrahedron.controlPoints,
+			                   n1,
+			                   n2,
+			                   shouldPrint))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
-				if(tHit == -1 || dist < tHit) {
+				if (tHit == -1 || dist < tHit)
+				{
 					tHit = dist;
 				}
 			}
@@ -1076,16 +1157,24 @@ void main() {
 
 			vec2 guess = vec2(beta, gamma);
 
-		 	if (newtonsMethod2(intersectionPoint, 4, guess, ray.origin, tetrahedron.controlPoints, n1, n2, shouldPrint))
+			if (newtonsMethod2(intersectionPoint,
+			                   4,
+			                   guess,
+			                   ray.origin,
+			                   tetrahedron.controlPoints,
+			                   n1,
+			                   n2,
+			                   shouldPrint))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
-				if(tHit == -1 || dist < tHit) {
+				if (tHit == -1 || dist < tHit)
+				{
 					tHit = dist;
 				}
 			}
 		}
 	}
-	else if(objectType == t_Triangle)
+	else if (objectType == t_Triangle)
 	{
 		// Triangle triangle = triangles[instance.bufferIndex];
 		// tHit = IntersectTriangle(ray, triangle.a, triangle.b, triangle.c);
@@ -1094,7 +1183,8 @@ void main() {
 	{
 		// Sphere intersection
 		Sphere sphere = spheres[instance.bufferIndex];
-		// debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ", instance.bufferIndex, sphere.radius, sphere.center, sphere.colorIdx);
+		// debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
+		// instance.bufferIndex, sphere.radius, sphere.center, sphere.colorIdx);
 
 		tHit = hitSphere(sphere, ray);
 	}
@@ -1108,9 +1198,12 @@ void main() {
 		float dy = ray.direction.y;
 		float dz = ray.direction.z;
 
-		if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
+		if (abs(dx) > abs(dy) && abs(dx) > abs(dz))
+		{
 			n1 = vec3(dy, -dx, 0);
-		}else{
+		}
+		else
+		{
 			n1 = vec3(0, dz, -dy);
 		}
 		n2 = cross(n1, ray.direction);
@@ -1118,8 +1211,9 @@ void main() {
 		vec3 intersectionPoint;
 		// TODO: figure out what a good intial guess is
 		// vec2 initialGuess = projectPoint(surface.controlPoints[10].xyz, o, n1, n2);
-		vec2 initialGuess = vec2(1,1.0);
-		if (newtonsMethod(intersectionPoint, initialGuess, ray.origin, surface.controlPoints, 3, 3, n1, n2))
+		vec2 initialGuess = vec2(1, 1.0);
+		if (newtonsMethod(
+		        intersectionPoint, initialGuess, ray.origin, surface.controlPoints, 3, 3, n1, n2))
 		{
 			tHit = distance(intersectionPoint, ray.origin);
 		}
@@ -1133,17 +1227,15 @@ void main() {
 	// if we still hit no object, check if we hit a slicing plane
 	SlicingPlane plane = slicingPlanes[0];
 	float t = 0;
-	if(intersectWithPlane(plane.normal, plane.planeOrigin, ray.origin, ray.direction, t)) {
-		if(t < tHit) {
+	if (intersectWithPlane(plane.normal, plane.planeOrigin, ray.origin, ray.direction, t))
+	{
+		if (t < tHit)
+		{
 			tHit = t;
 			objectType = int(t_SlicingPlane);
 		}
 	}
 
 	// Report hit point
-	if(tHit > 0)
-		reportIntersectionEXT(tHit, objectType);
-
+	if (tHit > 0) reportIntersectionEXT(tHit, objectType);
 }
-
-

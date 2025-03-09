@@ -8,80 +8,94 @@
 
 #include "../include/common_types.h"
 
-layout(location = 0) rayPayloadEXT Payload {
-  vec3 rayOrigin;
-  vec3 rayDirection;
-  vec3 previousNormal;
+layout(location = 0) rayPayloadEXT Payload
+{
+	vec3 rayOrigin;
+	vec3 rayDirection;
+	vec3 previousNormal;
 
-  vec3 directColor;
-  vec3 indirectColor;
-  int rayDepth;
+	vec3 directColor;
+	vec3 indirectColor;
+	int rayDepth;
 
-  int rayActive;
+	int rayActive;
 }
 payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, set = 0) uniform UniformStructure {
-  mat4 viewProj;
-  mat4 viewInverse;
-  mat4 projInverse;
+layout(binding = 1, set = 0) uniform UniformStructure
+{
+	mat4 viewProj;
+	mat4 viewInverse;
+	mat4 projInverse;
 
-  vec4 position;
-  vec4 right;
-  vec4 up;
-  vec4 forward;
+	vec4 position;
+	vec4 right;
+	vec4 up;
+	vec4 forward;
 
-  uint frameCount;
-} ubo;
+	uint frameCount;
+}
+ubo;
 
 layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 
-layout( push_constant ) uniform RaytracingDataConstants
-{
-	// see common_types.h
-	PUSH_CONSTANT_MEMBERS
-} raytracingDataConstants;
+layout(push_constant) uniform RaytracingDataConstants{
+    // see common_types.h
+    PUSH_CONSTANT_MEMBERS} raytracingDataConstants;
 
-float random(vec2 uv, float seed) {
-  return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) *
-               43758.5453);
-  ;
+float random(vec2 uv, float seed)
+{
+	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
+	;
 }
 
-void main() {
-  vec2 uv = gl_LaunchIDEXT.xy + vec2(0.5); // + vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
-  uv /= vec2(gl_LaunchSizeEXT.xy);
-  uv =  uv *  2.0f - 1.0f;
+void main()
+{
+	vec2 uv = gl_LaunchIDEXT.xy
+	          + vec2(0.5); // + vec2(random(gl_LaunchIDEXT.xy, 0), random(gl_LaunchIDEXT.xy, 1));
+	uv /= vec2(gl_LaunchSizeEXT.xy);
+	uv = uv * 2.0f - 1.0f;
 
-  vec4 origin    = ubo.viewInverse * vec4(0, 0, 0, 1);
-  vec4 target    = ubo.projInverse * vec4(uv.x, uv.y, 1, 1);
-  vec4 direction = ubo.viewInverse * vec4(normalize(target.xyz), 0);
+	vec4 origin = ubo.viewInverse * vec4(0, 0, 0, 1);
+	vec4 target = ubo.projInverse * vec4(uv.x, uv.y, 1, 1);
+	vec4 direction = ubo.viewInverse * vec4(normalize(target.xyz), 0);
 
-  payload.rayOrigin = origin.xyz;
-  payload.rayDirection = direction.xyz;
-  payload.previousNormal = vec3(0.0, 0.0, 0.0);
+	payload.rayOrigin = origin.xyz;
+	payload.rayDirection = direction.xyz;
+	payload.previousNormal = vec3(0.0, 0.0, 0.0);
 
-  payload.directColor= raytracingDataConstants.environmentColor;
-  payload.indirectColor = vec3(0.0, 0.0, 0.0);
-  payload.rayDepth = 0;
+	payload.directColor = raytracingDataConstants.environmentColor;
+	payload.indirectColor = vec3(0.0, 0.0, 0.0);
+	payload.rayDepth = 0;
 
-  payload.rayActive = 1;
+	payload.rayActive = 1;
 
-  for (int x = 0; x < raytracingDataConstants.raysPerPixel; x++) {
-    traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xFF, 0, 0, 0,
-                payload.rayOrigin, 0.001, payload.rayDirection, 1000.0, 0);
-  }
+	for (int x = 0; x < raytracingDataConstants.raysPerPixel; x++)
+	{
+		traceRayEXT(topLevelAS,
+		            gl_RayFlagsOpaqueEXT,
+		            0xFF,
+		            0,
+		            0,
+		            0,
+		            payload.rayOrigin,
+		            0.001,
+		            payload.rayDirection,
+		            1000.0,
+		            0);
+	}
 
-  vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);
+	vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);
 
-  if (ubo.frameCount > 0) {
-    vec4 previousColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
-    previousColor *= ubo.frameCount;
+	if (ubo.frameCount > 0)
+	{
+		vec4 previousColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
+		previousColor *= ubo.frameCount;
 
-    color += previousColor;
-    color /= (ubo.frameCount + 1);
-  }
+		color += previousColor;
+		color /= (ubo.frameCount + 1);
+	}
 
-   imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);
+	imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);
 }

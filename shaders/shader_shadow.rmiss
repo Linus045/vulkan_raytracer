@@ -3,4 +3,7 @@
 
 layout(location = 1) rayPayloadInEXT bool isShadow;
 
-void main() { isShadow = false; }
+void main()
+{
+	isShadow = false;
+}
