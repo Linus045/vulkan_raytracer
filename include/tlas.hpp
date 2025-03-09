@@ -28,8 +28,20 @@ inline void createAndBuildTopLevelAccelerationStructure(
     DeletionQueue& deletionQueue,
     VkDevice logicalDevice,
     VkPhysicalDevice physicalDevice,
-    RaytracingInfo& raytracingInfo,
-    const bool onlyUpdate)
+    const bool onlyUpdate,
+    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
+    VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
+    VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
+    VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
+    VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
+    VkBuffer& topLevelAccelerationStructureBufferHandle,
+    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
+    VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
+    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
+    VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
+    VkCommandBuffer commandBufferBuildTopAndBottomLevel,
+    VkQueue graphicsQueueHandle)
+
 {
 	// std::vector<VkAccelerationStructureInstanceKHR> blasGeometryInstances;
 	// for (const auto& instance : blasInstances)
@@ -45,24 +57,22 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	if (onlyUpdate)
 	{
 		// Copy new instances to the buffer
-
 		copyDataToBuffer(logicalDevice,
-		                 raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+		                 blasGeometryInstancesDeviceMemoryHandle,
 		                 instances.data(),
 		                 sizeof(VkAccelerationStructureInstanceKHR) * instances.size());
 
 		// set flags to update instead of rebuild the acceleration structure
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.mode
+		topLevelAccelerationStructureBuildGeometryInfo.mode
 		    = VK_BUILD_ACCELERATION_STRUCTURE_MODE_UPDATE_KHR;
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.srcAccelerationStructure
-		    = raytracingInfo.topLevelAccelerationStructureHandle;
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
-		    = raytracingInfo.topLevelAccelerationStructureHandle;
+		topLevelAccelerationStructureBuildGeometryInfo.srcAccelerationStructure
+		    = topLevelAccelerationStructureHandle;
+		topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
+		    = topLevelAccelerationStructureHandle;
 	}
 	else
 	{
 		VkBuffer blasGeometryInstancesBufferHandle = VK_NULL_HANDLE;
-		raytracingInfo.blasGeometryInstancesDeviceMemoryHandle = VK_NULL_HANDLE;
 		VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
 		createBuffer(physicalDevice,
 		             logicalDevice,
@@ -73,12 +83,10 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             blasGeometryInstancesBufferHandle,
-		             raytracingInfo.blasGeometryInstancesDeviceMemoryHandle);
+		             blasGeometryInstancesDeviceMemoryHandle);
 
-		copyDataToBuffer(logicalDevice,
-		                 raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
-		                 instances.data(),
-		                 bufferSize);
+		copyDataToBuffer(
+		    logicalDevice, blasGeometryInstancesDeviceMemoryHandle, instances.data(), bufferSize);
 
 		//=================================================================================================
 		// create top level acceleration structure geometry
@@ -100,7 +108,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		//     .stride = sizeof(AABB),
 		// };
 
-		raytracingInfo.topLevelAccelerationStructureGeometry = {
+		topLevelAccelerationStructureGeometry = {
 			.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
 			.pNext = NULL,
 			.geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
@@ -117,7 +125,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 			.flags = VK_GEOMETRY_OPAQUE_BIT_KHR,
 		};
 
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo = {
+		topLevelAccelerationStructureBuildGeometryInfo = {
 		    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
 		    .pNext = NULL,
 		    .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
@@ -126,12 +134,12 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		    .srcAccelerationStructure = VK_NULL_HANDLE,
 		    .dstAccelerationStructure = VK_NULL_HANDLE,
 		    .geometryCount = 1,
-		    .pGeometries = &raytracingInfo.topLevelAccelerationStructureGeometry,
+		    .pGeometries = &topLevelAccelerationStructureGeometry,
 		    .ppGeometries = NULL,
 		    .scratchData = {.deviceAddress = 0},
 		};
 
-		raytracingInfo.topLevelAccelerationStructureBuildSizesInfo = {
+		topLevelAccelerationStructureBuildSizesInfo = {
 		    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
 		    .pNext = NULL,
 		    .accelerationStructureSize = 0,
@@ -145,24 +153,23 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		ltracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
 		    logicalDevice,
 		    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-		    &raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+		    &topLevelAccelerationStructureBuildGeometryInfo,
 		    // Vulkan Docs: pMaxPrimitiveCounts is a pointer to an array of
 		    // pBuildInfo->geometryCount uint32_t values defining the number of primitives built
 		    // into each geometry.
 		    topLevelMaxPrimitiveCountList.data(),
-		    &raytracingInfo.topLevelAccelerationStructureBuildSizesInfo);
+		    &topLevelAccelerationStructureBuildSizesInfo);
 
-		createBuffer(
-		    physicalDevice,
-		    logicalDevice,
-		    deletionQueue,
-		    raytracingInfo.topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
-		    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
-		        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-		    VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-		    memoryAllocateFlagsInfo,
-		    raytracingInfo.topLevelAccelerationStructureBufferHandle,
-		    raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle);
+		createBuffer(physicalDevice,
+		             logicalDevice,
+		             deletionQueue,
+		             topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
+		             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
+		                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		             memoryAllocateFlagsInfo,
+		             topLevelAccelerationStructureBufferHandle,
+		             topLevelAccelerationStructureDeviceMemoryHandle);
 
 		//=================================================================================================
 		// create top level acceleration structure from geometry
@@ -170,10 +177,9 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
 		    .pNext = NULL,
 		    .createFlags = 0,
-		    .buffer = raytracingInfo.topLevelAccelerationStructureBufferHandle,
+		    .buffer = topLevelAccelerationStructureBufferHandle,
 		    .offset = 0,
-		    .size
-		    = raytracingInfo.topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
+		    .size = topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
 		    .type = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
 		    .deviceAddress = 0,
 		};
@@ -182,7 +188,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		    logicalDevice,
 		    &topLevelAccelerationStructureCreateInfo,
 		    NULL,
-		    &raytracingInfo.topLevelAccelerationStructureHandle);
+		    &topLevelAccelerationStructureHandle);
 
 		if (result != VK_SUCCESS)
 		{
@@ -190,10 +196,10 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		}
 
 		deletionQueue.push_function(
-		    [=, &raytracingInfo]()
+		    [=]()
 		    {
 			    ltracer::procedures::pvkDestroyAccelerationStructureKHR(
-			        logicalDevice, raytracingInfo.topLevelAccelerationStructureHandle, NULL);
+			        logicalDevice, topLevelAccelerationStructureHandle, NULL);
 		    });
 
 		//=================================================================================================
@@ -213,37 +219,37 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		createBuffer(physicalDevice,
 		             logicalDevice,
 		             deletionQueue,
-		             raytracingInfo.topLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
+		             topLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
 		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		             memoryAllocateFlagsInfo,
-		             raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
-		             raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle);
+		             topLevelAccelerationStructureScratchBufferHandle,
+		             topLevelAccelerationStructureDeviceScratchMemoryHandle);
 
 		VkBufferDeviceAddressInfo topLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 		    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
 		    .pNext = NULL,
-		    .buffer = raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
+		    .buffer = topLevelAccelerationStructureScratchBufferHandle,
 		};
 
 		VkDeviceAddress topLevelAccelerationStructureScratchBufferDeviceAddress
 		    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
 		        logicalDevice, &topLevelAccelerationStructureScratchBufferDeviceAddressInfo);
 
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
-		    = raytracingInfo.topLevelAccelerationStructureHandle;
+		topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
+		    = topLevelAccelerationStructureHandle;
 
 		// if (onlyUpdate)
 		// {
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.srcAccelerationStructure
-		    = raytracingInfo.topLevelAccelerationStructureHandle;
+		topLevelAccelerationStructureBuildGeometryInfo.srcAccelerationStructure
+		    = topLevelAccelerationStructureHandle;
 		// }
 
-		raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo.scratchData = {
+		topLevelAccelerationStructureBuildGeometryInfo.scratchData = {
 		    .deviceAddress = topLevelAccelerationStructureScratchBufferDeviceAddress,
 		};
 
-		raytracingInfo.topLevelAccelerationStructureBuildRangeInfo = {
+		topLevelAccelerationStructureBuildRangeInfo = {
 		    .primitiveCount = static_cast<uint32_t>(instances.size()),
 		    .primitiveOffset = 0,
 		    .firstVertex = 0,
@@ -252,7 +258,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	}
 
 	const VkAccelerationStructureBuildRangeInfoKHR* topLevelAccelerationStructureBuildRangeInfos
-	    = &raytracingInfo.topLevelAccelerationStructureBuildRangeInfo;
+	    = &topLevelAccelerationStructureBuildRangeInfo;
 
 	VkCommandBufferBeginInfo topLevelCommandBufferBeginInfo = {
 	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -261,7 +267,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	    .pInheritanceInfo = NULL,
 	};
 
-	result = vkBeginCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	result = vkBeginCommandBuffer(commandBufferBuildTopAndBottomLevel,
 	                              &topLevelCommandBufferBeginInfo);
 
 	if (result != VK_SUCCESS)
@@ -270,12 +276,12 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	}
 
 	ltracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
-	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    commandBufferBuildTopAndBottomLevel,
 	    1,
-	    &raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+	    &topLevelAccelerationStructureBuildGeometryInfo,
 	    &topLevelAccelerationStructureBuildRangeInfos);
 
-	result = vkEndCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel);
+	result = vkEndCommandBuffer(commandBufferBuildTopAndBottomLevel);
 
 	if (result != VK_SUCCESS)
 	{
@@ -289,7 +295,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	    .pWaitSemaphores = NULL,
 	    .pWaitDstStageMask = NULL,
 	    .commandBufferCount = 1,
-	    .pCommandBuffers = &raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    .pCommandBuffers = &commandBufferBuildTopAndBottomLevel,
 	    .signalSemaphoreCount = 0,
 	    .pSignalSemaphores = NULL,
 	};
@@ -311,7 +317,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		throw new std::runtime_error("initRayTracing - vkCreateFence");
 	}
 
-	result = vkQueueSubmit(raytracingInfo.graphicsQueueHandle,
+	result = vkQueueSubmit(graphicsQueueHandle,
 	                       1,
 	                       &topLevelAccelerationStructureBuildSubmitInfo,
 	                       topLevelAccelerationStructureBuildFenceHandle);

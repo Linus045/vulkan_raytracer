@@ -3,9 +3,7 @@
 #include <cstring>
 #include <vulkan/vulkan_core.h>
 
-#include "common_types.h"
 #include "deletion_queue.hpp"
-#include "types.hpp"
 #include "device_procedures.hpp"
 #include "vk_utils.hpp"
 
@@ -132,8 +130,10 @@ inline VkAccelerationStructureKHR
 buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
                                       VkDevice logicalDevice,
                                       DeletionQueue& deletionQueue,
-                                      const RaytracingInfo& raytracingInfo,
-                                      const BLASBuildData blasBuildData)
+                                      const VkCommandBuffer bottomLevelCommandBuffer,
+                                      const VkQueue graphicsQueue,
+                                      const BLASBuildData blasBuildData,
+                                      const VkFence accelerationStructureBuildFence)
 {
 	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 
@@ -253,21 +253,41 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .pInheritanceInfo = NULL,
 	};
 
-	result = vkBeginCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	                              &bottomLevelCommandBufferBeginInfo);
+	result = vkBeginCommandBuffer(bottomLevelCommandBuffer, &bottomLevelCommandBufferBeginInfo);
 
 	if (result != VK_SUCCESS)
 	{
 		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
 	}
 
+	// TODO: this doesn't seem to be strictly necessary? Keeping it here just to be sure
+	VkMemoryBarrier2 waitForAccelerationStructureBarrier = {};
+	waitForAccelerationStructureBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER_2;
+	waitForAccelerationStructureBarrier.srcAccessMask
+	    = VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+	waitForAccelerationStructureBarrier.dstAccessMask
+	    = VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+	waitForAccelerationStructureBarrier.srcStageMask
+	    = VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+	waitForAccelerationStructureBarrier.dstStageMask
+	    = VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
+
+	VkDependencyInfo dependencyInfoWaitforAccelerationStructure = {};
+	dependencyInfoWaitforAccelerationStructure.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfoWaitforAccelerationStructure.dependencyFlags = 0;
+	dependencyInfoWaitforAccelerationStructure.memoryBarrierCount = 1;
+	dependencyInfoWaitforAccelerationStructure.pMemoryBarriers
+	    = &waitForAccelerationStructureBarrier;
+
+	vkCmdPipelineBarrier2(bottomLevelCommandBuffer, &dependencyInfoWaitforAccelerationStructure);
+
 	ltracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
-	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    bottomLevelCommandBuffer,
 	    1,
 	    &bottomLevelAccelerationStructureBuildGeometryInfo,
 	    &bottomLevelAccelerationStructureBuildRangeInfos);
 
-	result = vkEndCommandBuffer(raytracingInfo.commandBufferBuildTopAndBottomLevel);
+	result = vkEndCommandBuffer(bottomLevelCommandBuffer);
 
 	if (result != VK_SUCCESS)
 	{
@@ -281,49 +301,33 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .pWaitSemaphores = NULL,
 	    .pWaitDstStageMask = NULL,
 	    .commandBufferCount = 1,
-	    .pCommandBuffers = &raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    .pCommandBuffers = &bottomLevelCommandBuffer,
 	    .signalSemaphoreCount = 0,
 	    .pSignalSemaphores = NULL,
 	};
-
-	VkFenceCreateInfo bottomLevelAccelerationStructureBuildFenceCreateInfo = {
-	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-	    .pNext = NULL,
-	    .flags = 0,
-	};
-
-	VkFence bottomLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
-	result = vkCreateFence(logicalDevice,
-	                       &bottomLevelAccelerationStructureBuildFenceCreateInfo,
-	                       NULL,
-	                       &bottomLevelAccelerationStructureBuildFenceHandle);
 
 	if (result != VK_SUCCESS)
 	{
 		throw new std::runtime_error("initRayTracing - vkCreateFence");
 	}
 
-	deletionQueue.push_function(
-	    [=]()
-	    { vkDestroyFence(logicalDevice, bottomLevelAccelerationStructureBuildFenceHandle, NULL); });
-
-	result = vkQueueSubmit(raytracingInfo.graphicsQueueHandle,
+	result = vkQueueSubmit(graphicsQueue,
 	                       1,
 	                       &bottomLevelAccelerationStructureBuildSubmitInfo,
-	                       bottomLevelAccelerationStructureBuildFenceHandle);
+	                       accelerationStructureBuildFence);
 
 	if (result != VK_SUCCESS)
 	{
 		throw new std::runtime_error("initRayTracing - vkQueueSubmit");
 	}
 
-	result = vkWaitForFences(
-	    logicalDevice, 1, &bottomLevelAccelerationStructureBuildFenceHandle, true, UINT32_MAX);
+	result = vkWaitForFences(logicalDevice, 1, &accelerationStructureBuildFence, true, UINT32_MAX);
 
 	if (result != VK_SUCCESS && result != VK_TIMEOUT)
 	{
-		throw new std::runtime_error("initRayTracing - vkWaitForFences");
+		throw new std::runtime_error("buildBottomLevelAccelerationStructure - vkWaitForFences");
 	}
+	vkResetFences(logicalDevice, 1, &accelerationStructureBuildFence);
 
 	return bottomLevelAccelerationStructureHandle;
 }

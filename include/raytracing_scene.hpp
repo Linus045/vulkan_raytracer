@@ -19,11 +19,8 @@ namespace rt
 class RaytracingScene
 {
   public:
-	RaytracingScene(const VkPhysicalDevice& physicalDevice,
-	                const VkDevice logicalDevice,
-	                DeletionQueue& deletionQueue)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
-	      deletionQueue(deletionQueue) {};
+	RaytracingScene(const VkPhysicalDevice& physicalDevice, const VkDevice logicalDevice)
+	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice) {};
 
 	~RaytracingScene() = default;
 
@@ -36,6 +33,12 @@ class RaytracingScene
 	const RaytracingObjectBuffers& getObjectBuffers() const
 	{
 		return objectBuffers;
+	}
+
+	void cleanup(VkQueue graphicsQueneHandle)
+	{
+		vkQueueWaitIdle(graphicsQueneHandle);
+		deletionQueueForAccelerationStructure.flush();
 	}
 
 	void addWorldObject(const MeshObject& meshObject)
@@ -104,7 +107,7 @@ class RaytracingScene
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
-			             deletionQueue,
+			             deletionQueueForAccelerationStructure,
 			             spheres.size() * sizeof(Sphere),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -118,7 +121,7 @@ class RaytracingScene
 			createBuffer(physicalDevice,
 
 			             logicalDevice,
-			             deletionQueue,
+			             deletionQueueForAccelerationStructure,
 			             tetrahedrons2.size() * sizeof(Tetrahedron2),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -131,7 +134,7 @@ class RaytracingScene
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
-			             deletionQueue,
+			             deletionQueueForAccelerationStructure,
 			             rectangularBezierSurfaces2x2.size() * sizeof(RectangularBezierSurface2x2),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -144,20 +147,118 @@ class RaytracingScene
 		gpuObjects.resize(size);
 	}
 
-	void createAccelerationStructures(RaytracingInfo& raytracingInfo)
+	void createAccelerationStructures(
+	    const VkCommandBuffer bottomLevelCommandBuffer,
+	    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
+	    VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
+	    VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
+	    VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
+	    VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
+	    VkBuffer& topLevelAccelerationStructureBufferHandle,
+	    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
+	    VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
+	    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
+	    VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
+	    VkCommandBuffer commandBufferBuildTopAndBottomLevel,
+	    VkQueue graphicsQueueHandle,
+	    VkBuffer& uniformBufferHandle,
+	    VkDeviceMemory& uniformDeviceMemoryHandle,
+	    UniformStructure& uniformStructure,
+	    VkFence accelerationStructureBuildFence)
 	{
 		auto buildData = createBLASBuildDataForScene();
-		blasInstances = buildBLASInstancesFromBuildDataList(buildData, raytracingInfo);
-		createTLAS(false, raytracingInfo);
+		blasInstances = buildBLASInstancesFromBuildDataList(buildData,
+		                                                    bottomLevelCommandBuffer,
+		                                                    graphicsQueueHandle,
+		                                                    accelerationStructureBuildFence);
+		createTLAS(false,
+		           blasGeometryInstancesDeviceMemoryHandle,
+		           topLevelAccelerationStructureGeometry,
+		           topLevelAccelerationStructureBuildGeometryInfo,
+		           topLevelAccelerationStructureHandle,
+		           topLevelAccelerationStructureBuildSizesInfo,
+		           topLevelAccelerationStructureBufferHandle,
+		           topLevelAccelerationStructureDeviceMemoryHandle,
+		           topLevelAccelerationStructureScratchBufferHandle,
+		           topLevelAccelerationStructureDeviceScratchMemoryHandle,
+		           topLevelAccelerationStructureBuildRangeInfo,
+		           commandBufferBuildTopAndBottomLevel,
+		           graphicsQueueHandle,
+		           uniformBufferHandle,
+		           uniformDeviceMemoryHandle,
+		           uniformStructure);
 	}
 
-	void recreateAccelerationStructures(RaytracingInfo& raytracingInfo)
+	void recreateAccelerationStructures(RaytracingInfo& raytracingInfo, const bool fullRebuild)
 	{
+
 		freeBottomLevelAndTopLevelAccelerationStructure(raytracingInfo);
 
 		// We dont want to recreate the BLAS's but only update the related transform matrix inside
 		// the TLAS that links to the particular BLAS
-		createTLAS(true, raytracingInfo);
+		if (fullRebuild)
+		{
+
+			vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
+
+			deletionQueueForAccelerationStructure.flush();
+
+			objectBuffers.gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
+			objectBuffers.gpuObjectsBufferHandle = VK_NULL_HANDLE;
+			objectBuffers.spheresAABBBufferHandles.clear();
+			objectBuffers.spheresAABBDeviceMemoryHandles.clear();
+			objectBuffers.tetrahedronsAABBBufferHandles.clear();
+			objectBuffers.tetrahedronsAABBDeviceMemoryHandles.clear();
+
+			objectBuffers.tetrahedronsBufferHandle = VK_NULL_HANDLE;
+			objectBuffers.tetrahedronsDeviceMemoryHandles = VK_NULL_HANDLE;
+
+			objectBuffers.spheresBufferHandle = VK_NULL_HANDLE;
+			objectBuffers.spheresDeviceMemoryHandles = VK_NULL_HANDLE;
+
+			objectBuffers.rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
+			objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles = VK_NULL_HANDLE;
+
+			createBuffers();
+
+			createAccelerationStructures(
+			    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+			    raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+			    raytracingInfo.topLevelAccelerationStructureGeometry,
+			    raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+			    raytracingInfo.topLevelAccelerationStructureHandle,
+			    raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
+			    raytracingInfo.topLevelAccelerationStructureBufferHandle,
+			    raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
+			    raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
+			    raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
+			    raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
+			    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+			    raytracingInfo.graphicsQueueHandle,
+			    raytracingInfo.uniformBufferHandle,
+			    raytracingInfo.uniformDeviceMemoryHandle,
+			    raytracingInfo.uniformStructure,
+			    raytracingInfo.accelerationStructureBuildFence);
+		}
+		else
+		{
+			createTLAS(true,
+			           raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureGeometry,
+			           raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+			           raytracingInfo.topLevelAccelerationStructureHandle,
+			           raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
+			           raytracingInfo.topLevelAccelerationStructureBufferHandle,
+			           raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
+			           raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
+			           raytracingInfo.commandBufferBuildTopAndBottomLevel,
+			           raytracingInfo.graphicsQueueHandle,
+			           raytracingInfo.uniformBufferHandle,
+			           raytracingInfo.uniformDeviceMemoryHandle,
+			           raytracingInfo.uniformStructure);
+		}
 	}
 
 	void
@@ -259,7 +360,7 @@ class RaytracingScene
 
 				createBuffer(physicalDevice,
 				             logicalDevice,
-				             deletionQueue,
+				             deletionQueueForAccelerationStructure,
 				             sizeof(VkAabbPositionsKHR),
 				             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 				                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -287,7 +388,7 @@ class RaytracingScene
 
 				createBuffer(physicalDevice,
 				             logicalDevice,
-				             deletionQueue,
+				             deletionQueueForAccelerationStructure,
 				             sizeof(VkAabbPositionsKHR),
 				             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 				                 | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -319,7 +420,7 @@ class RaytracingScene
 				createBuffer(
 				    physicalDevice,
 				    logicalDevice,
-				    deletionQueue,
+				    deletionQueueForAccelerationStructure,
 				    sizeof(VkAabbPositionsKHR),
 				    VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
 				        | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
@@ -358,7 +459,7 @@ class RaytracingScene
 
 		createBuffer(physicalDevice,
 		             logicalDevice,
-		             deletionQueue,
+		             deletionQueueForAccelerationStructure,
 		             sizeof(GPUInstance) * instancesCount,
 		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
@@ -469,15 +570,22 @@ class RaytracingScene
 	[[nodiscard]]
 	const std::vector<VkAccelerationStructureInstanceKHR>
 	buildBLASInstancesFromBuildDataList(const std::vector<BLASBuildData>& BLASBuildDataList,
-	                                    RaytracingInfo& raytracingInfo)
+	                                    const VkCommandBuffer bottomLevelCommandBuffer,
+	                                    const VkQueue graphicsQueue,
+	                                    VkFence accelerationStructureBuildFence)
 	{
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
 		for (auto& buildData : BLASBuildDataList)
 		{
 			// build the BLAS on GPI
 			VkAccelerationStructureKHR bottomLevelAccelerationStructure
-			    = buildBottomLevelAccelerationStructure(
-			        physicalDevice, logicalDevice, deletionQueue, raytracingInfo, buildData);
+			    = buildBottomLevelAccelerationStructure(physicalDevice,
+			                                            logicalDevice,
+			                                            deletionQueueForAccelerationStructure,
+			                                            bottomLevelCommandBuffer,
+			                                            graphicsQueue,
+			                                            buildData,
+			                                            accelerationStructureBuildFence);
 
 			// retrieve the device address of the built acceleration structure
 			VkAccelerationStructureDeviceAddressInfoKHR
@@ -512,33 +620,61 @@ class RaytracingScene
 		return instances;
 	}
 
-	void createTLAS(const bool onlyUpdate, RaytracingInfo& raytracingInfo)
+	void createTLAS(
+	    const bool onlyUpdate,
+	    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
+	    VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
+	    VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
+	    VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
+	    VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
+	    VkBuffer& topLevelAccelerationStructureBufferHandle,
+	    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
+	    VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
+	    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
+	    VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
+	    VkCommandBuffer commandBufferBuildTopAndBottomLevel,
+	    VkQueue graphicsQueueHandle,
+	    VkBuffer& uniformBufferHandle,
+	    VkDeviceMemory& uniformDeviceMemoryHandle,
+	    UniformStructure& uniformStructure)
 	{
 		if (blasInstances.size() > 0)
 		{
-			createAndBuildTopLevelAccelerationStructure(blasInstances,
-			                                            deletionQueue,
-			                                            logicalDevice,
-			                                            physicalDevice,
-			                                            raytracingInfo,
-			                                            onlyUpdate);
+			createAndBuildTopLevelAccelerationStructure(
+			    blasInstances,
+			    deletionQueueForAccelerationStructure,
+			    logicalDevice,
+			    physicalDevice,
+			    onlyUpdate,
+			    blasGeometryInstancesDeviceMemoryHandle,
+			    topLevelAccelerationStructureGeometry,
+			    topLevelAccelerationStructureBuildGeometryInfo,
+			    topLevelAccelerationStructureHandle,
+			    topLevelAccelerationStructureBuildSizesInfo,
+			    topLevelAccelerationStructureBufferHandle,
+			    topLevelAccelerationStructureDeviceMemoryHandle,
+			    topLevelAccelerationStructureScratchBufferHandle,
+			    topLevelAccelerationStructureDeviceScratchMemoryHandle,
+			    topLevelAccelerationStructureBuildRangeInfo,
+			    commandBufferBuildTopAndBottomLevel,
+			    graphicsQueueHandle);
 			// =========================================================================
 			// Uniform Buffer
 			if (!onlyUpdate)
 			{
 				createBuffer(physicalDevice,
 				             logicalDevice,
-				             deletionQueue,
+				             deletionQueueForAccelerationStructure,
 				             sizeof(UniformStructure),
 				             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				             memoryAllocateFlagsInfo,
-				             raytracingInfo.uniformBufferHandle,
-				             raytracingInfo.uniformDeviceMemoryHandle);
+				             uniformBufferHandle,
+				             uniformDeviceMemoryHandle);
 
 				copyDataToBuffer(logicalDevice,
-				                 raytracingInfo.uniformDeviceMemoryHandle,
-				                 &raytracingInfo.uniformStructure,
+				                 uniformDeviceMemoryHandle,
+				                 &uniformStructure,
 				                 sizeof(UniformStructure));
 			}
 		}
@@ -556,7 +692,7 @@ class RaytracingScene
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
-	DeletionQueue& deletionQueue;
+	DeletionQueue deletionQueueForAccelerationStructure;
 
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;

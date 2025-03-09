@@ -69,6 +69,8 @@ class Renderer
 	{
 		if (raytracingSupported)
 		{
+			raytracingScene->cleanup(raytracingInfo.graphicsQueueHandle);
+
 			ltracer::rt::freeRaytraceImageAndImageView(
 			    logicalDevice,
 			    raytracingInfo.rayTraceImageHandle,

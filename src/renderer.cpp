@@ -1,5 +1,6 @@
 #include <glm/ext/matrix_transform.hpp>
 #include <stdexcept>
+#include <vulkan/vulkan_core.h>
 
 #include "renderer.hpp"
 #include "raytracing.hpp"
@@ -58,8 +59,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 		raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
-		raytracingScene
-		    = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice, deletionQueue);
+		raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
 		ltracer::rt::initRayTracing(
 		    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, *raytracingScene);
@@ -209,7 +209,14 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 			raytracingScene->moveSphere(0, uiData.position);
 
 			raytracingScene->copyObjectsToBuffers();
-			raytracingScene->recreateAccelerationStructures(raytracingInfo);
+
+			// TODO: replace this with a fence to improve performance
+			vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
+
+			// TODO: figure out a better way to determine when a rebuild is actually required e.g.
+			// when the AABB dimensions actually change
+			bool fullRebuild = true;
+			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
 
 			rt::updateAccelerationStructureDescriptorSet(
 			    logicalDevice, *raytracingScene, raytracingInfo);

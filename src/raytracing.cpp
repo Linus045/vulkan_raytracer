@@ -2,6 +2,7 @@
 #include <glm/detail/qualifier.hpp>
 #include <string>
 #include <array>
+#include <vulkan/vulkan_core.h>
 
 #include "blas.hpp"
 #include "common_types.h"
@@ -1364,6 +1365,23 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
 	// }
 
+	// create fence for building acceleration structure
+	VkFenceCreateInfo bottomLevelAccelerationStructureBuildFenceCreateInfo = {
+	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+	    .pNext = NULL,
+	    .flags = 0,
+	};
+
+	result = vkCreateFence(logicalDevice,
+	                       &bottomLevelAccelerationStructureBuildFenceCreateInfo,
+	                       NULL,
+	                       &raytracingInfo.accelerationStructureBuildFence);
+	// vkResetFences(logicalDevice, 1, &raytracingInfo.accelerationStructureBuildFence);
+
+	deletionQueue.push_function(
+	    [=]()
+	    { vkDestroyFence(logicalDevice, raytracingInfo.accelerationStructureBuildFence, NULL); });
+
 	// TODO: for now we don't change the amount of objects in the scene
 	// so we can create the buffers only once
 	// if we want to add/remove objects from the scene we need to recreate the buffers
@@ -1371,7 +1389,27 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
-	raytracingScene.createAccelerationStructures(raytracingInfo);
+
+	// TODO: create a dedicated struct that holds all the information for the acceleration structure
+	// that is actually needed
+	raytracingScene.createAccelerationStructures(
+	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+	    raytracingInfo.topLevelAccelerationStructureGeometry,
+	    raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+	    raytracingInfo.topLevelAccelerationStructureHandle,
+	    raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
+	    raytracingInfo.topLevelAccelerationStructureBufferHandle,
+	    raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
+	    raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
+	    raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
+	    raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
+	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
+	    raytracingInfo.graphicsQueueHandle,
+	    raytracingInfo.uniformBufferHandle,
+	    raytracingInfo.uniformDeviceMemoryHandle,
+	    raytracingInfo.uniformStructure,
+	    raytracingInfo.accelerationStructureBuildFence);
 
 	// =========================================================================
 	// Update Descriptor Set
@@ -1476,8 +1514,8 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// 	                     0,
 	// 	                     &hostMaterialMemoryBuffer);
 
-	// 	memcpy(
-	// 	    hostMaterialMemoryBuffer, materialList.data(), sizeof(Material) * materialList.size());
+	// 	memcpy( hostMaterialMemoryBuffer, materialList.data(), sizeof(Material) *
+	// materialList.size());
 
 	// 	if (result != VK_SUCCESS)
 	// 	{

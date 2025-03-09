@@ -97,6 +97,8 @@ struct RaytracingInfo
 	VkImage rayTraceImageHandle = VK_NULL_HANDLE;
 	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
 
+	VkFence accelerationStructureBuildFence = VK_NULL_HANDLE;
+
 	ltracer::QueueFamilyIndices queueFamilyIndices = {};
 
 	UniformStructure uniformStructure;
