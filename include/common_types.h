@@ -92,6 +92,7 @@ END_BINDING();
 	ALIGNAS(4) float renderSide3;                                                                  \
 	ALIGNAS(4) float renderSide4;                                                                  \
 	ALIGNAS(4) int raysPerPixel;                                                                   \
+	ALIGNAS(4) float debugPrintCrosshairRay;                                                       \
 	ALIGNAS(16) vec3 cameraDir;
 
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL

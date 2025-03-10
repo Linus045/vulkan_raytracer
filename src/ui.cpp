@@ -171,6 +171,13 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugShowAABBs
 			    = static_cast<float>(debugShowAABBs ? 1 : 0);
 
+			bool debugPrintCrosshairRay = uiData.raytracingDataConstants.debugPrintCrosshairRay > 0;
+			valueChanged
+			    = ImGui::Checkbox("Debug print Crosshair Ray calculations", &debugPrintCrosshairRay)
+			      || valueChanged;
+			uiData.raytracingDataConstants.debugPrintCrosshairRay
+			    = static_cast<float>(debugPrintCrosshairRay ? 1 : 0);
+
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
 			                                  1e-8f,

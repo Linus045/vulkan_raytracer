@@ -88,6 +88,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .renderSide3 = 0.0f,
 	    .renderSide4 = 0.0f,
 	    .raysPerPixel = 1,
+	    .debugPrintCrosshairRay = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
 

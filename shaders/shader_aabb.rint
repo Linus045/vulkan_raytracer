@@ -656,7 +656,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
                     const vec3[10] controlPoints,
                     const vec3 n1,
                     const vec3 n2,
-                    const bool shouldPrint)
+                    const bool isCrosshairRay)
 {
 	bool hit = false;
 	const int max_iterations = 21;
@@ -665,7 +665,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 	float toleranceX = raytracingDataConstants.newtonErrorXTolerance;
 	float toleranceF = raytracingDataConstants.newtonErrorFTolerance;
 
-	if (shouldPrint)
+	if (isCrosshairRay)
 	{
 		debugPrintfEXT(
 		    "old initialGuess: (%.2v2f), new initialGuess: (%.2v2f)", initialGuess, initialGuess);
@@ -701,7 +701,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
 
 			// if(abs(determinant(j)) < 0.00001) {
-			// 	if(shouldPrint) {
+			// 	if(isCrosshairRay) {
 			// 		debugPrintfEXT("determinant is 0 - adjusting u and continuing");
 			// 	}
 			// 	u[c + 1] = u[c] + (random(vec2(n1.x, n2.y), c) * (u[0] - u[c]))  * 0.1;
@@ -711,7 +711,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			mat2x2 inv_j = inverseJacobian(j);
 			if (inv_j == mat2x2(0, 0, 0, 0))
 			{
-				if (shouldPrint)
+				if (isCrosshairRay)
 				{
 					debugPrintfEXT("abort: inv_j is 0");
 				}
@@ -730,7 +730,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0
 			    && errorF > previousErrorF)
 			{
-				if (shouldPrint)
+				if (isCrosshairRay)
 				{
 					debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
 					               errorF,
@@ -743,7 +743,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			if (errorF <= toleranceF)
 			{
 				hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
-				if (shouldPrint)
+				if (isCrosshairRay)
 				{
 					debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
 				}
@@ -756,7 +756,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 
 			// WARNING: this out-of-bounds range is incorrect
 			// if(u[c+1].x < 0 || u[c+1].y < 0 || u[c+1].x > 2 || u[c+1].y > 2) {
-			// 	if(shouldPrint) {
+			// 	if(isCrosshairRay) {
 			// 		debugPrintfEXT("abort: u[c+1] out of bounds: (%.2v2f)", u[c+1]);
 			// 	}
 			// 	hit = false;
@@ -768,7 +768,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0
 			    && errorX > previousErrorX)
 			{
-				if (shouldPrint)
+				if (isCrosshairRay)
 				{
 					debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
 					               errorX,
@@ -782,14 +782,14 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 			if (errorX <= toleranceX)
 			{
 				hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
-				if (shouldPrint)
+				if (isCrosshairRay)
 				{
 					debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
 				}
 				break;
 			}
 
-			if (shouldPrint)
+			if (isCrosshairRay)
 			{
 				debugPrintfEXT(
 				    "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
@@ -821,7 +821,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 		}
 	}
 
-	if (shouldPrint)
+	if (isCrosshairRay)
 	{
 		debugPrintfEXT("loop ended: hit: %d", hit);
 	}
@@ -983,12 +983,15 @@ void main()
 
 		vec3 cameraDir = raytracingDataConstants.cameraDir;
 
-		bool shouldPrint = false;
+		// whether or not the current ray direction is the crosshair's direction
+		bool isCrosshairRay = false;
 		if (length(normalize(ray.direction) - normalize(cameraDir)) < 0.001)
 		{
-			shouldPrint = true;
+			isCrosshairRay = true;
 		}
-
+		
+		isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
+		
 		float t;
 		// Side 1
 		if (raytracingDataConstants.renderSide1 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
@@ -1016,7 +1019,7 @@ void main()
 			// float d2 = dot(-n2, o);
 			// vec2 guess = vec2(dot(n1, p) + d1, dot(n2, p) + d2);
 
-			// if(shouldPrint) {
+			// if(isCrosshairRay) {
 			//  	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
 			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
 			//  }
@@ -1038,7 +1041,7 @@ void main()
 			                   tetrahedron.controlPoints,
 			                   n1,
 			                   n2,
-			                   shouldPrint))
+			                   isCrosshairRay))
 			{
 				float dist = distance(intersectionPoint, o);
 				if (tHit == -1 || dist < tHit)
@@ -1080,7 +1083,7 @@ void main()
 			                   tetrahedron.controlPoints,
 			                   n1,
 			                   n2,
-			                   shouldPrint))
+			                   isCrosshairRay))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
 				if (tHit == -1 || dist < tHit)
@@ -1122,7 +1125,7 @@ void main()
 			                   tetrahedron.controlPoints,
 			                   n1,
 			                   n2,
-			                   shouldPrint))
+			                   isCrosshairRay))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
 				if (tHit == -1 || dist < tHit)
@@ -1164,7 +1167,7 @@ void main()
 			                   tetrahedron.controlPoints,
 			                   n1,
 			                   n2,
-			                   shouldPrint))
+			                   isCrosshairRay))
 			{
 				float dist = distance(intersectionPoint, ray.origin);
 				if (tHit == -1 || dist < tHit)
