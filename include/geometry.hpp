@@ -47,4 +47,13 @@ class Geometry
 	T data;
 };
 
+template <>
+bool Geometry<Sphere>::recalculateAABB();
+
+template <>
+bool Geometry<Tetrahedron2>::recalculateAABB();
+
+template <>
+bool Geometry<RectangularBezierSurface2x2>::recalculateAABB();
+
 } // namespace ltracer

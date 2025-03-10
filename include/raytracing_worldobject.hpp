@@ -85,5 +85,14 @@ class RaytracingWorldObject : public WorldObject
 	// TLASInstance& tlasInstance;
 };
 
+template <>
+void RaytracingWorldObject<Sphere>::setPosition(const glm::vec3 position);
+
+template <>
+void RaytracingWorldObject<Sphere>::translate(const glm::vec3 translation);
+
+template <>
+void RaytracingWorldObject<Sphere>::translate(const float x, const float y, const float z);
+
 } // namespace rt
 } // namespace ltracer
