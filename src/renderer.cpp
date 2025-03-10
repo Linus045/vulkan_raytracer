@@ -238,10 +238,13 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 			raytracingScene->copyObjectsToBuffers();
 
-			// TODO: replace this with a fence to improve performance
-			vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
-
 			bool fullRebuild = aabbDimensionsChanged;
+			if (fullRebuild)
+			{
+				// TODO: replace this with a fence to improve performance
+				vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
+			}
+
 			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
 
 			rt::updateAccelerationStructureDescriptorSet(
