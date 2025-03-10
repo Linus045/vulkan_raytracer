@@ -51,8 +51,8 @@ class RectangularBezierSurface
 	}
 
   private:
-	const uint32_t n;
-	const uint32_t m;
+	[[maybe_unused]] const uint32_t n;
+	[[maybe_unused]] const uint32_t m;
 	const std::vector<glm::vec3> controlPoints;
 };
 
