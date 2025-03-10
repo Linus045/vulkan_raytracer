@@ -31,9 +31,8 @@ class Camera
 	const glm::vec3 globalUp = {0, 1, 0};
 
   public:
-	explicit Camera()
+	explicit Camera() : transform(glm::vec3(0.0, 0, -0.01f))
 	{
-		transform.setPos(glm::vec3(0.0, 0, -0.01f));
 		glm::vec3 up = globalUp;
 		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(1, 0, 0)), up));
 		pitchRadians = glm::pitch(transform.getRotation());

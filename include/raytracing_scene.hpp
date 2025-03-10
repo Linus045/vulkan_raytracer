@@ -1,6 +1,9 @@
 #pragma once
 
 #include <vector>
+
+#include <glm/ext/matrix_float4x4.hpp>
+#include <glm/gtc/type_ptr.hpp>
 #include <vulkan/vulkan_core.h>
 
 #include "blas.hpp"
@@ -46,8 +49,13 @@ class RaytracingScene
 		meshObjects.push_back(meshObject);
 	}
 
-	void addWorldObject(const Sphere& sphere, const glm::vec3 position = glm::vec3(0))
+	void addSphere(const glm::vec3 position, const float radius, const ColorIdx colorIdx)
 	{
+		Sphere sphere{
+		    .center = position,
+		    .radius = radius,
+		    .colorIdx = static_cast<int>(colorIdx),
+		};
 		spheres.push_back(RaytracingWorldObject(
 		    ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position));
 	}
@@ -101,6 +109,12 @@ class RaytracingScene
 		return rectangularBezierSurfaces2x2;
 	}
 
+	inline void setTransformMatrixForInstance(const size_t instanceIndex,
+	                                          const VkTransformMatrixKHR& matrix)
+	{
+		blasInstances[instanceIndex].transform = matrix;
+	}
+
 	void createBuffers()
 	{
 		if (spheres.size() > 0)
@@ -147,60 +161,12 @@ class RaytracingScene
 		gpuObjects.resize(size);
 	}
 
-	void createAccelerationStructures(
-	    const VkCommandBuffer bottomLevelCommandBuffer,
-	    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
-	    VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
-	    VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
-	    VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
-	    VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
-	    VkBuffer& topLevelAccelerationStructureBufferHandle,
-	    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
-	    VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
-	    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
-	    VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
-	    VkCommandBuffer commandBufferBuildTopAndBottomLevel,
-	    VkQueue graphicsQueueHandle,
-	    VkBuffer& uniformBufferHandle,
-	    VkDeviceMemory& uniformDeviceMemoryHandle,
-	    UniformStructure& uniformStructure,
-	    VkFence accelerationStructureBuildFence)
-	{
-		auto buildData = createBLASBuildDataForScene();
-		blasInstances = buildBLASInstancesFromBuildDataList(buildData,
-		                                                    bottomLevelCommandBuffer,
-		                                                    graphicsQueueHandle,
-		                                                    accelerationStructureBuildFence);
-		createTLAS(false,
-		           blasGeometryInstancesDeviceMemoryHandle,
-		           topLevelAccelerationStructureGeometry,
-		           topLevelAccelerationStructureBuildGeometryInfo,
-		           topLevelAccelerationStructureHandle,
-		           topLevelAccelerationStructureBuildSizesInfo,
-		           topLevelAccelerationStructureBufferHandle,
-		           topLevelAccelerationStructureDeviceMemoryHandle,
-		           topLevelAccelerationStructureScratchBufferHandle,
-		           topLevelAccelerationStructureDeviceScratchMemoryHandle,
-		           topLevelAccelerationStructureBuildRangeInfo,
-		           commandBufferBuildTopAndBottomLevel,
-		           graphicsQueueHandle,
-		           uniformBufferHandle,
-		           uniformDeviceMemoryHandle,
-		           uniformStructure);
-	}
-
 	void recreateAccelerationStructures(RaytracingInfo& raytracingInfo, const bool fullRebuild)
 	{
-
-		freeBottomLevelAndTopLevelAccelerationStructure(raytracingInfo);
-
 		// We dont want to recreate the BLAS's but only update the related transform matrix inside
 		// the TLAS that links to the particular BLAS
 		if (fullRebuild)
 		{
-
-			vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
-
 			deletionQueueForAccelerationStructure.flush();
 
 			objectBuffers.gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
@@ -221,27 +187,35 @@ class RaytracingScene
 
 			createBuffers();
 
-			createAccelerationStructures(
-			    raytracingInfo.commandBufferBuildTopAndBottomLevel,
-			    raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
-			    raytracingInfo.topLevelAccelerationStructureGeometry,
-			    raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
-			    raytracingInfo.topLevelAccelerationStructureHandle,
-			    raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
-			    raytracingInfo.topLevelAccelerationStructureBufferHandle,
-			    raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
-			    raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
-			    raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
-			    raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
+			auto buildData = createBLASBuildDataForScene();
+			blasInstances = buildBLASInstancesFromBuildDataList(
+			    buildData,
 			    raytracingInfo.commandBufferBuildTopAndBottomLevel,
 			    raytracingInfo.graphicsQueueHandle,
-			    raytracingInfo.uniformBufferHandle,
-			    raytracingInfo.uniformDeviceMemoryHandle,
-			    raytracingInfo.uniformStructure,
 			    raytracingInfo.accelerationStructureBuildFence);
+
+			// TODO: create a dedicated struct that holds all the information for the acceleration
+			// structure that is actually needed
+			createTLAS(false,
+			           raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureGeometry,
+			           raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
+			           raytracingInfo.topLevelAccelerationStructureHandle,
+			           raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
+			           raytracingInfo.topLevelAccelerationStructureBufferHandle,
+			           raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
+			           raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
+			           raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
+			           raytracingInfo.commandBufferBuildTopAndBottomLevel,
+			           raytracingInfo.graphicsQueueHandle,
+			           raytracingInfo.uniformBufferHandle,
+			           raytracingInfo.uniformDeviceMemoryHandle,
+			           raytracingInfo.uniformStructure);
 		}
 		else
 		{
+
 			createTLAS(true,
 			           raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
 			           raytracingInfo.topLevelAccelerationStructureGeometry,
@@ -261,27 +235,8 @@ class RaytracingScene
 		}
 	}
 
-	void
-	freeBottomLevelAndTopLevelAccelerationStructure([[maybe_unused]] RaytracingInfo& raytracingInfo)
-	{
-		// TODO: the old acceleration structures need to be deleted otherwise we will create a bunch
-		// of them!
-	}
-
-	void moveSphere(const size_t index, const glm::vec3& position)
-	{
-		getWorldObjectSpheres()[index].setPosition(position);
-		blasInstances[index].transform = {
-			.matrix = {
-			{1, 0, 0, position.x},
-			{0, 1, 0, position.y},
-			{0, 0, 1, position.z},
-			},
-		};
-	}
-
-	/// Copies the spheres, tetrhedrons and rectangular bezier surfaces to the corresponding buffers
-	/// on the GPU
+	/// Copies the spheres, tetrhedrons and rectangular bezier surfaces to the corresponding
+	/// buffers on the GPU
 	void copyObjectsToBuffers()
 	{
 		if (spheres.size() > 0)
@@ -290,11 +245,6 @@ class RaytracingScene
 			for (size_t i = 0; i < spheres.size(); i++)
 			{
 				auto& obj = spheres[i];
-				std::cout << "Idx: " << i << " Sphere Pos: ("
-				          << obj.getGeometry().getData().center.x << ", "
-				          << obj.getGeometry().getData().center.y << ", "
-				          << obj.getGeometry().getData().center.z << ")" << std::endl;
-
 				spheresList.push_back(obj.getGeometry().getData());
 			}
 			copyDataToBuffer(logicalDevice,
@@ -354,10 +304,6 @@ class RaytracingScene
 				aabbsSpheres.push_back(obj.getGeometry().getAABB());
 				spheresList.push_back(obj.getGeometry().getData());
 
-				// Note: for now, all instances only contain one AABB, so we only need to copy one
-				// object into the buffer
-				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
-
 				createBuffer(physicalDevice,
 				             logicalDevice,
 				             deletionQueueForAccelerationStructure,
@@ -369,6 +315,9 @@ class RaytracingScene
 				             objectBuffers.spheresAABBBufferHandles[i],
 				             objectBuffers.spheresAABBDeviceMemoryHandles[i]);
 
+				// Note: for now, all instances only contain one AABB, so we only need to copy
+				// one object into the buffer
+				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
 				copyDataToBuffer(logicalDevice,
 				                 objectBuffers.spheresAABBDeviceMemoryHandles[i],
 				                 &aabbPositions,
@@ -474,13 +423,13 @@ class RaytracingScene
 			for (size_t i = 0; i < spheresList.size(); i++)
 			{
 				size_t instanceCustomIndex = gpuObjects.size();
-
 				auto buildData = createBottomLevelAccelerationStructureBuildDataAABB(
 				    logicalDevice,
 				    objectBuffers.spheresAABBBufferHandles[i],
 				    static_cast<int>(instanceCustomIndex),
-				    spheres[i].getTransformMatrix());
+				    spheres[i].getTransform().getTransformMatrix());
 
+				spheres[i].setInstanceIndex(blasBuildDataList.size());
 				gpuObjects.push_back(GPUInstance(ObjectType::t_Sphere, i));
 				blasBuildDataList.push_back(buildData);
 			}
@@ -495,7 +444,9 @@ class RaytracingScene
 				    logicalDevice,
 				    objectBuffers.tetrahedronsAABBBufferHandles[i],
 				    static_cast<int>(instanceCustomIndex),
-				    tetrahedrons2[i].getTransformMatrix());
+				    tetrahedrons2[i].getTransform().getTransformMatrix());
+
+				tetrahedrons2[i].setInstanceIndex(blasBuildDataList.size());
 				blasBuildDataList.push_back(buildData);
 				gpuObjects.push_back(GPUInstance(ObjectType::t_Tetrahedron2, i));
 			}
@@ -510,8 +461,9 @@ class RaytracingScene
 				    logicalDevice,
 				    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles[i],
 				    static_cast<int>(instanceCustomIndex),
-				    rectangularBezierSurfaces2x2[i].getTransformMatrix());
+				    rectangularBezierSurfaces2x2[i].getTransform().getTransformMatrix());
 
+				rectangularBezierSurfaces2x2[i].setInstanceIndex(blasBuildDataList.size());
 				gpuObjects.push_back(GPUInstance(ObjectType::t_RectangularBezierSurface2x2, i));
 				blasBuildDataList.push_back(buildData);
 			}
@@ -575,7 +527,7 @@ class RaytracingScene
 	                                    VkFence accelerationStructureBuildFence)
 	{
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
-		for (auto& buildData : BLASBuildDataList)
+		for (const auto& buildData : BLASBuildDataList)
 		{
 			// build the BLAS on GPI
 			VkAccelerationStructureKHR bottomLevelAccelerationStructure
@@ -686,9 +638,7 @@ class RaytracingScene
 	std::vector<RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
 	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>> rectangularBezierSurfaces2x2;
 	std::vector<MeshObject> meshObjects;
-
 	std::vector<VkAccelerationStructureInstanceKHR> blasInstances;
-	std::vector<VkAccelerationStructureInstanceKHR> tlasInstances;
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;

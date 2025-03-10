@@ -16,17 +16,24 @@ namespace ltracer
 
 struct Transform
 {
-	inline void setPos(glm::vec3 pos)
+	explicit Transform(const glm::vec3 pos,
+	                   const glm::quat rotation = glm::quat(),
+	                   const glm::vec3 scale = glm::vec3(1))
+	    : position(pos), rotation(rotation), scale(scale)
+	{
+	}
+
+	inline void setPos(const glm::vec3 pos)
 	{
 		position = pos;
 	}
 
-	inline void setRotation(glm::quat rot)
+	inline void setRotation(const glm::quat rot)
 	{
 		rotation = rot;
 	}
 
-	inline void setScale(glm::vec3 s)
+	inline void setScale(const glm::vec3 s)
 	{
 		scale = s;
 	}

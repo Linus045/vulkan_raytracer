@@ -112,15 +112,14 @@ struct GPUInstance
 {
 	int type;
 	int bufferIndex;
-	int test;
 
 #ifdef __cplusplus
-	GPUInstance() : type(0), bufferIndex(0), test(100)
+	GPUInstance() : type(0), bufferIndex(0)
 	{
 	}
 
 	GPUInstance(ObjectType type, size_t bufferIndex)
-	    : type(static_cast<int>(type)), bufferIndex(static_cast<int>(bufferIndex)), test(100)
+	    : type(static_cast<int>(type)), bufferIndex(static_cast<int>(bufferIndex))
 	{
 	}
 #endif

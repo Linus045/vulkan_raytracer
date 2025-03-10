@@ -322,8 +322,15 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 	if (ImGui::CollapsingHeader("Raytracing - Positions"))
 	{
 
-		valueChanged = ImGui::SliderFloat3("Position", &uiData.position.x, -10.0, 10.0, "%.2f")
-		               || valueChanged;
+		for (size_t i = 0; i < uiData.positions.size(); i++)
+		{
+			valueChanged = ImGui::SliderFloat3(("ControlPoint " + std::to_string(i)).c_str(),
+			                                   &uiData.positions[i].x,
+			                                   -10.0,
+			                                   10.0,
+			                                   "%.2f")
+			               || valueChanged;
+		}
 	}
 	uiData.recreateAccelerationStructures = valueChanged;
 }

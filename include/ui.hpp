@@ -35,7 +35,7 @@ struct UIData
 	bool mainPanelCollapsed = true;
 	const uint32_t& frameCount;
 
-	glm::vec3 position = glm::vec3(0);
+	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 	bool recreateAccelerationStructures = false;
 
 	UIData(Camera& camera,

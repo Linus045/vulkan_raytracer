@@ -164,6 +164,11 @@ class Renderer
 		return raytracingInfo.raytracingConstants;
 	}
 
+	inline rt::RaytracingScene& getRaytracingScene() const
+	{
+		return *raytracingScene;
+	}
+
   private:
 	void createSyncObjects();
 

@@ -31,7 +31,12 @@ class Geometry
 		return data;
 	}
 
-	virtual void recalculateAABB()
+	/**
+	 * @brief recalculate the AABB for the geometry
+	 *
+	 * @return whether the AABB dimensions changed
+	 */
+	virtual bool recalculateAABB()
 	{
 		throw new std::runtime_error("recalculateAABB not implemented for type T. Please add a "
 		                             "specialization in geometry.cpp");

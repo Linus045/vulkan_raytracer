@@ -147,14 +147,14 @@ class AABB
 		return AABB
 		{
 			.min = {
-				sphere.center.x - sphere.radius,
-				sphere.center.y - sphere.radius,
-				sphere.center.z - sphere.radius,
+				-sphere.radius,
+				-sphere.radius,
+				-sphere.radius,
 			},
 			.max = {
-				sphere.center.x + sphere.radius,
-				sphere.center.y + sphere.radius,
-				sphere.center.z + sphere.radius,
+				+sphere.radius,
+				+sphere.radius,
+				+sphere.radius,
 			},
 		};
 	}

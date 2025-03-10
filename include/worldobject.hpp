@@ -17,9 +17,8 @@ namespace ltracer
 class WorldObject
 {
   public:
-	WorldObject(glm::vec3 position = glm::vec3{0, 0, 0})
+	WorldObject(const glm::vec3 position = glm::vec3{0, 0, 0}) : transform(position)
 	{
-		transform.setPos(position);
 	}
 
 	virtual ~WorldObject() = default;

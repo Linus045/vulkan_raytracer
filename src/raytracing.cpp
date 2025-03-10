@@ -1167,11 +1167,11 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	                                 glm::vec3(0));
 	raytracingScene.addWorldObject(obj);
 
-	raytracingScene.addWorldObject(
-	    Sphere{glm::vec3(0, 0, 0), 0.2f, static_cast<int>(ColorIdx::t_red)}, glm::vec3(0, 0, 0));
-
-	raytracingScene.addWorldObject(
-	    Sphere{glm::vec3(1, 0, 0), 0.3f, static_cast<int>(ColorIdx::t_yellow)}, glm::vec3(0, 0, 0));
+	// Visualize control points
+	for (auto& point : tetrahedron2.controlPoints)
+	{
+		raytracingScene.addSphere(point, 0.2f, ColorIdx::t_black);
+	}
 
 	// if (tetrahedrons2.size() > 0)
 	{
@@ -1390,26 +1390,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
 
-	// TODO: create a dedicated struct that holds all the information for the acceleration structure
-	// that is actually needed
-	raytracingScene.createAccelerationStructures(
-	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	    raytracingInfo.blasGeometryInstancesDeviceMemoryHandle,
-	    raytracingInfo.topLevelAccelerationStructureGeometry,
-	    raytracingInfo.topLevelAccelerationStructureBuildGeometryInfo,
-	    raytracingInfo.topLevelAccelerationStructureHandle,
-	    raytracingInfo.topLevelAccelerationStructureBuildSizesInfo,
-	    raytracingInfo.topLevelAccelerationStructureBufferHandle,
-	    raytracingInfo.topLevelAccelerationStructureDeviceMemoryHandle,
-	    raytracingInfo.topLevelAccelerationStructureScratchBufferHandle,
-	    raytracingInfo.topLevelAccelerationStructureDeviceScratchMemoryHandle,
-	    raytracingInfo.topLevelAccelerationStructureBuildRangeInfo,
-	    raytracingInfo.commandBufferBuildTopAndBottomLevel,
-	    raytracingInfo.graphicsQueueHandle,
-	    raytracingInfo.uniformBufferHandle,
-	    raytracingInfo.uniformDeviceMemoryHandle,
-	    raytracingInfo.uniformStructure,
-	    raytracingInfo.accelerationStructureBuildFence);
+	raytracingScene.recreateAccelerationStructures(raytracingInfo, true);
 
 	// =========================================================================
 	// Update Descriptor Set

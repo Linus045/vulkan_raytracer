@@ -19,21 +19,14 @@ struct BLASBuildData
 	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
 	const int instanceCustomIndex;
 
-	const VkTransformMatrixKHR transformMatrix = {
-		.matrix = {
-			{1, 0, 0, 0},
-			{0, 1, 0, 0},
-			{0, 0, 1, 0},
-		},
-	};
+	const VkTransformMatrixKHR transformMatrix;
 };
 
 [[nodiscard]] inline BLASBuildData
 createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
                                                     VkBuffer aabbBufferHandle,
                                                     const int customIndex,
-                                                    VkTransformMatrixKHR modelMatrix
-                                                    /*, const uint32_t primitiveCount*/)
+                                                    VkTransformMatrixKHR modelMatrix)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

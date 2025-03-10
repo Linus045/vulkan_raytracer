@@ -1,7 +1,5 @@
 #pragma once
 
-#include "blas.hpp"
-#include "tlas.hpp"
 #include "worldobject.hpp"
 
 namespace ltracer
@@ -16,7 +14,7 @@ class RaytracingWorldObject : public WorldObject
 	RaytracingWorldObject<T>(const ObjectType type,
 	                         const AABB& aabb,
 	                         const T& object,
-	                         glm::vec3 position)
+	                         const glm::vec3 position)
 	    : WorldObject(position), geometry(Geometry(aabb, object)), type(type)
 	{
 	}
@@ -56,23 +54,19 @@ class RaytracingWorldObject : public WorldObject
 		                             "specialization in raytracing_worldobject.cpp");
 	}
 
-	const VkTransformMatrixKHR getTransformMatrix() const
+	void setInstanceIndex(const size_t index)
 	{
-		auto pos = getTransform().getPos();
-		auto scale = getTransform().getScale();
-		auto rot = getTransform().getRotation();
+		// if (instanceIndex.has_value())
+		// {
+		// 	std::cout << "Warning: Instance index already set. Current index: "
+		// 	          << instanceIndex.value() << ", new index: " << index << std::endl;
+		// }
+		instanceIndex = index;
+	}
 
-		glm::mat4 modelMatrix = glm::identity<glm::mat4>();
-		modelMatrix = glm::scale(modelMatrix, scale);
-		modelMatrix = glm::toMat4(rot) * modelMatrix;
-		modelMatrix = glm::translate(modelMatrix, pos);
-		return {
-			.matrix = {
-				{modelMatrix[0][0], modelMatrix[1][0], modelMatrix[2][0], modelMatrix[3][0]},
-				{modelMatrix[0][1], modelMatrix[1][1], modelMatrix[2][1], modelMatrix[3][1]},
-				{modelMatrix[0][2], modelMatrix[1][2], modelMatrix[2][2], modelMatrix[3][2]},
-			},
-		};
+	std::optional<size_t> getInstanceIndex() const
+	{
+		return instanceIndex;
 	}
 
 	// const TLASInstance& getTLASInstance() const
@@ -83,6 +77,11 @@ class RaytracingWorldObject : public WorldObject
   protected:
 	Geometry<T> geometry;
 	const ObjectType type;
+
+	// TODO: The RaytracingWorldObject should not keep track of its index, create some kind of
+	// mapping inside RaytracingScene that holds the mapping from the object to its entry in the
+	// gpuInstances array instead
+	std::optional<size_t> instanceIndex = std::nullopt;
 	// TLASInstance& tlasInstance;
 };
 
