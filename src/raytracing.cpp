@@ -1158,7 +1158,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
 	    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
-	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
+	    glm::vec3(-1.4f, 1.0f, 1.0f) * scalar + offset,
 	}));
 
 	auto obj = RaytracingWorldObject(ObjectType::t_Tetrahedron2,
@@ -1170,7 +1170,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// Visualize control points
 	for (auto& point : tetrahedron2.controlPoints)
 	{
-		raytracingScene.addSphere(point, 0.2f, ColorIdx::t_black);
+		raytracingScene.addSphere(point, 0.05f, ColorIdx::t_black);
 	}
 
 	// if (tetrahedrons2.size() > 0)

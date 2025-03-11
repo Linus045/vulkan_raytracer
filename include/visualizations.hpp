@@ -846,10 +846,10 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
                                   [[maybe_unused]] const Tetrahedron2& tetrahedron)
 {
 	// Visualize control points
-	// for (auto& point : tetrahedron.controlPoints)
-	// {
-	// 	raytracingScene.addWorldObject(Sphere(point, 0.02f, static_cast<int>(ColorIdx::t_black)));
-	// }
+	for (auto& point : tetrahedron.controlPoints)
+	{
+		raytracingScene.addSphere(point, 0.02f, ColorIdx::t_black);
+	}
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
 	// Visualize volume
@@ -863,8 +863,7 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 				if (u + v + w <= 2)
 				{
 					// auto rayO = glm::vec3(0.5f, 0.8f, 0.6f);
-					// auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v,
-					// w);
+					auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v, w);
 
 					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
 					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
@@ -872,35 +871,30 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						// raytracingScene.addWorldObject(
-						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_red)));
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						// raytracingScene.addWorldObject(
-						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_purple)));
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						// raytracingScene.addWorldObject(
-						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_green)));
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						// raytracingScene.addWorldObject(
-						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_white)));
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_white);
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						// raytracingScene.addWorldObject(
-						//     Sphere(p, 0.01f, static_cast<int>(ColorIdx::t_black)));
+						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_black);
 					}
 				}
 			}
