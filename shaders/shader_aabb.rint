@@ -229,28 +229,41 @@ int iter_factorial(int n)
 	return ret;
 }
 
-
-float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float v, float w) 
+float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float v, float w)
 {
-	float d = iter_factorial(n) / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k));
-	float powi = pow(u,i);
-	if(i == 0) {
+	int d = n;
+	int l = d - i - j - k;
+	float fraction
+	    = iter_factorial(d)
+	      / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k) * iter_factorial(l));
+
+	float powi = pow(u, i);
+	if (i == 0)
+	{
 		powi = 1;
 	}
 
-	float powj = pow(v,j);
-	if(j == 0) {
+	float powj = pow(v, j);
+	if (j == 0)
+	{
 		powj = 1;
 	}
 
-	float powk = pow(w,k);
-	if(k == 0) {
+	float powk = pow(w, k);
+	if (k == 0)
+	{
 		powk = 1;
 	}
 
-	return d * powi * powj * powk;
-}
+	float z = 1.0 - u - v - w;
+	float powz = pow(z, l);
+	if (k == 0)
+	{
+		powz = 1;
+	}
 
+	return fraction * powi * powj * powk * powz;
+}
 
 int getControlPointIndices(int i, int j, int k)
 {
@@ -281,7 +294,7 @@ vec3 partialHu(
 				int idx1 = getControlPointIndices(i + 1, j, k);
 				int idx2 = getControlPointIndices(i, j, k);
 				sum += (controlPoints[idx1] - controlPoints[idx2])
-					 * BernsteinPolynomialTetrahedral(n-1, i, j, k, u, v, w);
+				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
 		}
 	}
@@ -303,7 +316,7 @@ vec3 partialHv(
 				int idx1 = getControlPointIndices(i, j + 1, k);
 				int idx2 = getControlPointIndices(i, j, k);
 				sum += (controlPoints[idx1] - controlPoints[idx2])
-					 * BernsteinPolynomialTetrahedral(n-1, i, j, k, u, v, w);
+				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
 		}
 	}
@@ -324,7 +337,8 @@ vec3 partialHw(
 			{
 				int idx1 = getControlPointIndices(i, j, k + 1);
 				int idx2 = getControlPointIndices(i, j, k);
-				sum += (controlPoints[idx1] - controlPoints[idx2]) * BernsteinPolynomialTetrahedral(n-1, i, j, k, u, v, w);
+				sum += (controlPoints[idx1] - controlPoints[idx2])
+				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
 		}
 	}
@@ -449,7 +463,8 @@ vec3 partialH4r2(const vec3 controlPoints[10], const float r, const float t)
 					float u = r;
 					float v = t;
 					float w = 1.0 - r - t;
-					sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(n - 1, i-1, j, k, u, v, w);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialTetrahedral(n - 1, i - 1, j, k, u, v, w);
 				}
 			}
 		}
@@ -477,7 +492,8 @@ vec3 partialH4t2(const vec3 controlPoints[10], const float r, const float t)
 					float u = r;
 					float v = t;
 					float w = 1.0 - r - t;
-					sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(n - 1, 1, j-1, k, u, v, w);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialTetrahedral(n - 1, 1, j - 1, k, u, v, w);
 				}
 			}
 		}

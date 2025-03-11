@@ -121,16 +121,18 @@ inline size_t getControlPointIndices(int i, int j, int k)
 	throw std::runtime_error("Invalid index");
 }
 
-unsigned int iter_factorial(unsigned int n)
+inline int factorial(int n)
 {
-	unsigned int ret = 1;
-	for (unsigned int i = 1; i <= n; ++i)
+	// NOTE : we only work with small numbers, so we can (hopefully) safely use int instead of
+	// unsigned ints
+	int ret = 1;
+	for (int i = 1; i <= n; ++i)
 		ret *= i;
-	return ret;
+	return static_cast<int>(ret);
 }
 
-inline glm::vec3
-bezierVolumePoint(const std::array<glm::vec3, 10> controlPoints, double u, double v, double w)
+inline glm::vec3 bezierVolumePoint(
+    const std::array<glm::vec3, 10> controlPoints, int n, double u, double v, double w)
 {
 	auto sum = glm::vec3();
 	for (int k = 0; k <= 2; k++)
@@ -139,23 +141,15 @@ bezierVolumePoint(const std::array<glm::vec3, 10> controlPoints, double u, doubl
 		{
 			for (int i = 0; i <= 2 - k - j; i++)
 			{
+				auto d = n;
+				auto l = d - i - j - k;
 				size_t idx = getControlPointIndices(i, j, k);
-				// auto a1 = BernsteinPolynomial<float>(i, 2, u);
-				// auto a2 = BernsteinPolynomial<float>(j, 2 - i, v);
-				// auto a3 = BernsteinPolynomial<float>(k, 2 - i - j, w);
-
-				// sum += controlPoints[idx] * a1 * a2 * a3;
-				auto d = static_cast<float>(iter_factorial(2))
-				         / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k));
-
-				auto weight
-				    = static_cast<float>(d * glm::pow(u, i) * glm::pow(v, j) * glm::pow(w, k));
+				auto fraction = static_cast<float>(factorial(d))
+				                / static_cast<float>(factorial(i) * factorial(j) * factorial(k)
+				                                     * factorial(l));
+				auto weight = static_cast<float>(fraction * glm::pow(u, i) * glm::pow(v, j)
+				                                 * glm::pow(w, k) * glm::pow(1.0 - u - v - w, l));
 				sum += controlPoints[idx] * weight;
-				// logVec3(std::string("Controlpoint ") + std::to_string(idx), controlPoints[idx]);
-				// std::cout << "Weight: " << weight;
-				// std::cout << " i: " << i << " j: " << j << " k: " << k << " u: " << u << " v: "
-				// << v << " w: " << w << '\n';
-				// std::cout << '\n';
 			}
 		}
 	}
@@ -887,8 +881,8 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 				if (u + v + w <= 1)
 				{
 					// auto rayO = glm::vec3(0.5f, 0.8f, 0.6f);
-					auto p = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), u, v, w);
-					raytracingScene.addSphere(p, 0.01f, ColorIdx::t_black);
+					auto p
+					    = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), 2, u, v, w);
 
 					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
 					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
@@ -896,25 +890,25 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_red);
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_purple);
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_green);
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_white);
+						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_white);
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)

@@ -1158,7 +1158,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
 	    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
-	    glm::vec3(-1.4f, 1.0f, 1.0f) * scalar + offset,
+	    glm::vec3(-1.0f, 0.3f, 0.6f) * scalar + offset,
 	}));
 
 	auto obj = RaytracingWorldObject(ObjectType::t_Tetrahedron2,
