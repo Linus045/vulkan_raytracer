@@ -750,7 +750,7 @@ bool newtonsMethod2(inout vec3 intersectionPoint,
 				break;
 			}
 
-			vec2 differenceInUV = inv_j * f_value;
+			vec2 differenceInUV = -inv_j * f_value;
 
 			u[c + 1] = u[c] - differenceInUV;
 
@@ -989,9 +989,9 @@ void main()
 		{
 			isCrosshairRay = true;
 		}
-		
+
 		isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
-		
+
 		float t;
 		// Side 1
 		if (raytracingDataConstants.renderSide1 > 0.0 && IntersectTriangle(ray, v0, v1, v2, t))
