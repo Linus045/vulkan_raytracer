@@ -49,8 +49,6 @@ inline void handleMouseMovementCallback(GLFWwindow* window, double xpos, double 
 		if (userData.ignoreFirstMouseMovement)
 		{
 			userData.ignoreFirstMouseMovement = false;
-			std::cout << "Ignoring first mouse movement" << std::endl;
-			std::cout << "Delta X: " << deltaX << " Delta Y: " << deltaY << std::endl;
 		}
 		else
 		{
