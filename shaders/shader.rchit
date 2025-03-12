@@ -10,8 +10,6 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 #extension GL_EXT_buffer_reference2 : require
 
-#define M_PI 3.1415926535897932384626433832795
-
 #include "../include/common_types.h"
 #include "../include/common_shader_functions.glsl"
 
@@ -73,11 +71,6 @@ layout(set = 0, binding = 9, scalar) buffer GPUInstances
 {
 	GPUInstance[] gpuInstances;
 };
-
-float random(vec2 uv, float seed)
-{
-	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
-}
 
 vec3 uniformSampleHemisphere(vec2 uv)
 {

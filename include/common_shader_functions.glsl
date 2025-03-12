@@ -1,6 +1,33 @@
 #ifndef COMMON_SHADER_FUNCTIONS
 #define COMMON_SHADER_FUNCTIONS
 
+const float M_PI = 3.1415926535897932384626433832795;
+
+float random(vec2 uv, float seed)
+{
+	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
+}
+
+float nChooseK(int N, int K)
+{
+	// This function gets the total number of unique combinations based upon N and K.
+	// N is the total number of items.
+	// K is the size of the group.
+	// Total number of unique combinations = N! / ( K! (N - K)! ).
+	// This function is less efficient, but is more likely to not overflow when N and K are large.
+	// Taken from:  http://blog.plover.com/math/choose.html
+	//
+	int r = 1;
+	int d;
+	if (K > N) return 0;
+	for (d = 1; d <= K; d++)
+	{
+		r *= N--;
+		r /= d;
+	}
+	return r;
+}
+
 int iter_factorial(int n)
 {
 	int ret = 1;
@@ -37,6 +64,26 @@ int getControlPointIndices(int i, int j, int k)
 	if (i == 1 && j == 0 && k == 1) return 8;
 	if (i == 0 && j == 1 && k == 1) return 9;
 	return 0;
+}
+
+float BernsteinPolynomial(int i, int n, float x)
+{
+	// pow(0,0) is undefined at runtime! (but 0 when then arguments are known at compile time)
+	// http://hacksoflife.blogspot.com/2009/01/pow00-nan-sometimes.html
+	float xpowi = pow(x, i);
+	if (i == 0)
+	{
+		xpowi = 1;
+	}
+	float powOther = pow(1.0 - x, n - i);
+	if (abs(n - 1) <= 0.0001)
+	{
+		powOther = 1;
+	}
+
+	float result = nChooseK(n, i) * xpowi * powOther;
+
+	return result;
 }
 
 float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float v, float w)
@@ -144,6 +191,23 @@ vec3 partialHw(
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Intersection functions ////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
+// https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
+bool intersectWithPlane(const vec3 planeNormal,
+                        const vec3 planeOrigin,
+                        const vec3 rayOrigin,
+                        const vec3 rayDirection,
+                        out float t)
+{
+	float denom = dot(planeNormal, rayDirection);
+	if (denom > 1e-6)
+	{
+		vec3 rayToPlanePoint = planeOrigin - rayOrigin;
+		t = dot(rayToPlanePoint, planeNormal) / denom;
+		return t >= 0;
+	}
+	return false;
+}
+
 vec3 IntersectPlane(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2)
 {
 	vec3 D = direction;
@@ -166,6 +230,38 @@ bool IntersectTriangle(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2, o
 		return dist > 0;
 	}
 	return false;
+}
+
+// Ray-Sphere intersection
+// http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
+float hitSphere(const Sphere s, const Ray r)
+{
+	vec3 oc = r.origin - s.center;
+	float a = dot(r.direction, r.direction);
+	float b = 2.0 * dot(oc, r.direction);
+	float c = dot(oc, oc) - s.radius * s.radius;
+	float discriminant = b * b - 4 * a * c;
+	if (discriminant < 0)
+	{
+		return -1.0;
+	}
+	else
+	{
+		return (-b - sqrt(discriminant)) / (2.0 * a);
+	}
+}
+
+// Ray-AABB intersection
+float hitAabb(const Aabb aabb, const Ray r)
+{
+	vec3 invDir = 1.0 / r.direction;
+	vec3 tbot = invDir * (aabb.minimum - r.origin);
+	vec3 ttop = invDir * (aabb.maximum - r.origin);
+	vec3 tmin = min(ttop, tbot);
+	vec3 tmax = max(ttop, tbot);
+	float t0 = max(tmin.x, max(tmin.y, tmin.z));
+	float t1 = min(tmax.x, min(tmax.y, tmax.z));
+	return t1 > max(t0, 0.0) ? t0 : -1.0;
 }
 
 #endif // COMMON_SHADER_FUNCTIONS

@@ -128,6 +128,12 @@ struct GPUInstance
 #endif
 };
 
+struct Ray
+{
+	vec3 origin;
+	vec3 direction;
+};
+
 struct Aabb
 {
 	vec3 minimum;
