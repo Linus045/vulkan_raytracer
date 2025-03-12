@@ -31,7 +31,7 @@ class Camera
 	const glm::vec3 globalUp = {0, 1, 0};
 
   public:
-	explicit Camera() : transform(glm::vec3(0.0, 0, -0.01f))
+	explicit Camera() : transform(glm::vec3(-3.5, 1, 1))
 	{
 		glm::vec3 up = globalUp;
 		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(1, 0, 0)), up));
@@ -224,7 +224,7 @@ class Camera
 
 	float movementSpeedMin = 0.01f;
 	float movementSpeedMax = 60.0f;
-	float movementSpeed = 0.01f;
+	float movementSpeed = 4.0f;
 
 	float rotationSpeedMin = 1.0f;
 	float rotationSpeedMax = 100.0f;
