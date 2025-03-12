@@ -85,7 +85,9 @@ END_BINDING();
 	ALIGNAS(4) int someScalar;                                                                     \
 	ALIGNAS(16) vec3 globalLightPosition;                                                          \
 	ALIGNAS(16) vec3 globalLightColor;                                                             \
+	ALIGNAS(4) float globalLightIntensity;                                                         \
 	ALIGNAS(16) vec3 environmentColor;                                                             \
+	ALIGNAS(4) float environmentLightIntensity;                                                    \
 	ALIGNAS(4) float debugShowAABBs;                                                               \
 	ALIGNAS(4) float renderSide1;                                                                  \
 	ALIGNAS(4) float renderSide2;                                                                  \

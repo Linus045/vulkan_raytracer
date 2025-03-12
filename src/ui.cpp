@@ -277,7 +277,18 @@ void renderRaytracingOptions(UIData& uiData)
 
 		ImGui::SeparatorText("Environment");
 		{
-			valueChanged = ImGui::ColorPicker3("Environment Color",
+			valueChanged
+			    = ImGui::SliderFloat("Environment Light Intensity",
+			                         &uiData.raytracingDataConstants.environmentLightIntensity,
+			                         0.0f,
+			                         1.0f,
+			                         "%.2f",
+			                         0)
+			      || valueChanged;
+
+			ImGui::Spacing();
+
+			valueChanged = ImGui::ColorPicker3("Environment Light Color",
 			                                   &uiData.raytracingDataConstants.environmentColor.x,
 			                                   0)
 			               || valueChanged;
@@ -287,13 +298,21 @@ void renderRaytracingOptions(UIData& uiData)
 		{
 			valueChanged
 			    = ImGui::SliderFloat3("Global Light Position",
-
 			                          &uiData.raytracingDataConstants.globalLightPosition.x,
-			                          -1000.0f,
-			                          1000.0f,
+			                          -3.0f,
+			                          3.0f,
 			                          "%.1f",
 			                          0)
 			      || valueChanged;
+
+			valueChanged = ImGui::SliderFloat("Global Light Intensity",
+			                                  &uiData.raytracingDataConstants.globalLightIntensity,
+			                                  0.0f,
+			                                  12.0f,
+			                                  "%.1f",
+			                                  0)
+			               || valueChanged;
+
 			valueChanged = ImGui::ColorPicker3("Global Light Color",
 			                                   &uiData.raytracingDataConstants.globalLightColor.x,
 			                                   0)

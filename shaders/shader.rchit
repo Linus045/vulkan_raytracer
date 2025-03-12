@@ -13,6 +13,7 @@
 #define M_PI 3.1415926535897932384626433832795
 
 #include "../include/common_types.h"
+#include "../include/common_shader_functions.glsl"
 
 hitAttributeEXT vec2 hitCoordinate;
 
@@ -76,7 +77,6 @@ layout(set = 0, binding = 9, scalar) buffer GPUInstances
 float random(vec2 uv, float seed)
 {
 	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
-	;
 }
 
 vec3 uniformSampleHemisphere(vec2 uv)
@@ -144,16 +144,22 @@ void main()
 			vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
 
 			Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
-			vec3 tetrahedronCenter = (tetrahedron.controlPoints[0] + tetrahedron.controlPoints[1]
-			                          + tetrahedron.controlPoints[2] + tetrahedron.controlPoints[3])
-			                         / 4.0;
 
-			tetrahedronCenter = vec3(0);
-			// TODO: fix normal calculation, calculate using intersection point as input to geometry
-			// formula
-			vec3 normal = normalize(position - tetrahedronCenter);
-			payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor
-			                      * dot(normal, positionToLightDirection);
+			float u = hitCoordinate.x;
+			float v = hitCoordinate.y;
+			vec3 partialU = partialHu(tetrahedron.controlPoints, 2, u, v, 0);
+			vec3 partialV = partialHv(tetrahedron.controlPoints, 2, u, v, 0);
+
+			vec3 normal = normalize(cross(partialU, partialV));
+
+			vec3 lightColor = raytracingDataConstants.globalLightColor
+			                  * raytracingDataConstants.globalLightIntensity;
+
+			payload.directColor
+			    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+			payload.indirectColor = vec3(0, 0, 0);
+			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+			                        * raytracingDataConstants.environmentLightIntensity;
 		}
 		payload.rayActive = 0;
 	}
