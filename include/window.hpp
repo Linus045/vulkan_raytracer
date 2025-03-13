@@ -298,7 +298,7 @@ class Window
 		}
 
 		// if the good format cannot be found, just use the first one
-		std::cout << "Warning: Could not find the good format\nChoosing first valid format:\n";
+		std::cout << "Warning: Could not find the good format. Choosing first valid format:\n";
 
 		for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
 		{
@@ -317,15 +317,15 @@ class Window
 			VkResult result = vkGetPhysicalDeviceImageFormatProperties2(
 			    physicalDevice, &formatInfo, &properties);
 
-			std::cout << "  + Format:" << string_VkFormat(availableFormat.format)
-			          << " | Color space: " << string_VkColorSpaceKHR(availableFormat.colorSpace)
-			          << " | Error: " << result << '\n';
+			// std::cout << "  + Format:" << string_VkFormat(availableFormat.format)
+			//           << " | Color space: " << string_VkColorSpaceKHR(availableFormat.colorSpace)
+			//           << " | Error: " << result << '\n';
 
 			if (result == VK_SUCCESS)
 			{
-				std::cout << "Found format: " << string_VkFormat(availableFormat.format)
-				          << " | Color space: "
-				          << string_VkColorSpaceKHR(availableFormat.colorSpace) << '\n';
+				// std::cout << "Found format: " << string_VkFormat(availableFormat.format)
+				//           << " | Color space: "
+				//           << string_VkColorSpaceKHR(availableFormat.colorSpace) << '\n';
 				return availableFormat;
 			}
 		}

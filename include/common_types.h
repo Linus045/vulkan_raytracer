@@ -55,6 +55,7 @@ START_BINDING(ObjectType)
 	t_Tetrahedron2 = 4,
 	t_Tetrahedron3 = 5,
 	t_RectangularBezierSurface2x2 = 6,
+	t_BezierTriangle2 = 7,
 	t_SlicingPlane = 80,
 	t_AABBDebug = 100
 END_BINDING();
@@ -89,6 +90,7 @@ END_BINDING();
 	ALIGNAS(16) vec3 environmentColor;                                                             \
 	ALIGNAS(4) float environmentLightIntensity;                                                    \
 	ALIGNAS(4) float debugShowAABBs;                                                               \
+	ALIGNAS(4) float renderSideTriangle;                                                           \
 	ALIGNAS(4) float renderSide1;                                                                  \
 	ALIGNAS(4) float renderSide2;                                                                  \
 	ALIGNAS(4) float renderSide3;                                                                  \
@@ -167,6 +169,11 @@ struct Triangle
 	vec3 a;
 	vec3 b;
 	vec3 c;
+};
+
+struct BezierTriangle2
+{
+	vec3 controlPoints[6];
 };
 
 struct SlicingPlane

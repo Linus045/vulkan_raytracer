@@ -250,6 +250,12 @@ void renderRaytracingOptions(UIData& uiData)
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
 
+			bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
+			valueChanged
+			    = ImGui::Checkbox("Render Side Triangle", &renderSideTriangle) || valueChanged;
+			uiData.raytracingDataConstants.renderSideTriangle
+			    = static_cast<float>(renderSideTriangle ? 1 : 0);
+
 			bool renderSide1 = uiData.raytracingDataConstants.renderSide1 > 0;
 			valueChanged = ImGui::Checkbox("Render Side 1", &renderSide1) || valueChanged;
 			uiData.raytracingDataConstants.renderSide1 = static_cast<float>(renderSide1 ? 1 : 0);

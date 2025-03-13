@@ -85,6 +85,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .environmentColor = vec3(1.0, 1.0, 1.0),
 	    .environmentLightIntensity = 0.3f,
 	    .debugShowAABBs = 0.0f,
+	    .renderSideTriangle = 1.0f,
 	    .renderSide1 = 1.0f,
 	    .renderSide2 = 0.0f,
 	    .renderSide3 = 0.0f,

@@ -76,4 +76,21 @@ inline Tetrahedron2 createTetrahedron2(const std::array<glm::vec3, 10>& points)
 	return tetrahedron;
 }
 
+inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& tetrahedron2,
+                                                            const int side)
+{
+	auto bezierTriangle = BezierTriangle2();
+	if (side == 1)
+	{
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[5];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[9];
+	}
+
+	return bezierTriangle;
+}
+
 } // namespace ltracer

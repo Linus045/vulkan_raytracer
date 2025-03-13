@@ -26,6 +26,11 @@ class RaytracingWorldObject : public WorldObject
 	RaytracingWorldObject(RaytracingWorldObject&&) noexcept = default;
 	RaytracingWorldObject& operator=(RaytracingWorldObject&&) noexcept = delete;
 
+	const Geometry<T>& getGeometry() const
+	{
+		return geometry;
+	}
+
 	Geometry<T>& getGeometry()
 	{
 		return geometry;

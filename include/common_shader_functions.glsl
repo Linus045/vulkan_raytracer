@@ -51,7 +51,7 @@ float PointInTriangle(vec3 px, vec3 p0, vec3 p1, vec3 p2)
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Tetrahedron Bezier functions //////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-int getControlPointIndices(int i, int j, int k)
+int getControlPointIndicesTetrahedron2(int i, int j, int k)
 {
 	if (i == 0 && j == 0 && k == 0) return 0;
 	if (i == 2 && j == 0 && k == 0) return 1;
@@ -114,12 +114,38 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 
 	float z = 1.0 - u - v - w;
 	float powz = pow(z, l);
-	if (k == 0)
+	if (l == 0)
 	{
 		powz = 1;
 	}
 
 	return fraction * powi * powj * powk * powz;
+}
+
+float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
+{
+	float fraction
+	    = iter_factorial(n) / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k));
+
+	float powi = pow(u, i);
+	if (i == 0)
+	{
+		powi = 1;
+	}
+
+	float powj = pow(v, j);
+	if (j == 0)
+	{
+		powj = 1;
+	}
+
+	float powk = pow(w, k);
+	if (k == 0)
+	{
+		powk = 1;
+	}
+
+	return fraction * powi * powj * powk;
 }
 
 vec3 partialHu(
@@ -133,8 +159,8 @@ vec3 partialHu(
 		{
 			for (int i = 0; i <= n - 1 - k - j; i++)
 			{
-				int idx1 = getControlPointIndices(i + 1, j, k);
-				int idx2 = getControlPointIndices(i, j, k);
+				int idx1 = getControlPointIndicesTetrahedron2(i + 1, j, k);
+				int idx2 = getControlPointIndicesTetrahedron2(i, j, k);
 				sum += (controlPoints[idx1] - controlPoints[idx2])
 				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
@@ -155,8 +181,8 @@ vec3 partialHv(
 		{
 			for (int i = 0; i <= n - 1 - k - j; i++)
 			{
-				int idx1 = getControlPointIndices(i, j + 1, k);
-				int idx2 = getControlPointIndices(i, j, k);
+				int idx1 = getControlPointIndicesTetrahedron2(i, j + 1, k);
+				int idx2 = getControlPointIndicesTetrahedron2(i, j, k);
 				sum += (controlPoints[idx1] - controlPoints[idx2])
 				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
@@ -177,8 +203,8 @@ vec3 partialHw(
 		{
 			for (int i = 0; i <= n - 1 - k - j; i++)
 			{
-				int idx1 = getControlPointIndices(i, j, k + 1);
-				int idx2 = getControlPointIndices(i, j, k);
+				int idx1 = getControlPointIndicesTetrahedron2(i, j, k + 1);
+				int idx2 = getControlPointIndicesTetrahedron2(i, j, k);
 				sum += (controlPoints[idx1] - controlPoints[idx2])
 				       * BernsteinPolynomialTetrahedral(n - 1, i, j, k, u, v, w);
 			}
@@ -186,6 +212,73 @@ vec3 partialHw(
 	}
 
 	return n * sum;
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////// Bezier Triangle functions /////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+int getControlPointIndicesBezierTriangle2(int i, int j, int k)
+{
+	if (i == 2 && j == 0 && k == 0) return 0;
+	if (i == 0 && j == 2 && k == 0) return 1;
+	if (i == 0 && j == 0 && k == 2) return 2;
+	if (i == 1 && j == 1 && k == 0) return 3;
+	if (i == 1 && j == 0 && k == 1) return 4;
+	if (i == 0 && j == 1 && k == 1) return 5;
+	return 0;
+}
+
+vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+
+	// TODO: remove this loop and write out the formula
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n)
+				{
+					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
+
+					float w = 1.0 - u - v;
+					sum += i * controlPoints[idx]
+					       * BernsteinPolynomialBivariate(n, i - 1, j, k, u, v, w);
+				}
+			}
+		}
+	}
+
+	return sum;
+}
+
+vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+
+	// TODO: remove this loop and write out the formula
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n)
+				{
+					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
+
+					float w = 1.0 - u - v;
+					sum += j * controlPoints[idx]
+					       * BernsteinPolynomialBivariate(n, i, j - 1, k, u, v, w);
+				}
+			}
+		}
+	}
+	return sum;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////

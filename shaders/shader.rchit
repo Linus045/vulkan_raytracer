@@ -13,6 +13,7 @@
 #include "../include/common_types.h"
 #include "../include/common_shader_functions.glsl"
 
+bool isCrosshairRay = false;
 hitAttributeEXT vec2 hitCoordinate;
 
 layout(location = 0) rayPayloadInEXT Payload
@@ -72,6 +73,11 @@ layout(set = 0, binding = 9, scalar) buffer GPUInstances
 	GPUInstance[] gpuInstances;
 };
 
+layout(set = 0, binding = 10, scalar) buffer BezierTriangles2
+{
+	BezierTriangle2[] bezierTriangles2;
+};
+
 vec3 uniformSampleHemisphere(vec2 uv)
 {
 	float z = uv.x;
@@ -95,6 +101,18 @@ void main()
 	{
 		return;
 	}
+
+	vec3 cameraDir = raytracingDataConstants.cameraDir;
+
+	// whether or not the current ray direction is the crosshair's direction
+	if (abs(dot(normalize(gl_WorldRayDirectionEXT), normalize(cameraDir)) - 1) < 0.0000001)
+	{
+		isCrosshairRay = true;
+	}
+
+	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
+
+	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
 
 	// debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
 	if (gl_HitKindEXT == t_SlicingPlane)
@@ -136,7 +154,7 @@ void main()
 			    = normalize(raytracingDataConstants.globalLightPosition - position);
 			vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
 
-			Tetrahedron2 tetrahedron = tetrahedrons[gl_PrimitiveID];
+			Tetrahedron2 tetrahedron = tetrahedrons[instance.bufferIndex];
 
 			float u = hitCoordinate.x;
 			float v = hitCoordinate.y;
@@ -154,6 +172,51 @@ void main()
 			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
 			                        * raytracingDataConstants.environmentLightIntensity;
 		}
+		payload.rayActive = 0;
+	}
+	else if (gl_HitKindEXT == t_BezierTriangle2)
+	{
+		vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+		vec3 positionToLightDirection
+		    = normalize(raytracingDataConstants.globalLightPosition - position);
+		vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
+
+		// debugPrintfEXT(
+		//     "gl_InstanceCustomIndexEXT: %d gl_PrimitiveID: %d instance.id: %d,
+		//     instance.objectType: %d", gl_InstanceCustomIndexEXT, gl_PrimitiveID,
+		//     instance.bufferIndex,
+		//     instance.type);
+
+		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
+
+		float u = hitCoordinate.x;
+		float v = hitCoordinate.y;
+		vec3 partialU = partialBezierTriangle2U(bezierTriangle.controlPoints, u, v);
+		vec3 partialV = partialBezierTriangle2V(bezierTriangle.controlPoints, u, v);
+
+		if (isCrosshairRay)
+		{
+			debugPrintfEXT("uv: %f %f partialU: %f %f %f partialV: %f %f %f",
+			               u,
+			               v,
+			               partialU.x,
+			               partialU.y,
+			               partialU.z,
+			               partialV.x,
+			               partialV.y,
+			               partialV.z);
+		}
+
+		vec3 normal = normalize(cross(partialU, partialV));
+
+		vec3 lightColor = raytracingDataConstants.globalLightColor
+		                  * raytracingDataConstants.globalLightIntensity;
+
+		payload.directColor
+		    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+		payload.indirectColor = vec3(0, 0, 0);
+		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+		                        * raytracingDataConstants.environmentLightIntensity;
 		payload.rayActive = 0;
 	}
 	else if (gl_HitKindEXT == t_Sphere)

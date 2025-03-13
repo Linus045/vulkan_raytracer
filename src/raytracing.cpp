@@ -325,6 +325,14 @@ VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
 	        .pImmutableSamplers = NULL,
 	    },
+	    {
+	        .binding = 10,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
 	};
 
 	std::vector<VkDescriptorBindingFlags> bindingFlags = std::vector<VkDescriptorBindingFlags>(
@@ -655,6 +663,12 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo bezierTriangles2DescriptorInfo = {
+	    .buffer = raytracingScene.getObjectBuffers().bezierTriangles2BufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	std::vector<VkWriteDescriptorSet> writeDescriptorSetList;
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
@@ -832,6 +846,22 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 		    .pImageInfo = NULL,
 		    .pBufferInfo = &gpuObjectsDescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
+
+	if (raytracingScene.getObjectBuffers().bezierTriangles2BufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 10,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &bezierTriangles2DescriptorInfo,
 		    .pTexelBufferView = NULL,
 		});
 	}
@@ -1158,14 +1188,26 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
 	    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
-	    glm::vec3(-1.0f, 0.3f, 0.6f) * scalar + offset,
+	    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 	}));
 
-	auto obj = RaytracingWorldObject(ObjectType::t_Tetrahedron2,
-	                                 AABB::fromTetrahedron2(tetrahedron2),
-	                                 tetrahedron2,
-	                                 glm::vec3(0));
-	raytracingScene.addWorldObject(obj);
+	auto bezierTriangleH1 = extractBezierTriangleFromTetrahedron(tetrahedron2, 1);
+
+	{
+		auto obj = RaytracingWorldObject(ObjectType::t_BezierTriangle2,
+		                                 AABB::fromBezierTriangle2(bezierTriangleH1),
+		                                 bezierTriangleH1,
+		                                 glm::vec3(0));
+		raytracingScene.addWorldObject(obj);
+	}
+
+	{
+		// auto obj = RaytracingWorldObject(ObjectType::t_Tetrahedron2,
+		//                                  AABB::fromTetrahedron2(tetrahedron2),
+		//                                  tetrahedron2,
+		//                                  glm::vec3(0));
+		// raytracingScene.addWorldObject(obj);
+	}
 
 	// Visualize control points
 	for (auto& point : tetrahedron2.controlPoints)

@@ -26,6 +26,11 @@ class Geometry
 		return aabb;
 	}
 
+	const T& getData() const
+	{
+		return data;
+	}
+
 	T& getData()
 	{
 		return data;
