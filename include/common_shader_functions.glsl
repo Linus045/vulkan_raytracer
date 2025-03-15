@@ -122,8 +122,14 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 	return fraction * powi * powj * powk * powz;
 }
 
-float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
+float BernsteinPolynomialBivariate(
+    int originalN, int n, int i, int j, int k, float u, float v, float w)
 {
+	if (i < 0 || j < 0 || k < 0 || i == originalN || j == originalN || k == originalN)
+	{
+		return 0;
+	}
+
 	float fraction
 	    = iter_factorial(n) / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k));
 
@@ -228,10 +234,53 @@ int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 	return 0;
 }
 
+vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, float u, float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	float w = 1.0 - u - v;
+	vec3 alpha = direction;
+
+	int r = 1;
+
+	// TODO: remove this loop and write out the formula
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n)
+				{
+					for (int k2 = 0; k2 <= r; k2++)
+					{
+						for (int j2 = 0; j2 <= r - k2; j2++)
+						{
+							for (int i2 = 0; i2 <= r - k2 - j2; i2++)
+							{
+								if (i2 + j2 + k2 == r)
+								{
+									sum += BernsteinPolynomialBivariate(
+									           n, r, i2, j2, k2, alpha.x, alpha.y, alpha.z)
+									       * BernsteinPolynomialBivariate(
+									           n, n - r, i - i2, j - j2, k - k2, u, v, w);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+return n * sum;
+}
+
 vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 {
 	int n = 2;
 	vec3 sum = vec3(0);
+	float w = 1.0 - u - v;
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
@@ -244,14 +293,13 @@ vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 				{
 					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
 
-					float w = 1.0 - u - v;
 					sum += i * controlPoints[idx]
-					       * BernsteinPolynomialBivariate(n, i - 1, j, k, u, v, w);
+					       * BernsteinPolynomialBivariate(n, n - 1, i - 1, j, k, u, v, w);
 				}
 			}
 		}
 	}
-
+	sum *= n;
 	return sum;
 }
 
@@ -259,6 +307,7 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 {
 	int n = 2;
 	vec3 sum = vec3(0);
+	float w = 1.0 - u - v;
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
@@ -269,20 +318,22 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 			{
 				if (i + j + k == n)
 				{
-					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
+					// int idx = getControlPointIndicesBezierTriangle2(i, j, k);
 
-					float w = 1.0 - u - v;
-					sum += j * controlPoints[idx]
-					       * BernsteinPolynomialBivariate(n, i, j - 1, k, u, v, w);
+					// sum += j * controlPoints[idx]
+					//        * BernsteinPolynomialBivariate(n, i, j - 1, k, u, v, w);
+					sum += BernsteinPolynomialBivariate(n, n - 1, i, j - 1, k, u, v, w)
+					       - BernsteinPolynomialBivariate(n, n - 1, i, j, k - 1, u, v, w);
 				}
 			}
 		}
 	}
-	return sum;
+	return n * sum;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////// Intersection functions ////////////////////////////////////////////////////
+////////////////////// Intersection functions
+///////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
 bool intersectWithPlane(const vec3 planeNormal,
