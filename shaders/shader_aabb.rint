@@ -518,7 +518,6 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 				if (i + j + k == n)
 				{
 					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
-					float w = 0;
 					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
 				}
 			}
@@ -633,10 +632,6 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 
 			vec2 f_value = fBezierTriangle(
 			    controlPoints, origin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
-
-			// TODO: figure out if and why this scaling of the newton step is needed
-			// f_value *=  ((c+1) / float(raytracingDataConstants.newtonMaxIterations + 1)) *
-			// raytracingDataConstants.someFloatingScalar;
 
 			previousErrorF = errorF;
 			errorF = abs(f_value[0]) + abs(f_value[1]);

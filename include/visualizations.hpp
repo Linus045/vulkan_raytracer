@@ -1004,10 +1004,9 @@ inline int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 	return 0;
 }
 
-inline float
-BernsteinPolynomialBivariate(int originalN, int n, int i, int j, int k, float u, float v, float w)
+inline float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
 {
-	if (i < 0 || j < 0 || k < 0 || i == originalN || j == originalN || k == originalN)
+	if (i < 0 || j < 0 || k < 0)
 	{
 		return 0;
 	}
@@ -1037,7 +1036,29 @@ inline glm::vec3 casteljauAlgorithmIntermediatePoint(
 				{
 					int idx = getControlPointIndicesBezierTriangle2(i + ji, j + jj, k + jk);
 					sum += controlPoints[idx]
-					       * BernsteinPolynomialBivariate(r + 1, r, ji, jj, jk, u, v, w);
+					       * BernsteinPolynomialBivariate(r, ji, jj, jk, u, v, w);
+				}
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline glm::vec3 deCasteljauBezierTrianglePoint(vec3 controlPoints[6], float u, float v, float w)
+{
+	vec3 sum = vec3(0);
+	int n = 2;
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n)
+				{
+					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
+					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -1067,7 +1088,7 @@ inline vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 				{
 					sum += casteljauAlgorithmIntermediatePoint(
 					           controlPoints, 1, dx, dy, dz, u, v, w)
-					       * BernsteinPolynomialBivariate(n, n - 1, i, j, k, u, v, w);
+					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
 		}

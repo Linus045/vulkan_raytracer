@@ -1180,7 +1180,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
+		    glm::vec3(1.5f, 2.0f, 1.5f) * scalar + offset,
 		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
 
 		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
@@ -1210,6 +1210,13 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 				logVec3("Value:", value);
 			}
 		}
+
+		float u = 0.4f;
+		float v = 0.2f;
+		float w = 1.0f - u - v;
+
+		glm::vec3 point = deCasteljauBezierTrianglePoint(bezierTriangleH1.controlPoints, u, v, w);
+		raytracingScene.addSphere(point, 0.1f, ColorIdx::t_white);
 	}
 
 	// Visualize control points

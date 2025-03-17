@@ -287,7 +287,14 @@ vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 {
 	int n = 2;
 	vec3 sum = vec3(0);
+
 	float w = 1.0 - u - v;
+
+	// check if values are in the right range and if sum is equal to 1
+	if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
+	{
+		return sum;
+	}
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
@@ -314,6 +321,12 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 	int n = 2;
 	vec3 sum = vec3(0);
 	float w = 1.0 - u - v;
+
+	// check if values are in the right range and if sum is equal to 1
+	if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
+	{
+		return sum;
+	}
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
