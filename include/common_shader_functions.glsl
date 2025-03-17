@@ -233,7 +233,9 @@ int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 	return 0;
 }
 
-vec3 casteljauAlgorithmIntermediatePoint(vec3 controlPoints[6], int r, vec3 direction, int i, int j, int k) {
+vec3 casteljauAlgorithmIntermediatePoint(
+    vec3 controlPoints[6], int r, vec3 direction, int i, int j, int k)
+{
 	vec3 sum = vec3(0);
 	int n = 2;
 	for (int jk = 0; jk <= n; jk++)
@@ -244,10 +246,10 @@ vec3 casteljauAlgorithmIntermediatePoint(vec3 controlPoints[6], int r, vec3 dire
 			{
 				if (ji + jj + jk == r)
 				{
- 					int idx = getControlPointIndicesBezierTriangle2(i + ji, j + jj, k + jk);
- 					sum += controlPoints[idx]
-						* BernsteinPolynomialBivariate(r, ji, jj, jk, direction.x, direction.y, direction.z);
-
+					int idx = getControlPointIndicesBezierTriangle2(i + ji, j + jj, k + jk);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialBivariate(
+					           r, ji, jj, jk, direction.x, direction.y, direction.z);
 				}
 			}
 		}
@@ -272,7 +274,7 @@ vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, fl
 				if (i + j + k == n - 1)
 				{
 					sum += casteljauAlgorithmIntermediatePoint(controlPoints, 1, direction, i, j, k)
-						* BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -296,9 +298,9 @@ vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 			{
 				if (i + j + k == n - 1)
 				{
- 					int idx = getControlPointIndicesBezierTriangle2(i + 1, j + 0, k + 0);
- 					sum += controlPoints[idx]
-						* BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+					int idx = getControlPointIndicesBezierTriangle2(i + 1, j + 0, k + 0);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -322,9 +324,9 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 			{
 				if (i + j + k == n - 1)
 				{
- 					int idx = getControlPointIndicesBezierTriangle2(i + 0, j + 1, k + 0);
- 					sum += controlPoints[idx]
-						* BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+					int idx = getControlPointIndicesBezierTriangle2(i + 0, j + 1, k + 0);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -348,13 +350,13 @@ vec3 partialBezierTriangle2UVersion2(vec3 controlPoints[6], float u, float v)
 			{
 				if (i + j + k == n)
 				{
- 					sum +=  n * (BernsteinPolynomialBivariate(n - 1, i - 1, j, k, u, v, w) - 
-						BernsteinPolynomialBivariate(i, j - 1, k, u, v, w));
+					sum += n
+					       * (BernsteinPolynomialBivariate(n - 1, i - 1, j, k, u, v, w)
+					          - BernsteinPolynomialBivariate(n - 1, i, j - 1, k, u, v, w));
 				}
 			}
 		}
 	}
-	sum *= n;
 	return sum;
 }
 
@@ -373,17 +375,15 @@ vec3 partialBezierTriangle2VVersion2(vec3 controlPoints[6], float u, float v)
 			{
 				if (i + j + k == n)
 				{
- 					sum +=  n * (BernsteinPolynomialBivariate(n - 1, i, j - 1, k, u, v, w) - 
-						BernsteinPolynomialBivariate(n - 1, i, j, k - 1, u, v, w));
+					sum += n
+					       * (BernsteinPolynomialBivariate(n - 1, i, j - 1, k, u, v, w)
+					          - BernsteinPolynomialBivariate(n - 1, i, j, k - 1, u, v, w));
 				}
 			}
 		}
 	}
-	sum *= n;
 	return sum;
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Intersection functions
