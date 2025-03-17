@@ -520,7 +520,7 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
 					float w = 0;
 					sum += controlPoints[idx]
-					       * BernsteinPolynomialBivariate(n, n, i, j, k, u, v, w);
+					       * BernsteinPolynomialBivariate(n+1, n, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -548,19 +548,13 @@ mat2x2 jacobianBezierTriangle2(
     const vec3 controlPoints[6], const vec3 n1, const vec3 n2, const float u, const float v)
 {
 
-	vec3 partialDerivative1 = partialBezierTriangle2U(controlPoints, u, v);
+	vec3 partialDerivative1 = partialBezierTriangle2UVersion2(controlPoints, u, v);
+	vec3 partialDerivative2 = partialBezierTriangle2VVersion2(controlPoints, u, v);
 
 	if (isCrosshairRay)
 	{
-		vec3 test = partialBezierTriangle2Directional(controlPoints, vec3(1, 0, 0), u, v);
-		debugPrintfEXT("TEST - uv: %.2v2f sum: %.2v3f: ", vec2(u, v), test);
-
-		// debugPrintfEXT(
-		//     "partialBezierTriangle2U - uv: %.2v2f sum: %.2v3f: ", vec2(u, v),
-		//     partialDerivative1);
+		debugPrintfEXT("TEST - uv: %.2v2f partialU: %.2v3f partialV: %.2v3f", vec2(u, v), partialDerivative1, partialDerivative2);
 	}
-
-	vec3 partialDerivative2 = partialBezierTriangle2V(controlPoints, u, v);
 
 	return mat2x2(dot(n1, partialDerivative1),
 	              dot(n1, partialDerivative2),

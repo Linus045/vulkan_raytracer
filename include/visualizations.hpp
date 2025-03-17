@@ -989,5 +989,92 @@ inline bool IntersectTriangle(const glm::vec3 rayOrigin,
 	return false;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////// TEST /////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+inline int getControlPointIndicesBezierTriangle2(int i, int j, int k)
+{
+	if (i == 2 && j == 0 && k == 0) return 0;
+	if (i == 0 && j == 2 && k == 0) return 1;
+	if (i == 0 && j == 0 && k == 2) return 2;
+	if (i == 1 && j == 1 && k == 0) return 3;
+	if (i == 1 && j == 0 && k == 1) return 4;
+	if (i == 0 && j == 1 && k == 1) return 5;
+	return 0;
+}
+
+inline float
+BernsteinPolynomialBivariate(int originalN, int n, int i, int j, int k, float u, float v, float w)
+{
+	if (i < 0 || j < 0 || k < 0 || i == originalN || j == originalN || k == originalN)
+	{
+		return 0;
+	}
+
+	float fraction = static_cast<float>(factorial(n))
+	                 / static_cast<float>((factorial(i) * factorial(j) * factorial(k)));
+
+	float powi = static_cast<float>(glm::pow(u, i));
+	float powj = static_cast<float>(glm::pow(v, j));
+	float powk = static_cast<float>(glm::pow(w, k));
+
+	return fraction * powi * powj * powk;
+}
+
+inline glm::vec3 casteljauAlgorithmIntermediatePoint(
+    vec3 controlPoints[6], int r, int i, int j, int k, float u, float v, float w)
+{
+	vec3 sum = vec3(0);
+	int n = 2;
+	for (int jk = 0; jk <= n; jk++)
+	{
+		for (int jj = 0; jj <= n - jk; jj++)
+		{
+			for (int ji = 0; ji <= n - jk - jj; ji++)
+			{
+				if (ji + jj + jk == r)
+				{
+					int idx = getControlPointIndicesBezierTriangle2(i + ji, j + jj, k + jk);
+					sum += controlPoints[idx]
+					       * BernsteinPolynomialBivariate(r + 1, r, ji, jj, jk, u, v, w);
+				}
+			}
+		}
+	}
+
+	return sum;
+}
+
+inline vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
+{
+	int n = 2;
+	vec3 sum = vec3(0);
+	float w = 1.0f - u - v;
+
+	int dx = 1;
+	int dy = 0;
+	int dz = 0;
+
+	// TODO: remove this loop and write out the formula
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n - 1)
+				{
+					sum += casteljauAlgorithmIntermediatePoint(
+					           controlPoints, 1, dx, dy, dz, u, v, w)
+					       * BernsteinPolynomialBivariate(n, n - 1, i, j, k, u, v, w);
+				}
+			}
+		}
+	}
+	sum *= n;
+	return sum;
+}
+
 } // namespace rt
 } // namespace ltracer

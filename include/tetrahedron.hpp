@@ -79,7 +79,7 @@ inline Tetrahedron2 createTetrahedron2(const std::array<glm::vec3, 10>& points)
 inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& tetrahedron2,
                                                             const int side)
 {
-	auto bezierTriangle = BezierTriangle2();
+	BezierTriangle2 bezierTriangle{};
 	if (side == 1)
 	{
 		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
