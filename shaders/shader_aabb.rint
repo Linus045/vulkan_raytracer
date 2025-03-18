@@ -902,7 +902,9 @@ void main()
 			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
 			//  }
 
-			// debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
+			if(isCrosshairRay) {
+				debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
+			}
 			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:
 			// %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
 
