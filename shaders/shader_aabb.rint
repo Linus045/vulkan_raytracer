@@ -547,13 +547,6 @@ mat2x2 jacobianBezierTriangle2(
 	vec3 partialDerivative1 = partialBezierTriangle2U(controlPoints, u, v);
 	vec3 partialDerivative2 = partialBezierTriangle2V(controlPoints, u, v);
 
-	if (isCrosshairRay)
-	{
-		debugPrintfEXT("TEST - uv: %.2v2f partialU: %.2v3f partialV: %.2v3f",
-		               vec2(u, v),
-		               partialDerivative1,
-		               partialDerivative2);
-	}
 
 	return mat2x2(dot(n1, partialDerivative1),
 	              dot(n1, partialDerivative2),
@@ -606,7 +599,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 		float previousErrorX = 100000.0;
 		float errorX = 100000.0;
 
-		for (; c <= raytracingDataConstants.newtonMaxIterations; c++)
+		for (; c < raytracingDataConstants.newtonMaxIterations; c++)
 		{
 			mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
 
@@ -739,7 +732,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 	intersectionPoint = vec3(0);
 	if (hit)
 	{
-		int idx = c;
+		int idx = c + 1;
 		intersectionPoint
 		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
 		if (isCrosshairRay)
@@ -873,12 +866,11 @@ void main()
 		vec3 intersectionPoint;
 
 		vec3 v0 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(2, 0, 0)];
-		vec3 v1 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
-		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
+		vec3 v1 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
+		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
 		// debugPrintfEXT("v0: (%.2v3f), v1: (%.2v3f), v2: (%.2v3f)", v0, v1, v2);
 
 		float t;
-		// Side 1
 		if (raytracingDataConstants.renderSideTriangle > 0.0
 		    && IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
 		{
@@ -899,7 +891,7 @@ void main()
 			float beta = v;
 			float gamma = w;
 
-			vec2 guess = vec2(beta, gamma);
+			vec2 guess = vec2(alpha, beta);
 
 			// float d1 = dot(-n1, o);
 			// float d2 = dot(-n2, o);
