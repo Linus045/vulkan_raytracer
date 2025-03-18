@@ -249,7 +249,6 @@ inline glm::vec2 f(const glm::vec3 controlPoints[16],
 	auto surfacePoint = bezierSurfacePoint(controlPoints, n, m, u, v);
 	auto d1 = glm::dot(-n1, origin);
 	auto d2 = glm::dot(-n2, origin);
-	std::cout << "d1: " << d1 << " d2: " << d2 << std::endl;
 	return glm::vec2{
 	    glm::dot(n1, surfacePoint) + d1,
 	    glm::dot(n2, surfacePoint) + d2,

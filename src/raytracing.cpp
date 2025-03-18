@@ -1192,31 +1192,23 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 		}));
 
-		auto bezierTriangleH1 = extractBezierTriangleFromTetrahedron(tetrahedron2, 1);
-		auto obj = RaytracingWorldObject(ObjectType::t_BezierTriangle2,
-		                                 AABB::fromBezierTriangle2(bezierTriangleH1),
-		                                 bezierTriangleH1,
-		                                 glm::vec3(0));
-		raytracingScene.addWorldObject(obj);
+		for (int side = 1; side <= 4; side++)
+		{
+			auto bezierTriangle = extractBezierTriangleFromTetrahedron(tetrahedron2, side);
+			AABB aabb = AABB::fromBezierTriangle2(bezierTriangle);
+			auto obj = RaytracingWorldObject(
+			    ObjectType::t_BezierTriangle2, aabb, bezierTriangle, glm::vec3(0));
+			raytracingScene.addWorldObject(obj);
+		}
 
 		visualizeTetrahedron2(raytracingScene, tetrahedron2);
 
-		for (float u = 0.0f; u <= 1.0f; u += 0.1f)
-		{
-			for (float v = 0.0f; v <= 1.0f; v += 0.1f)
-			{
-				vec3 value = partialBezierTriangle2U(tetrahedron2.controlPoints, u, v);
-				std::cout << "u: " << u << " v: " << v;
-				logVec3("Value:", value);
-			}
-		}
+		// float u = 0.4f;
+		// float v = 0.2f;
+		// float w = 1.0f - u - v;
 
-		float u = 0.4f;
-		float v = 0.2f;
-		float w = 1.0f - u - v;
-
-		glm::vec3 point = deCasteljauBezierTrianglePoint(bezierTriangleH1.controlPoints, u, v, w);
-		raytracingScene.addSphere(point, 0.1f, ColorIdx::t_white);
+		// glm::vec3 point = deCasteljauBezierTrianglePoint(bezierTriangleH1.controlPoints, u, v,
+		// w); raytracingScene.addSphere(point, 0.1f, ColorIdx::t_white);
 	}
 
 	// Visualize control points

@@ -544,7 +544,6 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
 mat2x2 jacobianBezierTriangle2(
     const vec3 controlPoints[6], const vec3 n1, const vec3 n2, const float u, const float v)
 {
-
 	vec3 partialDerivative1 = partialBezierTriangle2U(controlPoints, u, v);
 	vec3 partialDerivative2 = partialBezierTriangle2V(controlPoints, u, v);
 
@@ -611,11 +610,13 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 		{
 			mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
 
-			// if(abs(determinant(j)) < 0.00001) {
-			// 	if(isCrosshairRay) {
+			// if (abs(determinant(j)) < 0.00001)
+			// {
+			// 	if (isCrosshairRay)
+			// 	{
 			// 		debugPrintfEXT("determinant is 0 - adjusting u and continuing");
 			// 	}
-			// 	u[c + 1] = u[c] + (random(vec2(n1.x, n2.y), c) * (u[0] - u[c]))  * 0.1;
+			// 	u[c + 1] = u[c] + (random(vec2(n1.x, n2.y), c) * (u[0] - u[c])) * 0.1;
 			// 	continue;
 			// }
 
@@ -767,6 +768,16 @@ void main()
 
 	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
 	int objectType = instance.type;
+
+	vec3 cameraDir = raytracingDataConstants.cameraDir;
+	// whether or not the current ray direction is the crosshair's direction
+	if (abs(dot(normalize(ray.direction), normalize(cameraDir)) - 1) < 0.0000001)
+	{
+		isCrosshairRay = true;
+	}
+
+	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
+
 	// debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d ObjectType: %d",
 	//                gl_InstanceCustomIndexEXT,
 	//                gl_PrimitiveID,
@@ -866,16 +877,6 @@ void main()
 		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
 		// debugPrintfEXT("v0: (%.2v3f), v1: (%.2v3f), v2: (%.2v3f)", v0, v1, v2);
 
-		vec3 cameraDir = raytracingDataConstants.cameraDir;
-
-		// whether or not the current ray direction is the crosshair's direction
-		if (abs(dot(normalize(ray.direction), normalize(cameraDir)) - 1) < 0.0000001)
-		{
-			isCrosshairRay = true;
-		}
-
-		isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
-
 		float t;
 		// Side 1
 		if (raytracingDataConstants.renderSideTriangle > 0.0
@@ -923,10 +924,7 @@ void main()
 			        intersectionPoint, guess, closeOrigin, bezierTriangle.controlPoints, n1, n2))
 			{
 				float dist = distance(intersectionPoint, o);
-				if (tHit == -1 || dist < tHit)
-				{
-					tHit = dist;
-				}
+				tHit = dist;
 			}
 		}
 	}
@@ -1142,8 +1140,14 @@ void main()
 	{
 		// Sphere intersection
 		Sphere sphere = spheres[instance.bufferIndex];
-		// debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
-		// instance.bufferIndex, sphere.radius, sphere.center, sphere.colorIdx);
+		if (isCrosshairRay)
+		{
+			debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
+			               instance.bufferIndex,
+			               sphere.radius,
+			               sphere.center,
+			               sphere.colorIdx);
+		}
 
 		tHit = hitSphere(sphere, ray);
 	}
@@ -1185,16 +1189,16 @@ void main()
 	}
 
 	// if we still hit no object, check if we hit a slicing plane
-	SlicingPlane plane = slicingPlanes[0];
-	float t = 0;
-	if (intersectWithPlane(plane.normal, plane.planeOrigin, ray.origin, ray.direction, t))
-	{
-		if (t < tHit)
-		{
-			tHit = t;
-			objectType = int(t_SlicingPlane);
-		}
-	}
+	// SlicingPlane plane = slicingPlanes[0];
+	// float t = 0;
+	// if (intersectWithPlane(plane.normal, plane.planeOrigin, ray.origin, ray.direction, t))
+	// {
+	// 	if (t < tHit)
+	// 	{
+	// 		tHit = t;
+	// 		objectType = int(t_SlicingPlane);
+	// 	}
+	// }
 
 	// Report hit point
 	if (tHit > 0) reportIntersectionEXT(tHit, objectType);

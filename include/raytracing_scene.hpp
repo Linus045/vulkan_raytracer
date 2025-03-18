@@ -322,11 +322,12 @@ class RaytracingScene
 
   private:
 	template <typename T>
-	void
-	addObjectsToBLASBuildDataListAndGPUObjectsList(std::vector<BLASBuildData>& blasBuildDataList,
-	                                               const ObjectType objectType,
-	                                               const std::vector<T>& objectData,
-	                                               const std::vector<VkBuffer>& aabbBufferHandles)
+	void addObjectsToBLASBuildDataListAndGPUObjectsList(
+	    std::vector<BLASBuildData>& blasBuildDataList,
+	    std::vector<RaytracingWorldObject<T>>& referenceList,
+	    const ObjectType objectType,
+	    const std::vector<T>& objectData,
+	    const std::vector<VkBuffer>& aabbBufferHandles)
 	{
 		for (size_t i = 0; i < objectData.size(); i++)
 		{
@@ -335,9 +336,9 @@ class RaytracingScene
 			    logicalDevice,
 			    aabbBufferHandles[i],
 			    static_cast<int>(instanceCustomIndex),
-			    spheres[i].getTransform().getTransformMatrix());
+			    referenceList[i].getTransform().getTransformMatrix());
 
-			spheres[i].setInstanceIndex(blasBuildDataList.size());
+			referenceList[i].setInstanceIndex(blasBuildDataList.size());
 			gpuObjects.push_back(GPUInstance(objectType, i));
 			blasBuildDataList.push_back(buildData);
 		}
@@ -451,23 +452,27 @@ class RaytracingScene
 		// for each object add the extracted object data to the gpuObjects vector and create the
 		// buildData in blasBuildDataList
 		addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
+		                                               spheres,
 		                                               ObjectType::t_Sphere,
 		                                               spheresList,
 		                                               objectBuffers.spheresAABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
+		                                               tetrahedrons2,
 		                                               ObjectType::t_Tetrahedron2,
 		                                               tetrahedrons2List,
 		                                               objectBuffers.tetrahedronsAABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
+		    bezierTriangles2,
 		    ObjectType::t_BezierTriangle2,
 		    bezierTriangles2List,
 		    objectBuffers.bezierTriangles2AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
+		    rectangularBezierSurfaces2x2,
 		    ObjectType::t_RectangularBezierSurface2x2,
 		    rectangularSurfaces2x2List,
 		    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles);

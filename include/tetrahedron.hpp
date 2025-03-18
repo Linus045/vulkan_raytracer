@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <stdexcept>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
@@ -88,6 +89,37 @@ inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& 
 		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[9];
 		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
 		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
+	}
+	else if (side == 2)
+	{
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[4];
+	}
+	else if (side == 3)
+	{
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[7];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
+	}
+	else if (side == 4)
+	{
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[9];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[7];
+	}
+	else
+	{
+		throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
 	}
 
 	return bezierTriangle;

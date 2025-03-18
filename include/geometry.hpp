@@ -10,7 +10,7 @@ template <typename T>
 class Geometry
 {
   public:
-	Geometry(const AABB aabb, const T& data) : aabb(aabb), data(data)
+	Geometry(const AABB& aabb, const T& data) : aabb(aabb), data(data)
 	{
 	}
 
