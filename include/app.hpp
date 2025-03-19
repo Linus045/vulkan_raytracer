@@ -32,6 +32,7 @@ class Application
 	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDeviceToCheck,
 	                                 const std::vector<const char*> requiredDeviceExtensions);
 	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions);
+	void setupScene();
 
 	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
 	                              VkDevice logicalDevice,

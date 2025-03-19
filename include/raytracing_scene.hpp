@@ -44,58 +44,40 @@ class RaytracingScene
 		deletionQueueForAccelerationStructure.flush();
 	}
 
-	void addWorldObject(const MeshObject& meshObject)
+	MeshObject& addObjectMesh(const MeshObject& meshObject)
 	{
 		meshObjects.push_back(meshObject);
+		return meshObjects.back();
 	}
 
-	void addSphere(const glm::vec3 position, const float radius, const ColorIdx colorIdx)
+	RaytracingWorldObject<Sphere>&
+	addObjectSphere(const glm::vec3 position, const float radius, const ColorIdx colorIdx)
 	{
 		Sphere sphere{
 		    .center = position,
 		    .radius = radius,
 		    .colorIdx = static_cast<int>(colorIdx),
 		};
-		spheres.push_back(RaytracingWorldObject(
-		    ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position));
+		spheres.emplace_back(ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position);
+		return spheres.back();
 	}
 
-	void addWorldObject(const RaytracingWorldObject<Sphere>& object)
+	RaytracingWorldObject<BezierTriangle2>&
+	addObjectBezierTriangle(const BezierTriangle2& bezierTriangle)
 	{
-		spheres.push_back(object);
+		AABB aabb = AABB::fromBezierTriangle2(bezierTriangle);
+		bezierTriangles2.emplace_back(
+		    ObjectType::t_BezierTriangle2, aabb, bezierTriangle, glm::vec3(0));
+		return bezierTriangles2.back();
 	}
 
-	void addWorldObject(const Tetrahedron2& tetrahedron2, const glm::vec3 position = glm::vec3(0))
+	RaytracingWorldObject<RectangularBezierSurface2x2>&
+	addObjectRectangularBezierSurface2x2(const RectangularBezierSurface2x2& surface)
 	{
-		tetrahedrons2.push_back(RaytracingWorldObject(ObjectType::t_Tetrahedron2,
-		                                              AABB::fromTetrahedron2(tetrahedron2),
-		                                              tetrahedron2,
-		                                              position));
-	}
-
-	void addWorldObject(const RectangularBezierSurface2x2& rectangularBezierSurface2x2,
-	                    const glm::vec3 position = glm::vec3(0))
-	{
-		rectangularBezierSurfaces2x2.push_back(RaytracingWorldObject(
-		    ObjectType::t_RectangularBezierSurface2x2,
-		    AABB::fromRectangularBezierSurface2x2(rectangularBezierSurface2x2),
-		    rectangularBezierSurface2x2,
-		    position));
-	}
-
-	void addWorldObject(const RaytracingWorldObject<Tetrahedron2>& object)
-	{
-		tetrahedrons2.push_back(object);
-	}
-
-	void addWorldObject(const RaytracingWorldObject<BezierTriangle2>& object)
-	{
-		bezierTriangles2.push_back(object);
-	}
-
-	void addWorldObject(const RaytracingWorldObject<RectangularBezierSurface2x2>& object)
-	{
-		rectangularBezierSurfaces2x2.push_back(object);
+		AABB aabb = AABB::fromRectangularBezierSurface2x2(surface);
+		rectangularBezierSurfaces2x2.emplace_back(
+		    ObjectType::t_RectangularBezierSurface2x2, aabb, surface, glm::vec3(0));
+		return rectangularBezierSurfaces2x2.back();
 	}
 
 	std::vector<RaytracingWorldObject<Sphere>>& getWorldObjectSpheres()

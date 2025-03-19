@@ -1,3 +1,4 @@
+#include "raytracing_scene.hpp"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -27,6 +28,7 @@
 #include "types.hpp"
 #include "custom_user_data.hpp"
 #include "input.hpp"
+#include "visualizations.hpp"
 
 // #include "tiny_obj_loader.h"
 
@@ -62,17 +64,9 @@ void Application::run()
 	window.setWindowUserPointer(customUserData.get());
 	initInputHandlers();
 
-	// TODO: move this to a more appropriate place
 	if (raytracingSupported)
 	{
-		if (renderer->getRaytracingScene().getWorldObjectTetrahedrons().size() > 0)
-		{
-			auto tetrahedron = renderer->getRaytracingScene().getWorldObjectTetrahedrons()[0];
-			for (size_t i = 0; i < uiData->positions.size(); i++)
-			{
-				uiData->positions[i] = tetrahedron.getGeometry().getData().controlPoints[i];
-			}
-		}
+		setupScene();
 	}
 
 	mainLoop();
@@ -134,6 +128,83 @@ bool Application::checkValidationLayerSupport()
 	}
 
 	return true;
+}
+
+void Application::setupScene()
+{
+	ltracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
+
+	{
+		float scalar = 1.0f;
+		glm::vec3 offset = glm::vec3(0.0f, 0, 0.0f);
+		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
+		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
+		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
+		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
+
+		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
+		    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset,
+		    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset,
+
+		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
+		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
+		    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
+		}));
+
+		for (int side = 1; side <= 4; side++)
+		{
+			auto bezierTriangle = ltracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
+			std::printf(
+			    "Triangle Side: %d 0: (%.1f,%.1f,%.1f) 1: (%.1f,%.1f,%.1f) 2: (%.1f,%.1f,%.1f) 3: "
+			    "(%.1f,%.1f,%.1f) 4: (%.1f,%.1f,%.1f) 5: (%.1f,%.1f,%.1f)\n",
+			    side,
+			    bezierTriangle.controlPoints[0].x,
+			    bezierTriangle.controlPoints[0].y,
+			    bezierTriangle.controlPoints[0].z,
+
+			    bezierTriangle.controlPoints[1].x,
+			    bezierTriangle.controlPoints[1].y,
+			    bezierTriangle.controlPoints[1].z,
+
+			    bezierTriangle.controlPoints[2].x,
+			    bezierTriangle.controlPoints[2].y,
+			    bezierTriangle.controlPoints[2].z,
+
+			    bezierTriangle.controlPoints[3].x,
+			    bezierTriangle.controlPoints[3].y,
+			    bezierTriangle.controlPoints[3].z,
+
+			    bezierTriangle.controlPoints[4].x,
+			    bezierTriangle.controlPoints[4].y,
+			    bezierTriangle.controlPoints[4].z,
+
+			    bezierTriangle.controlPoints[5].x,
+			    bezierTriangle.controlPoints[5].y,
+			    bezierTriangle.controlPoints[5].z);
+			raytracingScene.addObjectBezierTriangle(bezierTriangle);
+		}
+		visualizeTetrahedron2(raytracingScene, tetrahedron2);
+	}
+
+	// =========================================================================
+	// Bottom and Top Level Acceleration Structure
+	raytracingScene.recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
+
+	// =========================================================================
+	// Update Descriptor Set
+	ltracer::rt::updateAccelerationStructureDescriptorSet(
+	    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
+
+	// TODO: move this to a more appropriate place
+	if (renderer->getRaytracingScene().getWorldObjectTetrahedrons().size() > 0)
+	{
+		auto& tetrahedron = renderer->getRaytracingScene().getWorldObjectTetrahedrons()[0];
+		for (size_t i = 0; i < uiData->positions.size(); i++)
+		{
+			uiData->positions[i] = tetrahedron.getGeometry().getData().controlPoints[i];
+		}
+	}
 }
 
 // void loadModels()

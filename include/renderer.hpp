@@ -154,9 +154,19 @@ class Renderer
 		updateSharedInfoBuffer();
 	}
 
-	inline const RaytracingInfo& getRaytracingInfo()
+	inline const RaytracingInfo& getRaytracingInfo() const
 	{
 		return raytracingInfo;
+	}
+
+	inline RaytracingInfo& getRaytracingInfo()
+	{
+		return raytracingInfo;
+	}
+
+	inline const RaytracingDataConstants& getRaytracingDataConstants() const
+	{
+		return raytracingInfo.raytracingConstants;
 	}
 
 	inline RaytracingDataConstants& getRaytracingDataConstants()
@@ -164,7 +174,12 @@ class Renderer
 		return raytracingInfo.raytracingConstants;
 	}
 
-	inline rt::RaytracingScene& getRaytracingScene() const
+	inline const rt::RaytracingScene& getRaytracingScene() const
+	{
+		return *raytracingScene;
+	}
+
+	inline rt::RaytracingScene& getRaytracingScene()
 	{
 		return *raytracingScene;
 	}

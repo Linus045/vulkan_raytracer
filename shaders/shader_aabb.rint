@@ -547,7 +547,6 @@ mat2x2 jacobianBezierTriangle2(
 	vec3 partialDerivative1 = partialBezierTriangle2U(controlPoints, u, v);
 	vec3 partialDerivative2 = partialBezierTriangle2V(controlPoints, u, v);
 
-
 	return mat2x2(dot(n1, partialDerivative1),
 	              dot(n1, partialDerivative2),
 	              dot(n2, partialDerivative1),
@@ -570,9 +569,11 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 
 	if (isCrosshairRay)
 	{
-		debugPrintfEXT(
-		    "old initialGuess: (%.2v2f), new initialGuess: (%.2v2f)", initialGuess, initialGuess);
+		debugPrintfEXT("initialGuess: (%.2v2f)", initialGuess);
 	}
+
+	// TODO: Disable debug printing
+	isCrosshairRay = false;
 
 	u[0] = initialGuess;
 	for (int c = 1; c < max_iterations; c++)
@@ -902,7 +903,8 @@ void main()
 			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
 			//  }
 
-			if(isCrosshairRay) {
+			if (isCrosshairRay)
+			{
 				debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
 			}
 			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:

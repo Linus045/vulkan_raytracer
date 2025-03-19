@@ -20,7 +20,7 @@ class RaytracingWorldObject : public WorldObject
 	}
 
 	~RaytracingWorldObject() override = default;
-	RaytracingWorldObject(const RaytracingWorldObject&) = default;
+	RaytracingWorldObject(const RaytracingWorldObject&) = delete;
 	RaytracingWorldObject& operator=(const RaytracingWorldObject&) = delete;
 
 	RaytracingWorldObject(RaytracingWorldObject&&) noexcept = default;

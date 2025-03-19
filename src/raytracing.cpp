@@ -1175,72 +1175,14 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// Create AABB Buffer and BLAS for Tetrahedrons, Spheres...
 	// for (int x = 0; x <= 15; x++)
 	//	for (int y = 0; y <= 15; y++)
-	{
-		float scalar = 1.0f;
-		// glm::vec3 offset = glm::vec3(x * 1.5f, 0, y * 1.5f);
-		glm::vec3 offset = glm::vec3(0.0f, 0, 0.0f);
-		[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
-		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
+	//}
 
-		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset,
+	// float u = 0.4f;
+	// float v = 0.2f;
+	// float w = 1.0f - u - v;
 
-		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
-		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
-		    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
-		}));
-
-		for (int side = 1; side <= 4; side++)
-		{
-			auto bezierTriangle = extractBezierTriangleFromTetrahedron(tetrahedron2, side);
-			std::printf(
-			    "Triangle Side: %d 0: (%.1f,%.1f,%.1f) 1: (%.1f,%.1f,%.1f) 2: (%.1f,%.1f,%.1f) 3: "
-			    "(%.1f,%.1f,%.1f) 4: (%.1f,%.1f,%.1f) 5: (%.1f,%.1f,%.1f)\n",
-			    side,
-			    bezierTriangle.controlPoints[0].x,
-			    bezierTriangle.controlPoints[0].y,
-			    bezierTriangle.controlPoints[0].z,
-
-			    bezierTriangle.controlPoints[1].x,
-			    bezierTriangle.controlPoints[1].y,
-			    bezierTriangle.controlPoints[1].z,
-
-			    bezierTriangle.controlPoints[2].x,
-			    bezierTriangle.controlPoints[2].y,
-			    bezierTriangle.controlPoints[2].z,
-
-			    bezierTriangle.controlPoints[3].x,
-			    bezierTriangle.controlPoints[3].y,
-			    bezierTriangle.controlPoints[3].z,
-
-			    bezierTriangle.controlPoints[4].x,
-			    bezierTriangle.controlPoints[4].y,
-			    bezierTriangle.controlPoints[4].z,
-
-			    bezierTriangle.controlPoints[5].x,
-			    bezierTriangle.controlPoints[5].y,
-			    bezierTriangle.controlPoints[5].z);
-			AABB aabb = AABB::fromBezierTriangle2(bezierTriangle);
-			auto obj = RaytracingWorldObject(
-			    ObjectType::t_BezierTriangle2, aabb, bezierTriangle, glm::vec3(0));
-			raytracingScene.addWorldObject(obj);
-		}
-		// if (x == 0 && y == 0)
-		//{
-		visualizeTetrahedron2(raytracingScene, tetrahedron2);
-		//}
-
-		// float u = 0.4f;
-		// float v = 0.2f;
-		// float w = 1.0f - u - v;
-
-		// glm::vec3 point = deCasteljauBezierTrianglePoint(bezierTriangleH1.controlPoints, u,
-		// v, w); raytracingScene.addSphere(point, 0.1f, ColorIdx::t_white);
-	}
+	// glm::vec3 point = deCasteljauBezierTrianglePoint(bezierTriangleH1.controlPoints, u,
+	// v, w); raytracingScene.addSphere(point, 0.1f, ColorIdx::t_white);
 
 	// Visualize control points
 	// for (auto& point : tetrahedron2.controlPoints)
@@ -1282,25 +1224,6 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// so we can create the buffers only once
 	// if we want to add/remove objects from the scene we need to recreate the buffers
 	raytracingScene.createBuffers();
-
-	// =========================================================================
-	// Bottom and Top Level Acceleration Structure
-
-	raytracingScene.recreateAccelerationStructures(raytracingInfo, true);
-
-	// =========================================================================
-	// Update Descriptor Set
-
-	// TODO: only the last updated sphere buffer is active, idk how to pass in all BLAS
-	// clang-format off
-	// without creating a bunch of bindings or merging all BLAS buffers into one big buffer? idk
-	// Store a generic "data object" that has a type idenitifier and a index into the corresponding buffer
-	// eg. {Type::Sphere, 0} would be the first sphere in the buffer
-	// {Type::Tetrahedron2, 0} would be the first tetrahedron in the spheres buffer
-	// {Type::Tetrahedron2, 1} would be the second tetrahedron in the tetrahedron buffer
-	// this requires us to merge all BLAS buffers of one type into one big buffer
-	// clang-format on
-	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingScene, raytracingInfo);
 
 	// =========================================================================
 	// Material Index Buffer
@@ -1464,6 +1387,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	char* shaderHandleBuffer = new char[shaderBindingTableSize];
 	result = ltracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(
+
 	    logicalDevice,
 	    raytracingInfo.rayTracingPipelineHandle,
 	    0,

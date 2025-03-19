@@ -865,7 +865,7 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 	// Visualize control points
 	for (auto& point : tetrahedron.controlPoints)
 	{
-		raytracingScene.addSphere(point, 0.02f, ColorIdx::t_black);
+		raytracingScene.addObjectSphere(point, 0.02f, ColorIdx::t_black);
 	}
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
@@ -889,25 +889,25 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 					auto isFace1 = u == 0 && v + w <= 1;
 					if (isFace1)
 					{
-						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_red);
+						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = v == 0 && u + w <= 1;
 					if (isFace2)
 					{
-						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_purple);
+						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = w == 0 && u + v <= 1;
 					if (isFace3)
 					{
-						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_green);
+						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
 					if (isFace4)
 					{
-						raytracingScene.addSphere(p, 0.01f, ColorIdx::t_white);
+						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_white);
 					}
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
