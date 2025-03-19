@@ -1182,7 +1182,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		[[maybe_unused]] auto tetrahedron2 = createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.5f, 2.0f, 0.0f) * scalar + offset,
+		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
 		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
 
 		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
@@ -1194,7 +1194,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 		}));
 
-		for (int side = 1; side <= 1; side++)
+		for (int side = 1; side <= 4; side++)
 		{
 			auto bezierTriangle = extractBezierTriangleFromTetrahedron(tetrahedron2, side);
 			std::printf(
