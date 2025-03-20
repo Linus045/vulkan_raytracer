@@ -11,9 +11,18 @@
 #include "glm/ext/vector_float3.hpp"
 
 #include "common_types.h"
+#include "bezier_math.hpp"
 
 namespace ltracer
 {
+
+struct SubdividedTetrahedron2
+{
+	BezierTriangle2 bottomLeft;
+	BezierTriangle2 bottomRight;
+	BezierTriangle2 top;
+	BezierTriangle2 center;
+};
 
 class RectangularBezierSurface
 {
@@ -83,26 +92,26 @@ inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& 
 	BezierTriangle2 bezierTriangle{};
 	if (side == 1)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[9];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[9];
 		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
 	}
 	else if (side == 2)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
 		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[6];
 	}
 	else if (side == 3)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[0];
 		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
 		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[4];
 		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[5];
@@ -110,12 +119,12 @@ inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& 
 	}
 	else if (side == 4)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
 		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[9];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[7];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[9];
 	}
 	else
 	{
@@ -123,6 +132,133 @@ inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& 
 	}
 
 	return bezierTriangle;
+}
+
+inline BezierTriangle2 getBottomLeftSubdivisionTriangle2(const BezierTriangle2& bezierTriangle2)
+{
+	// new triangle
+	//          b020
+	//         /    \
+	//        /      \
+	//     b011      b110
+	//     /    BL     \
+	//    /             \
+	// b002--- b101 ---b200
+	constexpr auto idxb002 = getControlPointIndicesBezierTriangle2(0, 0, 2);
+	constexpr auto idxb011 = getControlPointIndicesBezierTriangle2(0, 1, 1);
+	constexpr auto idxb101 = getControlPointIndicesBezierTriangle2(1, 0, 1);
+
+	// calculate the new 6 control points (np = new point)
+	const vec3 np002 = bezierTriangle2.controlPoints[idxb002];
+	const vec3 np020 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0, 0.5, 0.5);
+	const vec3 np200 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0, 0.5);
+
+	const vec3 np011
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb002] + bezierTriangle2.controlPoints[idxb011]);
+	const vec3 np110 = 0.5f * (np020 + np200);
+	const vec3 np101
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb002] + bezierTriangle2.controlPoints[idxb101]);
+
+	return BezierTriangle2{np002, np200, np020, np101, np110, np011};
+}
+
+inline BezierTriangle2 getBottomRightSubdivisionTriangle2(const BezierTriangle2& bezierTriangle2)
+{
+	// new triangle
+	//          b020
+	//         /    \
+	//        /      \
+	//     b011      b110
+	//     /    BR     \
+	//    /             \
+	// b002--- b101 ---b200
+	constexpr auto idxb200 = getControlPointIndicesBezierTriangle2(2, 0, 0);
+	constexpr auto idxb101 = getControlPointIndicesBezierTriangle2(1, 0, 1);
+	constexpr auto idxb110 = getControlPointIndicesBezierTriangle2(1, 1, 0);
+
+	// calculate the new 6 control points (np = new point)
+	const vec3 np002 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0, 0.5);
+	const vec3 np020 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0.5, 0);
+	const vec3 np200 = bezierTriangle2.controlPoints[idxb200];
+
+	const vec3 np011 = 0.5f * (np002 + np020);
+	const vec3 np110
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb200] + bezierTriangle2.controlPoints[idxb110]);
+	const vec3 np101
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb200] + bezierTriangle2.controlPoints[idxb101]);
+
+	return BezierTriangle2{np002, np200, np020, np101, np110, np011};
+}
+
+inline BezierTriangle2 getTopSubdivisionTriangle2(const BezierTriangle2& bezierTriangle2)
+{
+	// new triangle
+	//          b020
+	//         /    \
+	//        /      \
+	//     b011      b110
+	//     /     T     \
+	//    /             \
+	// b002--- b101 ---b200
+	constexpr auto idxb020 = getControlPointIndicesBezierTriangle2(0, 2, 0);
+	constexpr auto idxb011 = getControlPointIndicesBezierTriangle2(0, 1, 1);
+	constexpr auto idxb110 = getControlPointIndicesBezierTriangle2(1, 1, 0);
+
+	// calculate the new 6 control points (np = new point)
+	const vec3 np002 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0, 0.5, 0.5);
+	const vec3 np020 = bezierTriangle2.controlPoints[idxb020];
+	const vec3 np200 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0.5, 0);
+
+	const vec3 np011
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb020] + bezierTriangle2.controlPoints[idxb011]);
+	const vec3 np110
+	    = 0.5f * (bezierTriangle2.controlPoints[idxb020] + bezierTriangle2.controlPoints[idxb110]);
+	const vec3 np101 = 0.5f * (np002 + np200);
+
+	return BezierTriangle2{np002, np200, np020, np101, np110, np011};
+}
+
+inline BezierTriangle2 getCenterSubdivisionTriangle2(const BezierTriangle2& bezierTriangle2)
+{
+	// new triangle
+	//          b020
+	//         /    \
+	//        /      \
+	//     b011      b110
+	//     /     C     \
+	//    /             \
+	// b002--- b101 ---b200
+
+	// calculate the new 6 control points (np = new point)
+	const vec3 np002 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0, 0.5, 0.5);
+	const vec3 np020 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0.5, 0);
+	const vec3 np200 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0, 0.5);
+
+	const vec3 np011 = 0.5f * (np002 + np020);
+	const vec3 np110 = 0.5f * (np020 + np200);
+	const vec3 np101 = 0.5f * (np002 + np200);
+
+	return BezierTriangle2{np002, np200, np020, np101, np110, np011};
+}
+
+inline SubdividedTetrahedron2 subdivideBezierTriangle2(const BezierTriangle2& bezierTriangle2)
+{
+	// T = top, BL = bottom left, BR = bottom right, C = center
+	//          /\
+	//         /  \
+	//        / T  \
+	//       /------\
+	//     	/\  C   /\
+	//     /  \    /  \
+	//    / BL \  / BR \
+	//    --------------
+
+	return SubdividedTetrahedron2{
+	    .bottomLeft = getBottomLeftSubdivisionTriangle2(bezierTriangle2),
+	    .bottomRight = getBottomRightSubdivisionTriangle2(bezierTriangle2),
+	    .top = getTopSubdivisionTriangle2(bezierTriangle2),
+	    .center = getCenterSubdivisionTriangle2(bezierTriangle2),
+	};
 }
 
 } // namespace ltracer

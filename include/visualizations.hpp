@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdlib>
 #include <functional>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_float2x2.hpp>
@@ -12,8 +13,8 @@
 #include <ostream>
 #include <tuple>
 
-#include "logger.hpp"
 #include "common_types.h"
+#include "logger.hpp"
 #include "raytracing_scene.hpp"
 
 namespace ltracer
@@ -73,6 +74,12 @@ inline vec3 bezierSurfacePoint(const glm::vec3 controlPoints[16], int n, int m, 
 	}
 	return sum;
 }
+inline vec3 bezierCurve2Point(const std::array<glm::vec3, 3> controlPoints, float t)
+{
+	return controlPoints[0] * BernsteinPolynomial<float>(0, 2, t)
+	       + controlPoints[1] * BernsteinPolynomial<float>(1, 2, t)
+	       + controlPoints[2] * BernsteinPolynomial<float>(2, 2, t);
+}
 
 // TODO: this is only temporary, use a proper calculation
 constexpr std::tuple<int, int, int> getControlPointIndices(size_t idx)
@@ -121,16 +128,6 @@ inline size_t getControlPointIndices(int i, int j, int k)
 	throw std::runtime_error("Invalid index");
 }
 
-inline int factorial(int n)
-{
-	// NOTE : we only work with small numbers, so we can (hopefully) safely use int instead of
-	// unsigned ints
-	int ret = 1;
-	for (int i = 1; i <= n; ++i)
-		ret *= i;
-	return static_cast<int>(ret);
-}
-
 inline glm::vec3 bezierVolumePoint(
     const std::array<glm::vec3, 10> controlPoints, int n, double u, double v, double w)
 {
@@ -149,6 +146,7 @@ inline glm::vec3 bezierVolumePoint(
 				                                     * factorial(l));
 				auto weight = static_cast<float>(fraction * glm::pow(u, i) * glm::pow(v, j)
 				                                 * glm::pow(w, k) * glm::pow(1.0 - u - v - w, l));
+				// TODO: replace with BernsteinPolynomialBivariate()
 				sum += controlPoints[idx] * weight;
 			}
 		}
@@ -483,7 +481,8 @@ inline void visualizeBezierSurface([[maybe_unused]] std::vector<Sphere>& spheres
 	// {
 	// 	for (double v = 0; v <= 1; v += stepSize)
 	// 	{
-	// 		spheres.emplace_back(bezierSurfacePoint(surface.controlPoints, 3, 3, u, v), 0.05f, 1);
+	// 		spheres.emplace_back(bezierSurfacePoint(surface.controlPoints, 3, 3, u, v), 0.05f,
+	// 1);
 	// 	}
 	// }
 
@@ -989,19 +988,9 @@ inline bool IntersectTriangle(const glm::vec3 rayOrigin,
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////// TEST /////////////////////////////////////////////////
+/////////////////////////////////////////// TEST
+////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-inline int getControlPointIndicesBezierTriangle2(int i, int j, int k)
-{
-	if (i == 2 && j == 0 && k == 0) return 0;
-	if (i == 0 && j == 2 && k == 0) return 1;
-	if (i == 0 && j == 0 && k == 2) return 2;
-	if (i == 1 && j == 1 && k == 0) return 3;
-	if (i == 1 && j == 0 && k == 1) return 4;
-	if (i == 0 && j == 1 && k == 1) return 5;
-	return 0;
-}
 
 inline float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
 {

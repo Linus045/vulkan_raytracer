@@ -224,12 +224,12 @@ vec3 partialHw(
 //////////////////////////////////////////////////////////////////////////////////////////////////
 int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 {
-	if (i == 2 && j == 0 && k == 0) return 0; //v1
-	if (i == 0 && j == 2 && k == 0) return 1; //v2
-	if (i == 0 && j == 0 && k == 2) return 2; //v3
-	if (i == 1 && j == 1 && k == 0) return 3; // between v1-v2
-	if (i == 1 && j == 0 && k == 1) return 4; // between v1-v3
-	if (i == 0 && j == 1 && k == 1) return 5; // between v2-v3
+	if (i == 0 && j == 0 && k == 2) return 0; // v1
+	if (i == 2 && j == 0 && k == 0) return 1; // v2
+	if (i == 0 && j == 2 && k == 0) return 2; // v3
+	if (i == 1 && j == 0 && k == 1) return 3; // between v1-v2
+	if (i == 1 && j == 1 && k == 0) return 4; // between v2-v3
+	if (i == 0 && j == 1 && k == 1) return 5; // between v3-v1
 	return 0;
 }
 

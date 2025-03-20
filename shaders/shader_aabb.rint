@@ -534,6 +534,11 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
                      const float w)
 {
 	vec3 surfacePoint = BezierTriangle2Point(controlPoints, u, v, w);
+	if (isCrosshairRay)
+	{
+		debugPrintfEXT(
+		    "surfacePoint for (u,v,w): (%.2v3f) = (%.2v3f)", vec3(u, v, w), surfacePoint);
+	}
 
 	// project onto planes
 	float d1 = dot(-n1, origin);
@@ -569,11 +574,11 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 
 	if (isCrosshairRay)
 	{
-		debugPrintfEXT("initialGuess: (%.2v2f)", initialGuess);
+		// debugPrintfEXT("initialGuess: (%.2v2f)", initialGuess);
 	}
 
 	// TODO: Disable debug printing
-	isCrosshairRay = false;
+	// isCrosshairRay = false;
 
 	u[0] = initialGuess;
 	for (int c = 1; c < max_iterations; c++)
@@ -866,9 +871,9 @@ void main()
 
 		vec3 intersectionPoint;
 
-		vec3 v0 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(2, 0, 0)];
+		vec3 v0 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
 		vec3 v1 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
-		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
+		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(2, 0, 0)];
 		// debugPrintfEXT("v0: (%.2v3f), v1: (%.2v3f), v2: (%.2v3f)", v0, v1, v2);
 
 		float t;
@@ -892,16 +897,17 @@ void main()
 			float beta = v;
 			float gamma = w;
 
-			vec2 guess = vec2(alpha, beta);
+			vec2 guess = vec2(gamma, beta);
 
 			// float d1 = dot(-n1, o);
 			// float d2 = dot(-n2, o);
 			// vec2 guess = vec2(dot(n1, p) + d1, dot(n2, p) + d2);
 
-			// if(isCrosshairRay) {
-			//  	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
+			// if (isCrosshairRay)
+			// {
+			// 	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
 			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
-			//  }
+			// }
 
 			if (isCrosshairRay)
 			{

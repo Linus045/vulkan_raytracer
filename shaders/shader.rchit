@@ -195,6 +195,9 @@ void main()
 		vec3 partialV = partialBezierTriangle2V(bezierTriangle.controlPoints, u, v);
 		vec3 normal = normalize(cross(partialU, partialV));
 
+		// TODO: fix normal calculation
+		normal = vec3(1, 0, 0);
+
 		if (isCrosshairRay)
 		{
 			debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",

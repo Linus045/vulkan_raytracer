@@ -44,6 +44,11 @@ class RaytracingScene
 		deletionQueueForAccelerationStructure.flush();
 	}
 
+	inline const size_t& getBLASInstancesCount() const
+	{
+		return blasInstancesCount;
+	}
+
 	MeshObject& addObjectMesh(const MeshObject& meshObject)
 	{
 		meshObjects.push_back(meshObject);
@@ -78,6 +83,42 @@ class RaytracingScene
 		rectangularBezierSurfaces2x2.emplace_back(
 		    ObjectType::t_RectangularBezierSurface2x2, aabb, surface, glm::vec3(0));
 		return rectangularBezierSurfaces2x2.back();
+	}
+
+	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron2& tetrahedron2,
+	                                              const int subdivisions = 0)
+	{
+		for (int side = 1; side <= 4; side++)
+		{
+			const auto& bezierTriangle
+			    = ltracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
+
+			std::vector<BezierTriangle2> subTriangles;
+			subTriangles.reserve(static_cast<size_t>(std::powl(4, subdivisions)));
+			subTriangles.push_back(bezierTriangle);
+
+			for (int i = 0; i < subdivisions; i++)
+			{
+				for (size_t j = 0; j < std::powl(4, i); j++)
+				{
+					BezierTriangle2& t = subTriangles.front();
+					const auto& s = ltracer::subdivideBezierTriangle2(t);
+
+					subTriangles.push_back(s.bottomLeft);
+					subTriangles.push_back(s.bottomRight);
+					subTriangles.push_back(s.top);
+					subTriangles.push_back(s.center);
+
+					subTriangles.erase(subTriangles.begin());
+				}
+			}
+
+			for (const auto& subTriangle : subTriangles)
+			{
+				addObjectBezierTriangle(subTriangle);
+			}
+			// visualizeTetrahedron2(raytracingScene, tetrahedron2);
+		}
 	}
 
 	std::vector<RaytracingWorldObject<Sphere>>& getWorldObjectSpheres()
@@ -198,6 +239,7 @@ class RaytracingScene
 			    raytracingInfo.commandBufferBuildTopAndBottomLevel,
 			    raytracingInfo.graphicsQueueHandle,
 			    raytracingInfo.accelerationStructureBuildFence);
+			blasInstancesCount = blasInstances.size();
 
 			// TODO: create a dedicated struct that holds all the information for the acceleration
 			// structure that is actually needed
@@ -630,6 +672,8 @@ class RaytracingScene
 	std::vector<MeshObject> meshObjects;
 	std::vector<RaytracingWorldObject<BezierTriangle2>> bezierTriangles2;
 	std::vector<VkAccelerationStructureInstanceKHR> blasInstances;
+
+	size_t blasInstancesCount = 0;
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;

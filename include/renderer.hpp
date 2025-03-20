@@ -110,6 +110,11 @@ class Renderer
 		return raytracingInfo.uniformStructure.frameCount;
 	}
 
+	inline const size_t& getBLASInstancesCount() const
+	{
+		return raytracingScene->getBLASInstancesCount();
+	}
+
 	void createImageViews();
 
 	void createFramebuffers();

@@ -2,6 +2,7 @@
 
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_vulkan.h>
+#include <cstdint>
 #include <imgui.h>
 
 #include <glm/ext/vector_float3.hpp>
@@ -34,6 +35,7 @@ struct UIData
 	RaytracingDataConstants& raytracingDataConstants;
 	bool mainPanelCollapsed = true;
 	const uint32_t& frameCount;
+	const size_t& blasInstancesCount;
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 	bool recreateAccelerationStructures = false;
@@ -43,10 +45,12 @@ struct UIData
 	       const bool& raytracingSupported,
 	       const VkPhysicalDeviceProperties& physicalDeviceProperties,
 	       RaytracingDataConstants& raytracingDataConstants,
-	       const uint32_t& frameCount)
+	       const uint32_t& frameCount,
+	       const size_t& blasInstancesCount)
 	    : camera(camera), window(window), raytracingSupported(raytracingSupported),
 	      physicalDeviceProperties(physicalDeviceProperties),
-	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount)
+	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount),
+	      blasInstancesCount(blasInstancesCount)
 	{
 	}
 };
