@@ -51,7 +51,10 @@ void Application::run()
 	                                               physicalDeviceProperties,
 	                                               renderer->getRaytracingDataConstants(),
 	                                               renderer->getFrameCount(),
-	                                               renderer->getBLASInstancesCount());
+	                                               renderer->getBLASInstancesCount(),
+	                                               renderer->getRaytracingScene().getSlicingPlanes()
+
+	);
 
 	customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
 	                                                           window,
@@ -136,6 +139,7 @@ void Application::setupScene()
 	ltracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
 
 	for (int x = 0; x <= 0; x++)
+	{
 		for (int y = 0; y <= 0; y++)
 		{
 			float scalar = 3.0f;
@@ -159,6 +163,17 @@ void Application::setupScene()
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2, 4);
 			ltracer::rt::visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}
+	}
+
+	raytracingScene.addSlicingPlane(SlicingPlane{
+	    glm::vec3(1, 0, 0),
+	    glm::vec3(1, 0, 0),
+	});
+
+	raytracingScene.addSlicingPlane(SlicingPlane{
+	    glm::vec3(0, 2, 0),
+	    glm::vec3(0, 1, 0),
+	});
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure

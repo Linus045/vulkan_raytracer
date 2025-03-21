@@ -68,6 +68,11 @@ layout(set = 0, binding = 6, scalar) buffer Spheres
 	Sphere[] spheres;
 };
 
+layout(set = 0, binding = 8, scalar) buffer SlicingPlanes
+{
+	SlicingPlane[] slicingPlanes;
+};
+
 layout(set = 0, binding = 9, scalar) buffer GPUInstances
 {
 	GPUInstance[] gpuInstances;
@@ -117,6 +122,22 @@ void main()
 	// debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
 	if (gl_HitKindEXT == t_SlicingPlane)
 	{
+		if (raytracingDataConstants.debugSlicingPlanes > 0.0)
+		{
+			vec3 normal = normalize(-slicingPlanes[0].normal);
+			vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+			vec3 positionToLightDirection
+			    = normalize(raytracingDataConstants.globalLightPosition - position);
+
+			vec3 lightColor = raytracingDataConstants.globalLightColor
+			                  * raytracingDataConstants.globalLightIntensity;
+
+			vec3 surfaceColor = vec3(0.8, 0.2, 0.2);
+			payload.directColor
+			    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+			                        * raytracingDataConstants.environmentLightIntensity;
+		}
 		payload.rayActive = 0;
 	}
 	else if (gl_HitKindEXT == t_AABBDebug)
@@ -200,12 +221,12 @@ void main()
 
 		if (isCrosshairRay)
 		{
-			debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",
-			               u,
-			               v,
-			               partialU,
-			               partialV,
-			               normal);
+			// debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",
+			//                u,
+			//                v,
+			//                partialU,
+			//                partialV,
+			//                normal);
 		}
 
 		vec3 lightColor = raytracingDataConstants.globalLightColor

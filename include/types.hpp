@@ -83,6 +83,7 @@ struct RaytracingObjectBuffers
 	    = std::vector<VkDeviceMemory>(0);
 
 	VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
+	VkDeviceMemory slicingPlanesDeviceMemoryHandle = VK_NULL_HANDLE;
 };
 
 // TODO: split this up a bit into more sensible structs

@@ -1190,19 +1190,6 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	//	//		raytracingScene.addSphere(point, 0.05f, ColorIdx::t_black);
 	//}
 
-	// {
-	// 	// Visualize slicing planes
-	// 	auto slicingPlanes = std::vector<SlicingPlane>{
-	// 	    {
-	// 	        glm::vec3(5, 0, 0),
-	// 	        glm::vec3(-1, 0, 0),
-	// 	    },
-	// 	};
-
-	// 	raytracingInfo.objectBuffers.slicingPlanesBufferHandle
-	// 	    = createObjectsBuffer(physicalDevice, logicalDevice, deletionQueue, slicingPlanes);
-	// }
-
 	// create fence for building acceleration structure
 	VkFenceCreateInfo bottomLevelAccelerationStructureBuildFenceCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -1224,6 +1211,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// so we can create the buffers only once
 	// if we want to add/remove objects from the scene we need to recreate the buffers
 	raytracingScene.createBuffers();
+	raytracingScene.createSlicingPlanesBuffer();
 
 	// =========================================================================
 	// Material Index Buffer

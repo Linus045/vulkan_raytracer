@@ -92,6 +92,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .renderSide4 = 0.0f,
 	    .raysPerPixel = 1,
 	    .debugPrintCrosshairRay = 0.0f,
+	    .debugSlicingPlanes = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
 
@@ -202,47 +203,11 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	{
 		if (uiData.recreateAccelerationStructures)
 		{
-			// TODO: remove this testing code
-
-			bool aabbDimensionsChanged = false;
-			for (size_t i = 0; i < uiData.positions.size(); i++)
-			{
-				raytracingScene->getWorldObjectTetrahedrons()[0]
-				    .getGeometry()
-				    .getData()
-				    .controlPoints[i]
-				    = uiData.positions[i];
-
-				// TODO: actually link the spheres to the tetrahedron
-
-				auto& sphere = raytracingScene->getWorldObjectSpheres()[i];
-				sphere.setPosition(uiData.positions[i]);
-
-				aabbDimensionsChanged
-				    = sphere.getGeometry().recalculateAABB() || aabbDimensionsChanged;
-
-				// NOTE: it would be possible to only update the transform inside the BLAS Instance
-				// to move the object (e.g. sphere) but the problem is that we need to keep track of
-				// the instance transform and offset the sphere's center from that we could use the
-				auto instanceIdx = sphere.getInstanceIndex();
-				if (instanceIdx)
-				{
-					raytracingScene->setTransformMatrixForInstance(
-					    instanceIdx.value(), sphere.getTransform().getTransformMatrix());
-				}
-				else
-				{
-					throw std::runtime_error("Instance index not set for sphere");
-				}
-			}
-
-			aabbDimensionsChanged
-			    = raytracingScene->getWorldObjectTetrahedrons()[0].getGeometry().recalculateAABB()
-			      || aabbDimensionsChanged;
-
 			raytracingScene->copyObjectsToBuffers();
 
-			bool fullRebuild = aabbDimensionsChanged;
+			// TODO: when adding dynamic movement, this might need to be enabled, depending on what
+			// modifications are made
+			bool fullRebuild = false;
 			if (fullRebuild)
 			{
 				// TODO: replace this with a fence to improve performance

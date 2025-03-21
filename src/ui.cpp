@@ -164,19 +164,25 @@ void renderRaytracingOptions(UIData& uiData)
 			// passing a boolean in a storage buffer directly didn't work probably due to alignment
 			// issues, so we just send 0 or 1 instead
 			bool debugShowAABBs = uiData.raytracingDataConstants.debugShowAABBs > 0;
-			valueChanged
-			    = ImGui::Checkbox("Debug Axis-Aligned Bounding-Boxes (ignores slicing planes)",
-			                      &debugShowAABBs)
-			      || valueChanged;
+			valueChanged = ImGui::Checkbox(
+			                   "Debug: Show Axis-Aligned Bounding-Boxes (ignores slicing planes)",
+			                   &debugShowAABBs)
+			               || valueChanged;
 			uiData.raytracingDataConstants.debugShowAABBs
 			    = static_cast<float>(debugShowAABBs ? 1 : 0);
 
 			bool debugPrintCrosshairRay = uiData.raytracingDataConstants.debugPrintCrosshairRay > 0;
-			valueChanged
-			    = ImGui::Checkbox("Debug print Crosshair Ray calculations", &debugPrintCrosshairRay)
-			      || valueChanged;
+			valueChanged = ImGui::Checkbox("Debug: Print Crosshair Ray calculations",
+			                               &debugPrintCrosshairRay)
+			               || valueChanged;
 			uiData.raytracingDataConstants.debugPrintCrosshairRay
 			    = static_cast<float>(debugPrintCrosshairRay ? 1 : 0);
+
+			bool debugSlicingPlanes = uiData.raytracingDataConstants.debugSlicingPlanes > 0;
+			valueChanged = ImGui::Checkbox("Debug: Show Slicing Planes", &debugSlicingPlanes)
+			               || valueChanged;
+			uiData.raytracingDataConstants.debugSlicingPlanes
+			    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
 
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
@@ -368,6 +374,34 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 	uiData.recreateAccelerationStructures = valueChanged;
 }
 
+void renderSlicingPlaneSliders(ltracer::ui::UIData& uiData)
+{
+	bool valueChanged = false;
+
+	if (ImGui::CollapsingHeader("Raytracing - Slicing Plane"))
+	{
+
+		for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
+		{
+			ImGui::LabelText("Slicingplane:", "%ld", i);
+			valueChanged
+			    = ImGui::SliderFloat3((std::string("Position#") + std::to_string(i)).c_str(),
+			                          &uiData.slicingPlanes[i].planeOrigin.x,
+			                          -10.0,
+			                          10.0,
+			                          "%.2f")
+			      || valueChanged;
+			valueChanged = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
+			                                   &uiData.slicingPlanes[i].normal.x,
+			                                   -1.0,
+			                                   1.0,
+			                                   "%.2f")
+			               || valueChanged;
+		}
+	}
+	uiData.recreateAccelerationStructures = valueChanged;
+}
+
 void renderCrosshair(const UIData& uiData)
 {
 
@@ -408,6 +442,7 @@ void renderMainPanel(UIData& uiData)
 	renderRaytracingProperties(uiData);
 
 	renderPositionSliders(uiData);
+	renderSlicingPlaneSliders(uiData);
 
 	ImGui::SeparatorText("Configuration");
 	renderRaytracingOptions(uiData);

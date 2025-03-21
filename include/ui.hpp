@@ -8,6 +8,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <vulkan/vk_enum_string_helper.h>
+#include "common_types.h"
 
 // forward declarations
 struct RaytracingDataConstants;
@@ -36,6 +37,7 @@ struct UIData
 	bool mainPanelCollapsed = true;
 	const uint32_t& frameCount;
 	const size_t& blasInstancesCount;
+	std::vector<SlicingPlane>& slicingPlanes;
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 	bool recreateAccelerationStructures = false;
@@ -46,11 +48,12 @@ struct UIData
 	       const VkPhysicalDeviceProperties& physicalDeviceProperties,
 	       RaytracingDataConstants& raytracingDataConstants,
 	       const uint32_t& frameCount,
-	       const size_t& blasInstancesCount)
+	       const size_t& blasInstancesCount,
+	       std::vector<SlicingPlane>& slicingPlanes)
 	    : camera(camera), window(window), raytracingSupported(raytracingSupported),
 	      physicalDeviceProperties(physicalDeviceProperties),
 	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount),
-	      blasInstancesCount(blasInstancesCount)
+	      blasInstancesCount(blasInstancesCount), slicingPlanes(slicingPlanes)
 	{
 	}
 };

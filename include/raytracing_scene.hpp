@@ -85,6 +85,11 @@ class RaytracingScene
 		return rectangularBezierSurfaces2x2.back();
 	}
 
+	void addSlicingPlane(const SlicingPlane& slicingPlane)
+	{
+		slicingPlanes.push_back(slicingPlane);
+	}
+
 	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron2& tetrahedron2,
 	                                              const int subdivisions = 0)
 	{
@@ -142,10 +147,31 @@ class RaytracingScene
 		return rectangularBezierSurfaces2x2;
 	}
 
+	std::vector<SlicingPlane>& getSlicingPlanes()
+	{
+		return slicingPlanes;
+	}
+
 	inline void setTransformMatrixForInstance(const size_t instanceIndex,
 	                                          const VkTransformMatrixKHR& matrix)
 	{
 		blasInstances[instanceIndex].transform = matrix;
+	}
+
+	void createSlicingPlanesBuffer()
+	{
+		if (slicingPlanes.size() > 0)
+		{
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             deletionQueueForAccelerationStructure,
+			             slicingPlanes.size() * sizeof(SlicingPlane),
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.slicingPlanesBufferHandle,
+			             objectBuffers.slicingPlanesDeviceMemoryHandle);
+		}
 	}
 
 	void createBuffers()
@@ -213,6 +239,12 @@ class RaytracingScene
 		// the TLAS that links to the particular BLAS
 		if (fullRebuild)
 		{
+			// WARNING:	USE A POOL OF BUFFERS INSTEAD!!
+			// TODO: Reuse created buffers instead of throwing them away and recreating them, this
+			// e.g. instead of recreating 1000 buffers for each sphere, just reuse the buffer and
+			// can save a lot of time,
+			// assign  them new
+			// if the amount of spheres changes, only create new buffers for the new spheres
 			deletionQueueForAccelerationStructure.flush();
 
 			objectBuffers.gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
@@ -232,6 +264,7 @@ class RaytracingScene
 			objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles = VK_NULL_HANDLE;
 
 			createBuffers();
+			createSlicingPlanesBuffer();
 
 			auto buildData = createBLASBuildDataForScene();
 			blasInstances = buildBLASInstancesFromBuildDataList(
@@ -341,6 +374,14 @@ class RaytracingScene
 			                 rectangularSurfaces2x2List.data(),
 			                 sizeof(RectangularBezierSurface2x2)
 			                     * rectangularSurfaces2x2List.size());
+		}
+
+		if (slicingPlanes.size() > 0)
+		{
+			copyDataToBuffer(logicalDevice,
+			                 objectBuffers.slicingPlanesDeviceMemoryHandle,
+			                 slicingPlanes.data(),
+			                 sizeof(SlicingPlane) * slicingPlanes.size());
 		}
 	}
 
@@ -670,6 +711,7 @@ class RaytracingScene
 	std::vector<RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
 	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>> rectangularBezierSurfaces2x2;
 	std::vector<MeshObject> meshObjects;
+	std::vector<SlicingPlane> slicingPlanes;
 	std::vector<RaytracingWorldObject<BezierTriangle2>> bezierTriangles2;
 	std::vector<VkAccelerationStructureInstanceKHR> blasInstances;
 
