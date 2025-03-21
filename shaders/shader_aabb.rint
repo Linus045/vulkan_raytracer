@@ -1188,33 +1188,36 @@ void main()
 		tHit = 1;
 	}
 
-	// if we still hit no object, check if we hit a slicing plane
-	const int SLICING_PLANE_MAX_COUNT = 2;
-	float oldTHit = tHit;
-
-	bool showSlicingPlanes = raytracingDataConstants.debugSlicingPlanes > 0.0;
-	for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
+	if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 	{
-		SlicingPlane plane = slicingPlanes[idx];
-		float t = 0;
+		// if we still hit no object, check if we hit a slicing plane
+		const int SLICING_PLANE_MAX_COUNT = 2;
+		float oldTHit = tHit;
 
-		if (oldTHit > 0 && dot(intersectionPoint - plane.planeOrigin, plane.normal) >= 0)
+		bool showSlicingPlanes = raytracingDataConstants.debugSlicingPlanes > 0.0;
+		for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
 		{
-			if (showSlicingPlanes)
+			SlicingPlane plane = slicingPlanes[idx];
+			float t = 0;
+
+			if (oldTHit > 0 && dot(intersectionPoint - plane.planeOrigin, plane.normal) >= 0)
 			{
-				if (intersectWithPlane(
-				        plane.normal, plane.planeOrigin, ray.origin, ray.direction, t)
-				    && tHit > 0 && tHit < t)
+				if (showSlicingPlanes)
 				{
-					tHit = t;
-					objectType = int(t_SlicingPlane);
+					if (intersectWithPlane(
+					        plane.normal, plane.planeOrigin, ray.origin, ray.direction, t)
+					    && tHit > 0 && tHit < t)
+					{
+						tHit = t;
+						objectType = int(t_SlicingPlane);
+					}
 				}
+				else
+				{
+					tHit = -1;
+				}
+				objectType = int(t_SlicingPlane);
 			}
-			else
-			{
-				tHit = -1;
-			}
-			objectType = int(t_SlicingPlane);
 		}
 	}
 

@@ -237,6 +237,15 @@ void main()
 		payload.indirectColor = vec3(0, 0, 0);
 		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
 		                        * raytracingDataConstants.environmentLightIntensity;
+
+		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
+		{
+			if (u < 1e-2f || v < 1e-2f || abs(1.0 - u - v) < 1e-2f)
+			{
+				payload.directColor = vec3(1, 1, 1);
+				payload.indirectColor = vec3(0, 0, 0);
+			}
+		}
 		payload.rayActive = 0;
 	}
 	else if (gl_HitKindEXT == t_Sphere)

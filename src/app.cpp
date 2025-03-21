@@ -160,13 +160,13 @@ void Application::setupScene()
 			    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
 			}));
 
-			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2, 4);
+			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2, 1);
 			ltracer::rt::visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}
 	}
 
 	raytracingScene.addSlicingPlane(SlicingPlane{
-	    glm::vec3(1, 0, 0),
+	    glm::vec3(1.7, 0, 0),
 	    glm::vec3(1, 0, 0),
 	});
 

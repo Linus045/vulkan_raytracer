@@ -184,6 +184,12 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugSlicingPlanes
 			    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
 
+			bool debugShowSubdivisions = uiData.raytracingDataConstants.debugShowSubdivisions > 0;
+			valueChanged = ImGui::Checkbox("Debug: Show Subdivisions", &debugShowSubdivisions)
+			               || valueChanged;
+			uiData.raytracingDataConstants.debugShowSubdivisions
+			    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
+
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
 			                                  1e-8f,
@@ -356,50 +362,62 @@ void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 
 void renderPositionSliders(ltracer::ui::UIData& uiData)
 {
-	bool valueChanged = false;
-
 	if (ImGui::CollapsingHeader("Raytracing - Positions"))
 	{
 
-		for (size_t i = 0; i < uiData.positions.size(); i++)
 		{
-			valueChanged = ImGui::SliderFloat3(("ControlPoint " + std::to_string(i)).c_str(),
-			                                   &uiData.positions[i].x,
-			                                   -10.0,
-			                                   10.0,
-			                                   "%.2f")
-			               || valueChanged;
+			bool valueChanged = false;
+			for (size_t i = 0; i < uiData.positions.size(); i++)
+			{
+				valueChanged = ImGui::SliderFloat3(("ControlPoint " + std::to_string(i)).c_str(),
+				                                   &uiData.positions[i].x,
+				                                   -10.0,
+				                                   10.0,
+				                                   "%.2f")
+				               || valueChanged;
+			}
+			uiData.recreateAccelerationStructures = valueChanged;
 		}
 	}
-	uiData.recreateAccelerationStructures = valueChanged;
 }
 
 void renderSlicingPlaneSliders(ltracer::ui::UIData& uiData)
 {
-	bool valueChanged = false;
-
-	if (ImGui::CollapsingHeader("Raytracing - Slicing Plane"))
+	if (ImGui::CollapsingHeader("Raytracing - Slicing Planes"))
 	{
-
-		for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
 		{
-			ImGui::LabelText("Slicingplane:", "%ld", i);
-			valueChanged
-			    = ImGui::SliderFloat3((std::string("Position#") + std::to_string(i)).c_str(),
-			                          &uiData.slicingPlanes[i].planeOrigin.x,
-			                          -10.0,
-			                          10.0,
-			                          "%.2f")
-			      || valueChanged;
-			valueChanged = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
-			                                   &uiData.slicingPlanes[i].normal.x,
-			                                   -1.0,
-			                                   1.0,
-			                                   "%.2f")
+			bool valueChanged = false;
+			bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
+			valueChanged = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes)
 			               || valueChanged;
+			uiData.raytracingDataConstants.enableSlicingPlanes
+			    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
+			uiData.configurationChanged = valueChanged;
+		}
+
+		{
+			bool valueChanged = false;
+			for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
+			{
+				ImGui::LabelText("Slicingplane:", "%ld", i);
+				valueChanged
+				    = ImGui::SliderFloat3((std::string("Position#") + std::to_string(i)).c_str(),
+				                          &uiData.slicingPlanes[i].planeOrigin.x,
+				                          -10.0,
+				                          10.0,
+				                          "%.2f")
+				      || valueChanged;
+				valueChanged
+				    = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
+				                          &uiData.slicingPlanes[i].normal.x,
+				                          -1.0,
+				                          1.0,
+				                          "%.2f")
+				      || valueChanged;
+			}
+			uiData.recreateAccelerationStructures = valueChanged;
 		}
 	}
-	uiData.recreateAccelerationStructures = valueChanged;
 }
 
 void renderCrosshair(const UIData& uiData)
