@@ -536,8 +536,8 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
 	vec3 surfacePoint = BezierTriangle2Point(controlPoints, u, v, w);
 	if (isCrosshairRay)
 	{
-		debugPrintfEXT(
-		    "surfacePoint for (u,v,w): (%.2v3f) = (%.2v3f)", vec3(u, v, w), surfacePoint);
+		// debugPrintfEXT(
+		//     "surfacePoint for (u,v,w): (%.2v3f) = (%.2v3f)", vec3(u, v, w), surfacePoint);
 	}
 
 	// project onto planes
@@ -624,7 +624,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 			{
 				if (isCrosshairRay)
 				{
-					debugPrintfEXT("abort: inv_j is 0");
+					// debugPrintfEXT("abort: inv_j is 0");
 				}
 				hit = false;
 				break;
@@ -654,31 +654,31 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 
 			if (isCrosshairRay)
 			{
-				debugPrintfEXT(
-				    "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
-				    c,
-				    u[0],
-				    u[1],
-				    u[2],
-				    u[3],
-				    u[4],
-				    u[5],
-				    n1,
-				    n2,
-				    f_value,
-				    differenceInUV,
-				    u[c],
-				    u[c + 1],
-				    errorX,
-				    errorF,
-				    j[0][0],
-				    j[0][1],
-				    j[1][0],
-				    j[1][1],
-				    inv_j[0][0],
-				    inv_j[0][1],
-				    inv_j[1][0],
-				    inv_j[1][1]);
+				// debugPrintfEXT(
+				//     "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f),
+				//     5:(%.2v2f), n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV:
+				//     (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f),
+				//     j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)", c, u[0], u[1],
+				//     u[2],
+				//     u[3],
+				//     u[4],
+				//     u[5],
+				//     n1,
+				//     n2,
+				//     f_value,
+				//     differenceInUV,
+				//     u[c],
+				//     u[c + 1],
+				//     errorX,
+				//     errorF,
+				//     j[0][0],
+				//     j[0][1],
+				//     j[1][0],
+				//     j[1][1],
+				//     inv_j[0][0],
+				//     inv_j[0][1],
+				//     inv_j[1][0],
+				//     inv_j[1][1]);
 			}
 
 			if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0
@@ -686,9 +686,9 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 			{
 				if (isCrosshairRay)
 				{
-					debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
-					               errorF,
-					               previousErrorF);
+					// debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
+					//                errorF,
+					//                previousErrorF);
 				}
 				hit = false;
 				break;
@@ -699,7 +699,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 				hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
 				if (isCrosshairRay)
 				{
-					debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
+					// debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
 				}
 				break;
 			}
@@ -709,9 +709,9 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 			{
 				if (isCrosshairRay)
 				{
-					debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
-					               errorX,
-					               previousErrorX);
+					// debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
+					//                errorX,
+					//                previousErrorX);
 				}
 				hit = false;
 				break;
@@ -723,7 +723,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 				hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
 				if (isCrosshairRay)
 				{
-					debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
+					// debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
 				}
 				break;
 			}
@@ -732,7 +732,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 
 	if (isCrosshairRay)
 	{
-		debugPrintfEXT("loop ended: hit: %d", hit);
+		// debugPrintfEXT("loop ended: hit: %d", hit);
 	}
 
 	intersectionPoint = vec3(0);
@@ -743,7 +743,8 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
 		if (isCrosshairRay)
 		{
-			debugPrintfEXT("u: (%.2v2f), intersectionPoint: (%.2v3f)", u[idx], intersectionPoint);
+			// debugPrintfEXT("u: (%.2v2f), intersectionPoint: (%.2v3f)", u[idx],
+			// intersectionPoint);
 		}
 		hitCoordinate = vec2(u[idx].x, u[idx].y);
 	}
@@ -911,7 +912,7 @@ void main()
 
 			if (isCrosshairRay)
 			{
-				debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
+				// debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
 			}
 			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:
 			// %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);

@@ -864,7 +864,7 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 	// Visualize control points
 	for (auto& point : tetrahedron.controlPoints)
 	{
-		raytracingScene.addObjectSphere(point, 0.02f, ColorIdx::t_black);
+		raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_black);
 	}
 	// static auto min = 100000000.0f;
 	// static auto minParameter = glm::vec3(0);
