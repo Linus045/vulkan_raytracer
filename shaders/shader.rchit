@@ -196,7 +196,7 @@ void main()
 		vec3 normal = normalize(cross(partialU, partialV));
 
 		// TODO: fix normal calculation
-		normal = vec3(1, 0, 0);
+		// normal = vec3(1, 0, 0);
 
 		if (isCrosshairRay)
 		{
