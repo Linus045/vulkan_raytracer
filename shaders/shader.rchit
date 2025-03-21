@@ -212,21 +212,20 @@ void main()
 
 		float u = hitCoordinate.x;
 		float v = hitCoordinate.y;
-		vec3 partialU = partialBezierTriangle2U(bezierTriangle.controlPoints, u, v);
-		vec3 partialV = partialBezierTriangle2V(bezierTriangle.controlPoints, u, v);
+		vec3 dirU = vec3(1,0,-1);
+		vec3 dirV = vec3(0,1,-1);
+		vec3 partialU = partialBezierTriangle2Directional(bezierTriangle.controlPoints, dirU, u, v);
+		vec3 partialV = partialBezierTriangle2Directional(bezierTriangle.controlPoints, dirV, u, v);
 		vec3 normal = normalize(cross(partialU, partialV));
-
-		// TODO: fix normal calculation
-		// normal = vec3(1, 0, 0);
 
 		if (isCrosshairRay)
 		{
-			// debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",
-			//                u,
-			//                v,
-			//                partialU,
-			//                partialV,
-			//                normal);
+			debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",
+			               u,
+			               v,
+			               partialU,
+			               partialV,
+			               normal);
 		}
 
 		vec3 lightColor = raytracingDataConstants.globalLightColor

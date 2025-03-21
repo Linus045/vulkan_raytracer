@@ -23,7 +23,7 @@ class RaytracingScene
 {
   public:
 	RaytracingScene(const VkPhysicalDevice& physicalDevice, const VkDevice logicalDevice)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice) {};
+	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice){};
 
 	~RaytracingScene() = default;
 
@@ -93,7 +93,7 @@ class RaytracingScene
 	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron2& tetrahedron2,
 	                                              const int subdivisions = 0)
 	{
-		for (int side = 1; side <= 4; side++)
+		for (int side = 1; side <= 1; side++)
 		{
 			const auto& bezierTriangle
 			    = ltracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
@@ -121,6 +121,10 @@ class RaytracingScene
 			for (const auto& subTriangle : subTriangles)
 			{
 				addObjectBezierTriangle(subTriangle);
+				for (int i = 0; i < 6; i++)
+				{
+					// addObjectSphere(subTriangle.controlPoints[i], 0.03f, ColorIdx::t_white);
+				}
 			}
 			// visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}
@@ -592,8 +596,7 @@ class RaytracingScene
 	// 	return instances;
 	// }
 
-	[[nodiscard]]
-	const std::vector<VkAccelerationStructureInstanceKHR>
+	[[nodiscard]] const std::vector<VkAccelerationStructureInstanceKHR>
 	buildBLASInstancesFromBuildDataList(const std::vector<BLASBuildData>& BLASBuildDataList,
 	                                    const VkCommandBuffer bottomLevelCommandBuffer,
 	                                    const VkQueue graphicsQueue,

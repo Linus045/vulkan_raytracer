@@ -122,6 +122,24 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 	return fraction * powi * powj * powk * powz;
 }
 
+float customPow(float x, int i) {
+	if(i == 0) {
+		return 1;
+	}else if(i == 1) {
+		return x;
+	}else if(i == 2) {
+		return x * x;
+	}else if(i == 3) {
+		return x * x * x;
+	}else if(i == 4) {
+		return x * x * x * x;
+	}else if(i == 5) {
+		return x * x * x * x * x;
+	}else if(i == 6) {
+		return x * x * x * x * x * x;	
+	}
+}
+
 float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
 {
 	if (i < 0 || j < 0 || k < 0)
@@ -132,23 +150,9 @@ float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v,
 	float fraction
 	    = iter_factorial(n) / (iter_factorial(i) * iter_factorial(j) * iter_factorial(k));
 
-	float powi = pow(u, i);
-	if (i == 0)
-	{
-		powi = 1;
-	}
-
-	float powj = pow(v, j);
-	if (j == 0)
-	{
-		powj = 1;
-	}
-
-	float powk = pow(w, k);
-	if (k == 0)
-	{
-		powk = 1;
-	}
+	float powi = customPow(u, i);
+	float powj = customPow(v, j);
+	float powk = customPow(w, k);
 
 	return fraction * powi * powj * powk;
 }
@@ -273,7 +277,12 @@ vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, fl
 			{
 				if (i + j + k == n - 1)
 				{
-					sum += casteljauAlgorithmIntermediatePoint(controlPoints, 1, direction, i, j, k)
+					int be1 = getControlPointIndicesBezierTriangle2(i + 1, j + 0, k + 0);
+					int be2 = getControlPointIndicesBezierTriangle2(i + 0, j + 1, k + 0);
+					int be3 = getControlPointIndicesBezierTriangle2(i + 0, j + 0, k + 1);
+					sum +=  (controlPoints[be1] * direction.x +
+							controlPoints[be2] * direction.y +
+							controlPoints[be3] * direction.z)
 					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
@@ -323,10 +332,10 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 	float w = 1.0 - u - v;
 
 	// check if values are in the right range and if sum is equal to 1
-	if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
-	{
-		return sum;
-	}
+	//if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
+	//{
+	//	return sum;
+	//}
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
@@ -345,56 +354,6 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 		}
 	}
 	sum *= n;
-	return sum;
-}
-
-vec3 partialBezierTriangle2UVersion2(vec3 controlPoints[6], float u, float v)
-{
-	int n = 2;
-	vec3 sum = vec3(0);
-	float w = 1.0 - u - v;
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				if (i + j + k == n)
-				{
-					sum += n
-					       * (BernsteinPolynomialBivariate(n - 1, i - 1, j, k, u, v, w)
-					          - BernsteinPolynomialBivariate(n - 1, i, j - 1, k, u, v, w));
-				}
-			}
-		}
-	}
-	return sum;
-}
-
-vec3 partialBezierTriangle2VVersion2(vec3 controlPoints[6], float u, float v)
-{
-	int n = 2;
-	vec3 sum = vec3(0);
-	float w = 1.0 - u - v;
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				if (i + j + k == n)
-				{
-					sum += n
-					       * (BernsteinPolynomialBivariate(n - 1, i, j - 1, k, u, v, w)
-					          - BernsteinPolynomialBivariate(n - 1, i, j, k - 1, u, v, w));
-				}
-			}
-		}
-	}
 	return sum;
 }
 
