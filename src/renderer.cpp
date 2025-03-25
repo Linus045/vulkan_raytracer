@@ -66,7 +66,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	}
 
 	raytracingInfo.raytracingConstants = {
-	    .newtonErrorXTolerance = 1e-5f,
+	    .newtonErrorXTolerance = 1e-8f,
 	    .newtonErrorFTolerance = 1e-5f,
 
 	    .newtonErrorFIgnoreIncrease = 0.0f,
@@ -91,7 +91,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .renderSide3 = 0.0f,
 	    .renderSide4 = 0.0f,
 	    .raysPerPixel = 1,
-	    .debugPrintCrosshairRay = 0.0f,
+	    .debugPrintCrosshairRay = 1.0f,
 	    .debugSlicingPlanes = 0.0f,
 	    .enableSlicingPlanes = 0.0f,
 	    .debugShowSubdivisions = 0.0f,

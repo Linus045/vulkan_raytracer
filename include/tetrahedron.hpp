@@ -231,13 +231,15 @@ inline BezierTriangle2 getCenterSubdivisionTriangle2(const BezierTriangle2& bezi
 
 	// calculate the new 6 control points (np = new point)
 	// Note: the triangle is flipped, for some reason it causes problem with the normal calculation
-	const vec3 np020 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0, 0.5, 0.5);
-	const vec3 np002 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0.5, 0);
+	const vec3 np020 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0.5, 0);
+	const vec3 np002 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0, 0.5, 0.5);
 	const vec3 np200 = bezierTriangleSurfacePoint(bezierTriangle2.controlPoints, 2, 0.5, 0, 0.5);
 
-	const vec3 np011 = 0.5f * (np020 + np002);
+	const vec3 np011 = 0.5f * (np002 + np020);
 	const vec3 np110 = 0.5f * (np020 + np200);
 	const vec3 np101 = 0.5f * (np002 + np200);
+
+	throw new std::runtime_error("ERROR: getCenterSubdivisionTriangle2 - wrong control points");
 
 	return BezierTriangle2{np002, np200, np020, np101, np110, np011};
 }

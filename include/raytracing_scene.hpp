@@ -23,7 +23,7 @@ class RaytracingScene
 {
   public:
 	RaytracingScene(const VkPhysicalDevice& physicalDevice, const VkDevice logicalDevice)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice){};
+	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice) {};
 
 	~RaytracingScene() = default;
 
@@ -113,18 +113,26 @@ class RaytracingScene
 					subTriangles.push_back(s.bottomRight);
 					subTriangles.push_back(s.top);
 					subTriangles.push_back(s.center);
-
 					subTriangles.erase(subTriangles.begin());
+
+					// visualize center points
+					// for (int li = 0; li < 6; li++)
+					// {
+					// 	if (li <= 2)
+					// 	{
+					// 		addObjectSphere(s.center.controlPoints[li], 0.06f, ColorIdx::t_white);
+					// 	}
+					// 	else
+					// 	{
+					// 		addObjectSphere(s.center.controlPoints[li], 0.03f, ColorIdx::t_yellow);
+					// 	}
+					// }
 				}
 			}
 
 			for (const auto& subTriangle : subTriangles)
 			{
 				addObjectBezierTriangle(subTriangle);
-				for (int i = 0; i < 6; i++)
-				{
-					// addObjectSphere(subTriangle.controlPoints[i], 0.03f, ColorIdx::t_white);
-				}
 			}
 			// visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}

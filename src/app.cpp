@@ -148,7 +148,7 @@ void Application::setupScene()
 			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
 			    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
-			    glm::vec3(2.0f, 2, 2.0f) * scalar + offset,
+			    glm::vec3(2.0f, 2.0f, 2.0f) * scalar + offset,
 			    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
 
 			    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,

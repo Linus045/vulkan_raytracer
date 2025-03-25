@@ -53,200 +53,8 @@ layout(push_constant) uniform RaytracingDataConstants{
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-vec3 H1(const vec3 controlPoints[10], int n, const float v, const float w)
-{
-	vec3 sum = vec3(0);
-	if (v < 0 || w < 0 || v > 1 || w > 1)
-	{
-		return sum;
-	}
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				int idx = getControlPointIndicesTetrahedron2(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(2, i, j, k, 0, v, w);
-			}
-		}
-	}
-	return sum;
-}
-
-vec3 H2(const vec3 controlPoints[10], int n, const float u, const float w)
-{
-	vec3 sum = vec3(0);
-	if (u < 0 || w < 0)
-	{
-		return sum;
-	}
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				int idx = getControlPointIndicesTetrahedron2(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(n, i, j, k, u, 0, w);
-			}
-		}
-	}
-	return sum;
-}
-
-vec3 H3(const vec3 controlPoints[10], int n, const float u, const float v)
-{
-	vec3 sum = vec3(0);
-	if (u < 0 || v < 0)
-	{
-		return sum;
-	}
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				int idx = getControlPointIndicesTetrahedron2(i, j, k);
-				sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(n, i, j, k, u, v, 0);
-			}
-		}
-	}
-	return sum;
-}
-
-vec3 H4(const vec3 controlPoints[10], int n, const float r, const float t)
-{
-	vec3 sum = vec3(0);
-	if (r < 0 || t < 0)
-	{
-		return sum;
-	}
-
-	// TODO: remove this loop and write out the formula
-	if (r + t <= 1.0)
-	{
-		for (int k = 0; k <= n; k++)
-		{
-			for (int j = 0; j <= n - k; j++)
-			{
-				for (int i = 0; i <= n - k - j; i++)
-				{
-					int idx = getControlPointIndicesTetrahedron2(i, j, k);
-					float u = r;
-					float v = t;
-					float w = 1.0 - r - t;
-					sum += controlPoints[idx] * BernsteinPolynomialTetrahedral(n, i, j, k, u, v, w);
-				}
-			}
-		}
-	}
-	return sum;
-}
-
-vec3 partialH4r2(const vec3 controlPoints[10], const float r, const float t)
-{
-	int n = 2;
-	vec3 sum = vec3(0);
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				int idx = getControlPointIndicesTetrahedron2(i, j, k);
-
-				if (r + t <= 1.0)
-				{
-					float u = r;
-					float v = t;
-					float w = 1.0 - r - t;
-					sum += controlPoints[idx]
-					       * BernsteinPolynomialTetrahedral(n - 1, i - 1, j, k, u, v, w);
-				}
-			}
-		}
-	}
-
-	return n * sum;
-}
-
-vec3 partialH4t2(const vec3 controlPoints[10], const float r, const float t)
-{
-	int n = 2;
-	vec3 sum = vec3(0);
-
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				int idx = getControlPointIndicesTetrahedron2(i, j, k);
-
-				if (r + t <= 1.0)
-				{
-					float u = r;
-					float v = t;
-					float w = 1.0 - r - t;
-					sum += controlPoints[idx]
-					       * BernsteinPolynomialTetrahedral(n - 1, 1, j - 1, k, u, v, w);
-				}
-			}
-		}
-	}
-
-	return n * sum;
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-mat2x2 jacobian2(const vec3 controlPoints[10],
-                 int mode,
-                 const vec3 n1,
-                 const vec3 n2,
-                 const float v,
-                 const float w)
-{
-	vec3 partialDerivative1 = vec3(0);
-	vec3 partialDerivative2 = vec3(0);
-	if (mode == 1)
-	{
-		partialDerivative1 = partialHv(controlPoints, 2, 0, v, w);
-		partialDerivative2 = partialHw(controlPoints, 2, 0, v, w);
-	}
-	else if (mode == 2)
-	{
-		partialDerivative1 = partialHu(controlPoints, 2, v, 0, w);
-		partialDerivative2 = partialHw(controlPoints, 2, v, 0, w);
-	}
-	else if (mode == 3)
-	{
-		partialDerivative1 = partialHu(controlPoints, 2, v, w, 0);
-		partialDerivative2 = partialHv(controlPoints, 2, v, w, 0);
-	}
-	else if (mode == 4)
-	{
-		partialDerivative1 = partialH4r2(controlPoints, v, w);
-		partialDerivative2 = partialH4t2(controlPoints, v, w);
-	}
-
-	return mat2x2(dot(n1, partialDerivative1),
-	              dot(n1, partialDerivative2),
-	              dot(n2, partialDerivative1),
-	              dot(n2, partialDerivative2));
-}
-
 mat2x2 inverseJacobian(const mat2x2 J)
 {
 	float d = determinant(J);
@@ -258,241 +66,6 @@ mat2x2 inverseJacobian(const mat2x2 J)
 	mat2x2 adj = mat2x2(J[1][1], -J[0][1], -J[1][0], J[0][0]);
 	mat2x2 mat = 1.0 / d * adj;
 	return mat;
-}
-
-vec2 fSide(const vec3[10] controlPoints,
-           int side,
-           const vec3 origin,
-           const vec3 n1,
-           const vec3 n2,
-           const float v,
-           const float w)
-{
-	vec3 surfacePoint = vec3(0);
-	if (side == 1)
-	{
-		surfacePoint = H1(controlPoints, 2, v, w);
-	}
-	else if (side == 2)
-	{
-		surfacePoint = H2(controlPoints, 2, v, w);
-	}
-	else if (side == 3)
-	{
-		surfacePoint = H3(controlPoints, 2, v, w);
-	}
-	else if (side == 4)
-	{
-		surfacePoint = H4(controlPoints, 2, v, w);
-	}
-
-	// project onto planes
-	float d1 = dot(-n1, origin);
-	float d2 = dot(-n2, origin);
-	return vec2(dot(n1, surfacePoint) + d1, dot(n2, surfacePoint) + d2);
-}
-
-bool newtonsMethod2(inout vec3 intersectionPoint,
-                    int side,
-                    const vec2 initialGuess,
-                    const vec3 origin,
-                    const vec3[10] controlPoints,
-                    const vec3 n1,
-                    const vec3 n2)
-{
-	bool hit = false;
-	const int max_iterations = 21;
-	vec2 u[max_iterations];
-
-	float toleranceX = raytracingDataConstants.newtonErrorXTolerance;
-	float toleranceF = raytracingDataConstants.newtonErrorFTolerance;
-
-	if (isCrosshairRay)
-	{
-		debugPrintfEXT(
-		    "old initialGuess: (%.2v2f), new initialGuess: (%.2v2f)", initialGuess, initialGuess);
-	}
-
-	u[0] = initialGuess;
-	for (int c = 1; c < max_iterations; c++)
-	{
-		u[c] = vec2(0);
-	}
-
-	int c = 0;
-	if (raytracingDataConstants.newtonMaxIterations == 0)
-	{
-
-		if (initialGuess.x >= 0 || initialGuess.y >= 0 || initialGuess.x <= 1
-		    || initialGuess.y <= 1)
-		{
-			u[c + 1] = initialGuess;
-			hit = true;
-		}
-	}
-	else
-	{
-		float previousErrorF = 100000.0;
-		float errorF = 100000.0;
-
-		float previousErrorX = 100000.0;
-		float errorX = 100000.0;
-
-		for (; c <= raytracingDataConstants.newtonMaxIterations; c++)
-		{
-			mat2x2 j = jacobian2(controlPoints, side, n1, n2, u[c].x, u[c].y);
-
-			// if(abs(determinant(j)) < 0.00001) {
-			// 	if(isCrosshairRay) {
-			// 		debugPrintfEXT("determinant is 0 - adjusting u and continuing");
-			// 	}
-			// 	u[c + 1] = u[c] + (random(vec2(n1.x, n2.y), c) * (u[0] - u[c]))  * 0.1;
-			// 	continue;
-			// }
-
-			mat2x2 inv_j = inverseJacobian(j);
-			if (inv_j == mat2x2(0, 0, 0, 0))
-			{
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("abort: inv_j is 0");
-				}
-				hit = false;
-				break;
-			}
-
-			vec2 f_value = fSide(controlPoints, side, origin, n1, n2, u[c].x, u[c].y);
-
-			// TODO: figure out if and why this scaling of the newton step is needed
-			// f_value *=  ((c+1) / float(raytracingDataConstants.newtonMaxIterations + 1)) *
-			// raytracingDataConstants.someFloatingScalar;
-
-			previousErrorF = errorF;
-			errorF = abs(f_value[0]) + abs(f_value[1]);
-
-			vec2 differenceInUV = inv_j * f_value;
-
-			u[c + 1] = u[c] - differenceInUV;
-
-			// WARNING: this out-of-bounds range is incorrect
-			// if(u[c+1].x < 0 || u[c+1].y < 0 || u[c+1].x > 2 || u[c+1].y > 2) {
-			// 	if(isCrosshairRay) {
-			// 		debugPrintfEXT("abort: u[c+1] out of bounds: (%.2v2f)", u[c+1]);
-			// 	}
-			// 	hit = false;
-			// 	break;
-			// }
-
-			previousErrorX = errorX;
-			errorX = abs(differenceInUV[0]) + abs(differenceInUV[1]);
-
-			if (isCrosshairRay)
-			{
-				debugPrintfEXT(
-				    "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), side: %d, n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV: (%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)",
-				    c,
-				    u[0],
-				    u[1],
-				    u[2],
-				    u[3],
-				    u[4],
-				    u[5],
-				    side,
-				    n1,
-				    n2,
-				    f_value,
-				    differenceInUV,
-				    u[c],
-				    u[c + 1],
-				    errorX,
-				    errorF,
-				    j[0][0],
-				    j[0][1],
-				    j[1][0],
-				    j[1][1],
-				    inv_j[0][0],
-				    inv_j[0][1],
-				    inv_j[1][0],
-				    inv_j[1][1]);
-			}
-
-			if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0
-			    && errorF > previousErrorF)
-			{
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
-					               errorF,
-					               previousErrorF);
-				}
-				hit = false;
-				break;
-			}
-
-			if (errorF <= toleranceF)
-			{
-				hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
-				}
-				break;
-			}
-
-			if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0
-			    && errorX > previousErrorX)
-			{
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
-					               errorX,
-					               previousErrorX);
-				}
-				hit = false;
-				break;
-			}
-
-			// TODO: maybe we want different tolerances for errorX and errorF
-			if (errorX <= toleranceX)
-			{
-				hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
-				}
-				break;
-			}
-		}
-	}
-
-	if (isCrosshairRay)
-	{
-		debugPrintfEXT("loop ended: hit: %d", hit);
-	}
-
-	intersectionPoint = vec3(0);
-	if (hit)
-	{
-		int idx = c;
-		if (side == 1)
-		{
-			intersectionPoint = H1(controlPoints, 2, u[idx].x, u[idx].y);
-		}
-		else if (side == 2)
-		{
-			intersectionPoint = H2(controlPoints, 2, u[idx].x, u[idx].y);
-		}
-		else if (side == 3)
-		{
-			intersectionPoint = H3(controlPoints, 2, u[idx].x, u[idx].y);
-		}
-		else if (side == 4)
-		{
-			intersectionPoint = H4(controlPoints, 2, u[idx].x, u[idx].y);
-		}
-		hitCoordinate = vec2(u[idx].x, u[idx].y);
-	}
-	return hit;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -507,8 +80,6 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 	// {
 	// 	return sum;
 	// }
-
-	
 
 	// TODO: remove this loop and write out the formula
 	for (int k = 0; k <= n; k++)
@@ -536,11 +107,6 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
                      const float w)
 {
 	vec3 surfacePoint = BezierTriangle2Point(controlPoints, u, v, w);
-	if (isCrosshairRay)
-	{
-		 debugPrintfEXT(
-		     "surfacePoint for (u,v,w): (%.2v3f) = (%.2v3f)", vec3(u, v, w), surfacePoint);
-	}
 
 	// project onto planes
 	float d1 = dot(-n1, origin);
@@ -551,13 +117,10 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
 mat2x2 jacobianBezierTriangle2(
     const vec3 controlPoints[6], const vec3 n1, const vec3 n2, const float u, const float v)
 {
-	//vec3 partialDerivative1 = partialBezierTriangle2U(controlPoints, u, v);
-	//vec3 partialDerivative2 = partialBezierTriangle2V(controlPoints, u, v);
-
-	vec3 dirU = vec3(1,0,-1);
-	vec3 dirV = vec3(0,1,-1);
-	vec3 partialDerivative1 =	partialBezierTriangle2Directional(controlPoints, dirU, u, v);
-	vec3 partialDerivative2 =	partialBezierTriangle2Directional(controlPoints, dirV, u, v);
+	vec3 dirU = vec3(1, 0, -1);
+	vec3 dirV = vec3(0, 1, -1);
+	vec3 partialDerivative1 = partialBezierTriangle2Directional(controlPoints, dirU, u, v);
+	vec3 partialDerivative2 = partialBezierTriangle2Directional(controlPoints, dirV, u, v);
 
 	return mat2x2(dot(n1, partialDerivative1),
 	              dot(n1, partialDerivative2),
@@ -573,7 +136,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
                             const vec3 n2)
 {
 	bool hit = false;
-	const int max_iterations = 101;
+	const int max_iterations = 100 + 1;
 	vec2 u[max_iterations];
 
 	float toleranceX = raytracingDataConstants.newtonErrorXTolerance;
@@ -586,140 +149,154 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 	}
 
 	int c = 0;
-//	if (raytracingDataConstants.newtonMaxIterations == 0)
-//	{
-//
-//		if (initialGuess.x >= 0 && initialGuess.y >= 0 && (initialGuess.x + initialGuess.y) <= 1)
-//		{
-//			u[c + 1] = initialGuess;
-//			hit = true;
-//		}
-//	}
-//	else
-//	{
-		float previousErrorF = 100000.0;
-		float errorF = 100000.0;
+	//	if (raytracingDataConstants.newtonMaxIterations == 0)
+	//	{
+	//
+	//		if (initialGuess.x >= 0 && initialGuess.y >= 0 && (initialGuess.x + initialGuess.y) <=
+	// 1)
+	//		{
+	//			u[c + 1] = initialGuess;
+	//			hit = true;
+	//		}
+	//	}
+	//	else
+	//	{
+	float previousErrorF = 100000.0;
+	float errorF = 100000.0;
 
-		float previousErrorX = 100000.0;
-		float errorX = 100000.0;
+	float previousErrorX = 100000.0;
+	float errorX = 100000.0;
 
-		for (; c < raytracingDataConstants.newtonMaxIterations; c++)
+	for (; c < raytracingDataConstants.newtonMaxIterations; c++)
+	{
+		mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
+		mat2x2 inv_j = inverseJacobian(j);
+		if (inv_j == mat2x2(0, 0, 0, 0))
 		{
-			mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
-			mat2x2 inv_j = inverseJacobian(j);
-			if (inv_j == mat2x2(0, 0, 0, 0))
+			if (isCrosshairRay)
 			{
-				if (isCrosshairRay)
-				{
-					// debugPrintfEXT("abort: inv_j is 0");
-				}
-				hit = false;
-				break;
+				// debugPrintfEXT("abort: inv_j is 0");
 			}
+			hit = false;
+			break;
+		}
 
-			vec2 f_value = fBezierTriangle(controlPoints, origin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
+		vec2 f_value
+		    = fBezierTriangle(controlPoints, origin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
 
-			previousErrorF = errorF;
-			errorF = abs(f_value.x) + abs(f_value.y);
+		previousErrorF = errorF;
+		errorF = abs(f_value.x) + abs(f_value.y);
 
-			vec2 differenceInUV = inv_j * f_value;
-			u[c + 1] = u[c] - differenceInUV;
+		vec2 differenceInUV = inv_j * f_value;
+		u[c + 1] = u[c] - differenceInUV;
 
-			previousErrorX = errorX;
-			errorX = abs(differenceInUV.x) + abs(differenceInUV.y);
+		// previousErrorX = errorX;
+		// errorX = abs(differenceInUV.x) + abs(differenceInUV.y);
 
-			if (false && isCrosshairRay)
+		if (isCrosshairRay)
+		{
+			if (raytracingDataConstants.someScalar == c)
 			{
-				 debugPrintfEXT(
-				     "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f),5:(%.2v2f), n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV:(%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f),j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f)", c, u[0], u[1],
-				     u[2],
-				     u[3],
-				     u[4],
-				     u[5],
-				     n1,
-				     n2,
-				     f_value,
-				     differenceInUV,
-				     u[c],
-				     u[c + 1],
-				     errorX,
-				     errorF,
-				     j[0][0],
-				     j[0][1],
-				     j[1][0],
-				     j[1][1],
-				     inv_j[0][0],
-				     inv_j[0][1],
-				     inv_j[1][0],
-				     inv_j[1][1]);
-			}
-			if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0
-			    && errorF > previousErrorF)
-			{
-				if (isCrosshairRay)
-				{
-					 debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
-					                errorF,
-					                previousErrorF);
-				}
-				hit = false;
-				break;
-			}
-
-			if (errorF <= toleranceF)
-			{
-				hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
-				if (isCrosshairRay)
-				{
-					 debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
-				}
-				break;
-			}
-
-			if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0
-			    && errorX > previousErrorX)
-			{
-				if (isCrosshairRay)
-				{
-					 debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
-					                errorX,
-					                previousErrorX);
-				}
-				hit = false;
-				break;
-			}
-
-			// TODO: maybe we want different tolerances for errorX and errorF
-			if (errorX <= toleranceX)
-			{
-				hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
-				if (isCrosshairRay)
-				{
-					debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
-				}
-				break;
+				vec3 surfacePoint
+				    = BezierTriangle2Point(controlPoints, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
+				debugPrintfEXT(
+				    "c: %d u: 0:(%.2v2f), 1:(%.2v2f), 2:(%.2v2f), 3:(%.2v2f), 4:(%.2v2f), 5:(%.2v2f), 6:(%.2v2f), 7:(%.2v2f), 8:(%.2v2f), 9:(%.2v2f), n1: (%.2v3f), n2: (%.2v3f), f: (%.2v2f), differenceInUV:(%.2v2f), u: (%.2v2f), u+1: (%.2v2f), errorX: (%.5f), errorF: (%.5f),j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, %.2f, %.2f, %.2f) surfacePoint (%.2v3f)",
+				    c,
+				    u[0],
+				    u[1],
+				    u[2],
+				    u[3],
+				    u[4],
+				    u[5],
+				    u[6],
+				    u[7],
+				    u[8],
+				    u[9],
+				    n1,
+				    n2,
+				    f_value,
+				    differenceInUV,
+				    u[c],
+				    u[c + 1],
+				    errorX,
+				    errorF,
+				    j[0][0],
+				    j[0][1],
+				    j[1][0],
+				    j[1][1],
+				    inv_j[0][0],
+				    inv_j[0][1],
+				    inv_j[1][0],
+				    inv_j[1][1],
+				    surfacePoint);
 			}
 		}
-//	}
+
+		if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0 && errorF > previousErrorF)
+		{
+			if (isCrosshairRay)
+			{
+				// debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
+				//                errorF,
+				//                previousErrorF);
+			}
+			hit = false;
+			break;
+		}
+
+		if (errorF <= toleranceF)
+		{
+			hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
+			if (isCrosshairRay)
+			{
+				// debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
+			}
+			break;
+		}
+
+		// if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0 && errorX > previousErrorX)
+		// {
+		// 	if (isCrosshairRay)
+		// 	{
+		// 		debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
+		// 		               errorX,
+		// 		               previousErrorX);
+		// 	}
+		// 	hit = false;
+		// 	break;
+		// }
+
+		// // TODO: maybe we want different tolerances for errorX and errorF
+		// if (errorX <= toleranceX)
+		// {
+		// 	hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
+		// 	if (isCrosshairRay)
+		// 	{
+		// 		debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
+		// 	}
+		// 	break;
+		// }
+	}
+	//	}
 
 	if (isCrosshairRay)
 	{
-		debugPrintfEXT("loop ended: hit: %d", hit);
+		// debugPrintfEXT("loop ended: hit: %d", hit);
 	}
 
 	intersectionPoint = vec3(0);
 	if (hit)
 	{
-	
-
 		int idx = c;
 
-		if(u[idx].x < 0 || u[idx].y < 0 || (u[idx].x +u[idx].y ) > 1) {
+		if (u[idx].x < 0 || u[idx].y < 0 || (u[idx].x + u[idx].y) > 1)
+		{
 			hit = false;
 			return hit;
 		}
 
-		intersectionPoint = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
+		intersectionPoint
+		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
 		if (isCrosshairRay)
 		{
 			// debugPrintfEXT("u: (%.2v2f), intersectionPoint: (%.2v3f)", u[idx],
@@ -774,59 +351,6 @@ void main()
 	vec3 intersectionPoint = vec3(0);
 	if (objectType == t_Tetrahedron1)
 	{
-		// TODO: i dont know if this is the best approach, here we are checking 4 sides, since the
-		// degree is 1 this is the simplest method intersect test with tetrahedron of degree 1
-		// Tetrahedron1 tetrahedron = tetrahedrons[gl_PrimitiveID];
-
-		// float t =-1;
-		// if(IntersectTriangle(ray,
-		// 		tetrahedron.controlPoints[2],
-		// 		tetrahedron.controlPoints[0],
-		// 		tetrahedron.controlPoints[3], t))
-		// {
-		// 	if(t < tHit || tHit < 0) {
-		// 		tHit = t;
-		// 	}
-		// }
-
-		// if(IntersectTriangle(ray,
-		// 		tetrahedron.controlPoints[0],
-		// 		tetrahedron.controlPoints[1],
-		// 		tetrahedron.controlPoints[3],t))
-		// {
-		// 	if(t < tHit || tHit < 0) {
-		// 		tHit = t;
-		// 	}
-		// }
-
-		// if(IntersectTriangle(ray,
-		// 		tetrahedron.controlPoints[1],
-		// 		tetrahedron.controlPoints[2],
-		// 		tetrahedron.controlPoints[3],t))
-		// {
-		// 	if(t < tHit || tHit < 0) {
-		// 		tHit = t;
-		// 	}
-		// }
-
-		// if(IntersectTriangle(ray,
-		// 		tetrahedron.controlPoints[0],
-		// 		tetrahedron.controlPoints[1],
-		// 		tetrahedron.controlPoints[2],t))
-		// {
-		// 	if(t < tHit || tHit < 0) {
-		// 		tHit = t;
-		// 	}
-		// }
-
-		// debugPrintfEXT("tHit: %f", tHit);
-		// debugPrintfEXT("%f points: ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f ) ( %1.1v3f )",
-		// 	 tHit,
-		// 	 tetrahedron.controlPoints[0],
-		// 	 tetrahedron.controlPoints[1],
-		// 	 tetrahedron.controlPoints[2],
-		// 	 tetrahedron.controlPoints[3]
-		// 	 );
 	}
 	else if (objectType == t_BezierTriangle2)
 	{
@@ -839,81 +363,75 @@ void main()
 		float dy = ray.direction.y;
 		float dz = ray.direction.z;
 
-		//		 if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
-		//		 	n1 = vec3(dy, -dx, 0);
-		//		 }else{
-		//		 	n1 = vec3(0, dz, -dy);
-		//		 }
-		//		 n2 = cross(n1, ray.direction);
+		// if (abs(dx) > abs(dy) && abs(dx) > abs(dz))
+		// {
+		// 	n1 = vec3(dy, -dx, 0);
+		// }
+		// else
+		// {
+		// 	n1 = vec3(0, dz, -dy);
+		// }
+		// n2 = cross(n1, ray.direction);
 
 		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
 		n1 = normalize(cross(ray.direction, v));
 		n2 = normalize(cross(ray.direction, n1));
 
-		vec3 v0 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
-		vec3 v1 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
-		vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(2, 0, 0)];
+		if (isCrosshairRay)
+		{
+			// debugPrintfEXT("n1: (%.8v3f), n2: (%.8v3f)", n1, n2);
+		}
+
 		// debugPrintfEXT("v0: (%.2v3f), v1: (%.2v3f), v2: (%.2v3f)", v0, v1, v2);
 
 		float t;
 		if (raytracingDataConstants.renderSideTriangle > 0.0)
-		    //&& IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
 		{
-			// vec3 p = o + ray.direction * t;
-			// vec3 a = v1 - v0;
-			// vec3 b = v2 - v0;
-			// vec3 c = p - v0;
-			// 
-			// float dot00 = dot(a, a);
-			// float dot01 = dot(a, b);
-			// float dot11 = dot(b, b);
-			// float dot20 = dot(c, a);
-			// float dot21 = dot(c, b);
-			// float denom = dot00 * dot11 - dot01 * dot01;
-			// float v = (dot11 * dot20 - dot01 * dot21) / denom;
-			// float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			// float alpha = 1.0 - v - w;
-			// float beta = v;
-			// float gamma = w;
-			
-			//vec2 guess = vec2(gamma, beta);
-			vec2 guess = vec2( 0.5, 0.5 );
 
-			// float d1 = dot(-n1, o);
-			// float d2 = dot(-n2, o);
-			// vec2 guess = vec2(dot(n1, p) + d1, dot(n2, p) + d2);
+			vec3 v0 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 0, 2)];
+			vec3 v1 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(0, 2, 0)];
+			vec3 v2 = bezierTriangle.controlPoints[getControlPointIndicesBezierTriangle2(2, 0, 0)];
 
-			// if (isCrosshairRay)
+			// vec2 triangleIntersect = vec2(0, 0);
 			// {
-			// 	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
-			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
+			// 	float t;
+			// 	if (IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
+			// 	{
+			// 		vec3 p = o + ray.direction * t;
+			// 		vec3 a = v1 - v0;
+			// 		vec3 b = v2 - v0;
+			// 		vec3 c = p - v0;
+
+			// 		float dot00 = dot(a, a);
+			// 		float dot01 = dot(a, b);
+			// 		float dot11 = dot(b, b);
+			// 		float dot20 = dot(c, a);
+			// 		float dot21 = dot(c, b);
+			// 		float denom = dot00 * dot11 - dot01 * dot01;
+			// 		float v = (dot11 * dot20 - dot01 * dot21) / denom;
+			// 		float w = (dot00 * dot21 - dot01 * dot20) / denom;
+			// 		float alpha = 1.0 - v - w;
+			// 		float beta = v;
+			// 		float gamma = w;
+
+			// 		triangleIntersect = vec2(gamma, beta);
+			// 		if (isCrosshairRay)
+			// 		{
+			// 			debugPrintfEXT("triangleIntersect: (%.2v2f)", triangleIntersect);
+			// 		}
+			// 	}
 			// }
 
-			if (isCrosshairRay)
-			{
-				// debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
-			}
-			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:
-			// %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
-
-			// TODO: Trying to get our origin closer to the actual object so the numbers are staying
-			// small (we only have 32-bit float precision) p - ray.direction * 0.05; this wont work,
-			// we need the intersection point with the AABB to ensure the point lies outside of the
-			// tetrahedron
-			vec3 closeOrigin = o;
-			// debugPrintfEXT("origin: %.2v3f, closeOrigin: %.2v3f", o, closeOrigin);
-			
 			vec2 guesses[6] = {
-				vec2(0,0),
-				vec2(0,1),
-				vec2(1,0),
-				vec2(.5,0),
-				vec2(0,.5),
-				vec2(.5,.5),
+			    vec2(0, 0), vec2(0, 1), vec2(1, 0), vec2(.5, 0), vec2(0, .5), vec2(.5, .5),
+			    // triangleIntersect,
 			};
-			for(int i = 0; i < 6; i++) {
-				guess = guesses[i];
-				if (newtonsMethodTriangle2(intersectionPoint, guess, closeOrigin, bezierTriangle.controlPoints, n1, n2))
+
+			for (int i = 0; i < 6; i++)
+			{
+				vec2 guess = guesses[i];
+				if (newtonsMethodTriangle2(
+				        intersectionPoint, guess, o, bezierTriangle.controlPoints, n1, n2))
 				{
 					float dist = distance(intersectionPoint, o);
 					tHit = dist;
@@ -924,204 +442,7 @@ void main()
 	}
 	else if (objectType == t_Tetrahedron2)
 	{
-		Tetrahedron2 tetrahedron = tetrahedrons[instance.bufferIndex];
-		vec3 o = ray.origin;
-		vec3 n1, n2;
-
-		float dx = ray.direction.x;
-		float dy = ray.direction.y;
-		float dz = ray.direction.z;
-
-		//		 if(abs(dx) > abs(dy) && abs(dx) > abs(dz)) {
-		//		 	n1 = vec3(dy, -dx, 0);
-		//		 }else{
-		//		 	n1 = vec3(0, dz, -dy);
-		//		 }
-		//		 n2 = cross(n1, ray.direction);
-
-		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
-		n1 = normalize(cross(ray.direction, v));
-		n2 = normalize(cross(ray.direction, n1));
-
-		vec3 v0 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 0)];
-		vec3 v1 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 2, 0)];
-		vec3 v2 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 2)];
-
-		vec3 cameraDir = raytracingDataConstants.cameraDir;
-
-		// whether or not the current ray direction is the crosshair's direction
-		isCrosshairRay = false;
-		if (length(normalize(ray.direction) - normalize(cameraDir)) < 0.0001)
-		{
-			isCrosshairRay = true;
-		}
-
-		isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
-
-		float t;
-		// Side 1
-		if (raytracingDataConstants.renderSide1 > 0.0
-		    && IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
-		{
-			vec3 p = o + ray.direction * t;
-			vec3 a = v1 - v0;
-			vec3 b = v2 - v0;
-			vec3 c = p - v0;
-
-			float dot00 = dot(a, a);
-			float dot01 = dot(a, b);
-			float dot11 = dot(b, b);
-			float dot20 = dot(c, a);
-			float dot21 = dot(c, b);
-			float denom = dot00 * dot11 - dot01 * dot01;
-			float v = (dot11 * dot20 - dot01 * dot21) / denom;
-			float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			float alpha = 1.0 - v - w;
-			float beta = v;
-			float gamma = w;
-
-			vec2 guess = vec2(beta, gamma);
-
-			// float d1 = dot(-n1, o);
-			// float d2 = dot(-n2, o);
-			// vec2 guess = vec2(dot(n1, p) + d1, dot(n2, p) + d2);
-
-			// if(isCrosshairRay) {
-			//  	debugPrintfEXT("n1: (%.2v3f), n2: (%.2v3f), p: (%.2v3f), guess: (%.2v2f), d1:
-			//  %.4f, d2: %.4f",n1, n2, p, guess, d1, d2);
-			//  }
-
-			// debugPrintfEXT("alpha: %.5f beta: %.5f gamma: %.5f", alpha, beta, gamma);
-			// debugPrintfEXT("gl_WorldRayOriginEXT: %.2v3f, gl_WorldRayOriginEXT:
-			// %.2v3f",gl_WorldRayOriginEXT, gl_ObjectRayOriginEXT);
-
-			// TODO: Trying to get our origin closer to the actual object so the numbers are staying
-			// small (we only have 32-bit float precision) p - ray.direction * 0.05; this wont work,
-			// we need the intersection point with the AABB to ensure the point lies outside of the
-			// tetrahedron
-			vec3 closeOrigin = o;
-			// debugPrintfEXT("origin: %.2v3f, closeOrigin: %.2v3f",o, closeOrigin);
-			if (newtonsMethod2(
-			        intersectionPoint, 1, guess, closeOrigin, tetrahedron.controlPoints, n1, n2))
-			{
-				float dist = distance(intersectionPoint, o);
-				if (tHit == -1 || dist < tHit)
-				{
-					tHit = dist;
-				}
-			}
-		}
-
-		// Side 2
-		v0 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 0)];
-		v1 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(2, 0, 0)];
-		v2 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 2)];
-		if (raytracingDataConstants.renderSide2 > 0.0
-		    && IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
-		{
-			vec3 P = o + ray.direction * t;
-			vec3 a = v1 - v0;
-			vec3 b = v2 - v0;
-			vec3 c = P - v0;
-
-			float dot00 = dot(a, a);
-			float dot01 = dot(a, b);
-			float dot11 = dot(b, b);
-			float dot20 = dot(c, a);
-			float dot21 = dot(c, b);
-			float denom = dot00 * dot11 - dot01 * dot01;
-			float v = (dot11 * dot20 - dot01 * dot21) / denom;
-			float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			// auto alpha = 1 - v - w;
-			float beta = v;
-			float gamma = w;
-
-			vec2 guess = vec2(beta, gamma);
-
-			if (newtonsMethod2(
-			        intersectionPoint, 2, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			{
-				float dist = distance(intersectionPoint, ray.origin);
-				if (tHit == -1 || dist < tHit)
-				{
-					tHit = dist;
-				}
-			}
-		}
-
-		// Side 3
-		v0 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 0)];
-		v1 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(2, 0, 0)];
-		v2 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 2, 0)];
-		if (raytracingDataConstants.renderSide3 > 0.0
-		    && IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
-		{
-			vec3 P = o + ray.direction * t;
-			vec3 a = v1 - v0;
-			vec3 b = v2 - v0;
-			vec3 c = P - v0;
-
-			float dot00 = dot(a, a);
-			float dot01 = dot(a, b);
-			float dot11 = dot(b, b);
-			float dot20 = dot(c, a);
-			float dot21 = dot(c, b);
-			float denom = dot00 * dot11 - dot01 * dot01;
-			float v = (dot11 * dot20 - dot01 * dot21) / denom;
-			float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			// auto alpha = 1 - v - w;
-			float beta = v;
-			float gamma = w;
-
-			vec2 guess = vec2(beta, gamma);
-
-			if (newtonsMethod2(
-			        intersectionPoint, 3, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			{
-				float dist = distance(intersectionPoint, ray.origin);
-				if (tHit == -1 || dist < tHit)
-				{
-					tHit = dist;
-				}
-			}
-		}
-
-		// Side 4
-		v0 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(2, 0, 0)];
-		v1 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 0, 2)];
-		v2 = tetrahedron.controlPoints[getControlPointIndicesTetrahedron2(0, 2, 0)];
-		if (raytracingDataConstants.renderSide4 > 0.0
-		    && IntersectTriangle(ray.origin, ray.direction, v0, v1, v2, t))
-		{
-			vec3 P = o + ray.direction * t;
-			vec3 a = v1 - v0;
-			vec3 b = v2 - v0;
-			vec3 c = P - v0;
-
-			float dot00 = dot(a, a);
-			float dot01 = dot(a, b);
-			float dot11 = dot(b, b);
-			float dot20 = dot(c, a);
-			float dot21 = dot(c, b);
-			float denom = dot00 * dot11 - dot01 * dot01;
-			float v = (dot11 * dot20 - dot01 * dot21) / denom;
-			float w = (dot00 * dot21 - dot01 * dot20) / denom;
-			// auto alpha = 1 - v - w;
-			float beta = v;
-			float gamma = w;
-
-			vec2 guess = vec2(beta, gamma);
-
-			if (newtonsMethod2(
-			        intersectionPoint, 4, guess, ray.origin, tetrahedron.controlPoints, n1, n2))
-			{
-				float dist = distance(intersectionPoint, ray.origin);
-				if (tHit == -1 || dist < tHit)
-				{
-					tHit = dist;
-				}
-			}
-		}
+		// Tetrahedron2 tetrahedron = tetrahedrons[instance.bufferIndex];
 	}
 	else if (objectType == t_Triangle)
 	{
@@ -1145,34 +466,6 @@ void main()
 	}
 	else if (objectType == t_RectangularBezierSurface2x2)
 	{
-		// RectangularBezierSurface2x2 surface = rectangularBezierSurfaces2x2[instance.bufferIndex];
-		// vec3 o = ray.origin;
-		// vec3 n1, n2;
-
-		// float dx = ray.direction.x;
-		// float dy = ray.direction.y;
-		// float dz = ray.direction.z;
-
-		// if (abs(dx) > abs(dy) && abs(dx) > abs(dz))
-		// {
-		// 	n1 = vec3(dy, -dx, 0);
-		// }
-		// else
-		// {
-		// 	n1 = vec3(0, dz, -dy);
-		// }
-		// n2 = cross(n1, ray.direction);
-
-		// vec3 intersectionPoint;
-		// // TODO: figure out what a good intial guess is
-		// // vec2 initialGuess = projectPoint(surface.controlPoints[10].xyz, o, n1, n2);
-		// vec2 initialGuess = vec2(1, 1.0);
-		// if (newtonsMethod(
-		//         intersectionPoint, initialGuess, ray.origin, surface.controlPoints, 3, 3, n1,
-		//         n2))
-		// {
-		// 	tHit = distance(intersectionPoint, ray.origin);
-		// }
 	}
 	else
 	{

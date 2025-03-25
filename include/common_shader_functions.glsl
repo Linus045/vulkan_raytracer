@@ -122,21 +122,35 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 	return fraction * powi * powj * powk * powz;
 }
 
-float customPow(float x, int i) {
-	if(i == 0) {
+float customPow(float x, int i)
+{
+	if (i == 0)
+	{
 		return 1;
-	}else if(i == 1) {
+	}
+	else if (i == 1)
+	{
 		return x;
-	}else if(i == 2) {
+	}
+	else if (i == 2)
+	{
 		return x * x;
-	}else if(i == 3) {
+	}
+	else if (i == 3)
+	{
 		return x * x * x;
-	}else if(i == 4) {
+	}
+	else if (i == 4)
+	{
 		return x * x * x * x;
-	}else if(i == 5) {
+	}
+	else if (i == 5)
+	{
 		return x * x * x * x * x;
-	}else if(i == 6) {
-		return x * x * x * x * x * x;	
+	}
+	else if (i == 6)
+	{
+		return x * x * x * x * x * x;
 	}
 }
 
@@ -234,6 +248,7 @@ int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 	if (i == 1 && j == 0 && k == 1) return 3; // between v1-v2
 	if (i == 1 && j == 1 && k == 0) return 4; // between v2-v3
 	if (i == 0 && j == 1 && k == 1) return 5; // between v3-v1
+	debugPrintfEXT("Error: getControlPointIndicesBezierTriangle2: %d, %d, %d", i, j, k);
 	return 0;
 }
 
@@ -280,16 +295,15 @@ vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, fl
 					int be1 = getControlPointIndicesBezierTriangle2(i + 1, j + 0, k + 0);
 					int be2 = getControlPointIndicesBezierTriangle2(i + 0, j + 1, k + 0);
 					int be3 = getControlPointIndicesBezierTriangle2(i + 0, j + 0, k + 1);
-					sum +=  (controlPoints[be1] * direction.x +
-							controlPoints[be2] * direction.y +
-							controlPoints[be3] * direction.z)
-					       * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+					vec3 x = controlPoints[be1] * direction.x;
+					vec3 y = controlPoints[be2] * direction.y;
+					vec3 z = controlPoints[be3] * direction.z;
+					sum += (x + y + z) * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
 				}
 			}
 		}
 	}
-	sum *= n;
-	return sum;
+	return n * sum;
 }
 
 vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
@@ -332,7 +346,7 @@ vec3 partialBezierTriangle2V(vec3 controlPoints[6], float u, float v)
 	float w = 1.0 - u - v;
 
 	// check if values are in the right range and if sum is equal to 1
-	//if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
+	// if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
 	//{
 	//	return sum;
 	//}
