@@ -251,7 +251,7 @@ void main()
 	{
 		vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 
-		Sphere s = spheres[gl_PrimitiveID];
+		Sphere s = spheres[instance.bufferIndex];
 
 		vec3 positionToLightDirection
 		    = normalize(raytracingDataConstants.globalLightPosition - position);
@@ -270,9 +270,14 @@ void main()
 		};
 		vec3 surfaceColor = colorlist[s.colorIdx - 1];
 
-		vec3 sphereNormal = normalize(position - s.center);
-		payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor
-		                      * dot(sphereNormal, positionToLightDirection);
+		vec3 normal = normalize(position - s.center);
+
+		vec3 lightColor = raytracingDataConstants.globalLightColor
+		                  * raytracingDataConstants.globalLightIntensity;
+		payload.directColor
+		    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+		                        * raytracingDataConstants.environmentLightIntensity;
 	}
 	else if (gl_HitKindEXT == t_RectangularBezierSurface2x2)
 	{

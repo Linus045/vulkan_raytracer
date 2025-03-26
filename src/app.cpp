@@ -1,3 +1,4 @@
+#include "common_types.h"
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -17,6 +18,7 @@
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
 #define GLM_ENABLE_EXPERIMENTAL
+#include <glm/ext/vector_float3.hpp>
 
 #include "app.hpp"
 #include "logger.hpp"
@@ -72,6 +74,49 @@ void Application::run()
 	{
 		setupScene();
 	}
+
+	auto shootRay = [=, this]()
+	{
+		glm::vec2 initialGuess = vec2(0.3, 0.3);
+
+		auto& raytracingScene = renderer->getRaytracingScene();
+		glm::vec3 intersectionPoint = glm::vec3(0);
+
+		Ray ray{
+		    .origin = camera.transform.getPos(),
+		    .direction = camera.transform.getForward(),
+		};
+
+		glm::vec3 v = (glm::abs(ray.direction.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
+		                                                  : glm::vec3(1.0f, 0.0f, 0.0f);
+		glm::vec3 n1 = normalize(cross(ray.direction, v));
+		glm::vec3 n2 = normalize(cross(ray.direction, n1));
+
+		raytracingScene.getWorldObjectSpheres().clear();
+
+		ltracer::rt::newtonsMethodTriangle2(
+		    raytracingScene,
+		    renderer->getRaytracingDataConstants(),
+		    intersectionPoint,
+		    initialGuess,
+		    ray.origin,
+		    std::to_array(raytracingScene.getWorldObjectBezierTriangles()[0]
+		                      .getGeometry()
+		                      .getData()
+		                      .controlPoints),
+		    n1,
+		    n2);
+
+		uiData->recreateAccelerationStructures.recreate = true;
+		uiData->recreateAccelerationStructures.fullRebuild = true;
+	};
+
+	uiData->buttonCallbacks.push_back(std::make_pair("[R] CPU Raytrace", shootRay));
+	registerKeyListener(window,
+	                    GLFW_KEY_R,
+	                    ltracer::KeyTriggerMode::KeyDown,
+	                    ltracer::KeyListeningMode::FLYING_CAMERA,
+	                    shootRay);
 
 	mainLoop();
 
@@ -164,6 +209,9 @@ void Application::setupScene()
 			ltracer::rt::visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}
 	}
+
+	raytracingScene.addObjectSphere(
+	    renderer->getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
 
 	raytracingScene.addSlicingPlane(SlicingPlane{
 	    glm::vec3(1.7, 0, 0),

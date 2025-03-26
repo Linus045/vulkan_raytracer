@@ -98,6 +98,7 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 	}
 	return sum;
 }
+
 vec2 fBezierTriangle(const vec3[6] controlPoints,
                      const vec3 origin,
                      const vec3 n1,
@@ -135,6 +136,15 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
                             const vec3 n1,
                             const vec3 n2)
 {
+	// debug print origin, n1 and n2
+	if (isCrosshairRay)
+	{
+		// debugPrintfEXT("AAAAAAAAAAAAAAAAAAAAAAAAA origin: (%.2v3f), n1: (%.2v3f), n2: (%.2v3f)",
+		//                origin,
+		//                n1,
+		//                n2);
+	}
+
 	bool hit = false;
 	const int max_iterations = 100 + 1;
 	vec2 u[max_iterations];

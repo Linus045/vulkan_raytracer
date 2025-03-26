@@ -340,6 +340,17 @@ void renderRaytracingOptions(UIData& uiData)
 	uiData.configurationChanged = valueChanged;
 }
 
+void renderButtons(const ltracer::ui::UIData& uiData)
+{
+	for (const auto& button : uiData.buttonCallbacks)
+	{
+		if (ImGui::Button(button.first.c_str()))
+		{
+			button.second();
+		}
+	}
+}
+
 void renderHelpInfo(const ltracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Control:");
@@ -376,7 +387,7 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 				                                   "%.2f")
 				               || valueChanged;
 			}
-			uiData.recreateAccelerationStructures = valueChanged;
+			uiData.recreateAccelerationStructures.recreate = valueChanged;
 		}
 	}
 }
@@ -415,7 +426,7 @@ void renderSlicingPlaneSliders(ltracer::ui::UIData& uiData)
 				                          "%.2f")
 				      || valueChanged;
 			}
-			uiData.recreateAccelerationStructures = valueChanged;
+			uiData.recreateAccelerationStructures.recreate = valueChanged;
 		}
 	}
 }
@@ -453,6 +464,9 @@ void renderMainPanel(UIData& uiData)
 	uiData.mainPanelCollapsed = false;
 
 	renderHelpInfo(uiData);
+
+	ImGui::SeparatorText("Buttons");
+	renderButtons(uiData);
 
 	ImGui::SeparatorText("Properties:");
 	renderGPUProperties(uiData);

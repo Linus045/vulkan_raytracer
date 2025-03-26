@@ -40,7 +40,16 @@ struct UIData
 	std::vector<SlicingPlane>& slicingPlanes;
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
-	bool recreateAccelerationStructures = false;
+
+	// pair - first value: recreateNeeded? second value: full rebuild?
+	struct recreateAccelerationStructure
+	{
+		bool recreate;
+		bool fullRebuild;
+	} recreateAccelerationStructures = {false, false};
+
+	std::vector<std::pair<std::string, std::function<void()>>> buttonCallbacks
+	    = std::vector<std::pair<std::string, std::function<void()>>>();
 
 	UIData(Camera& camera,
 	       const Window& window,
@@ -87,6 +96,8 @@ void renderErrors(const UIData& uiData);
 void renderRaytracingOptions(UIData& uiData);
 
 void renderHelpInfo(const ltracer::ui::UIData& uiData);
+
+void renderButtons(const ltracer::ui::UIData& uiData);
 
 void renderRaytracingProperties(const ltracer::ui::UIData& uiData);
 

@@ -337,6 +337,8 @@ class Window
 	chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 	{
 
+		// see
+		// https://www.intel.com/content/www/us/en/developer/articles/training/api-without-secrets-introduction-to-vulkan-part-2.html?language=en#_Toc445674479
 		// Possible modes:
 		// does not wait for vsync
 		// VK_PRESENT_MODE_IMMEDIATE_KHR
@@ -347,10 +349,11 @@ class Window
 		// VK_PRESENT_MODE_FIFO_RELAXED_KHR
 		for (const auto& availablePresentMode : availablePresentModes)
 		{
-			// TODO: This is only for testing, please use the correct mode
-			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) return availablePresentMode;
-
+			// prefer mailbox
 			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) return availablePresentMode;
+
+			// fallback to fifo (always available)
+			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) return availablePresentMode;
 		}
 
 		return VK_PRESENT_MODE_FIFO_KHR;

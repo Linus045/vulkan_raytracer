@@ -203,17 +203,17 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 	if (raytracingSupported)
 	{
-		if (uiData.recreateAccelerationStructures)
+		if (uiData.recreateAccelerationStructures.recreate)
 		{
-			raytracingScene->copyObjectsToBuffers();
-
-			// TODO: when adding dynamic movement, this might need to be enabled, depending on what
-			// modifications are made
-			bool fullRebuild = false;
+			bool fullRebuild = uiData.recreateAccelerationStructures.fullRebuild;
 			if (fullRebuild)
 			{
 				// TODO: replace this with a fence to improve performance
 				vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
+			}
+			else
+			{
+				raytracingScene->copyObjectsToBuffers();
 			}
 
 			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
@@ -221,7 +221,8 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 			rt::updateAccelerationStructureDescriptorSet(
 			    logicalDevice, *raytracingScene, raytracingInfo);
 
-			uiData.recreateAccelerationStructures = false;
+			uiData.recreateAccelerationStructures.recreate = false;
+			uiData.recreateAccelerationStructures.fullRebuild = false;
 			resetFrameCountRequested = true;
 		}
 

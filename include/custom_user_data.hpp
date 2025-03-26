@@ -3,6 +3,8 @@
 #include <map>
 #include <vulkan/vulkan_core.h>
 
+#include "input.hpp"
+
 namespace ltracer
 {
 
@@ -10,15 +12,12 @@ namespace ltracer
 namespace ui
 {
 struct UIData;
-}
+} // namespace ui
 
 class Window;
 class Camera;
 class Renderer;
 struct SwapChainSupportDetails;
-
-using GLFWKEY = int;
-using GLFW_KEY_STATE = bool;
 
 struct CustomUserData
 {
@@ -32,7 +31,12 @@ struct CustomUserData
 	VkDevice& logicalDevice;
 	VkPhysicalDevice& physicalDevice;
 
+	// current key state for each key
 	std::map<GLFWKEY, GLFW_KEY_STATE> keyStateMap;
+
+	// key callbacks
+	std::map<GLFWKEY, KeyListener> keyListeners;
+
 	float lastMouseX = 0.0;
 	float lastMouseY = 0.0;
 	// used to prevent weird cursor movement issues when switching cursor input mode, see
