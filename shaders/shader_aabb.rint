@@ -432,9 +432,14 @@ void main()
 			// 	}
 			// }
 
+			// TODO: figure out what the best guess would be
 			vec2 guesses[6] = {
-			    vec2(0, 0), vec2(0, 1), vec2(1, 0), vec2(.5, 0), vec2(0, .5), vec2(.5, .5),
-			    // triangleIntersect,
+			    vec2(0, 0),
+			    vec2(0, 1),
+			    vec2(1, 0),
+			    vec2(.5, 0),
+			    vec2(0, .5),
+			    vec2(.5, .5),
 			};
 
 			for (int i = 0; i < 6; i++)

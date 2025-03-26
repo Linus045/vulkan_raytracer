@@ -249,7 +249,7 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		    = BezierTriangle2Point(controlPoints, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
 		raytracingScene.addObjectSphere(
 		    surfacePoint,
-		    0.2f
+		    0.1f
 		        * (static_cast<float>(raytracingDataConstants.newtonMaxIterations - c)
 		           / static_cast<float>(raytracingDataConstants.newtonMaxIterations)),
 		    ColorIdx::t_purple);

@@ -67,17 +67,17 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	raytracingInfo.raytracingConstants = {
 	    .newtonErrorXTolerance = 1e-8f,
-	    .newtonErrorFTolerance = 1e-5f,
+	    .newtonErrorFTolerance = 1e-3f,
 
-	    .newtonErrorFIgnoreIncrease = 0.0f,
+	    .newtonErrorFIgnoreIncrease = 1.0f,
 	    .newtonErrorFHitBelowTolerance = 1.0f,
-	    .newtonErrorXIgnoreIncrease = 0.0f,
+	    .newtonErrorXIgnoreIncrease = 1.0f,
 	    .newtonErrorXHitBelowTolerance = 0.0f,
 
-	    .newtonMaxIterations = 5,
+	    .newtonMaxIterations = 10,
 	    .someFloatingScalar = 1.00f,
 	    .someScalar = -1,
-	    .globalLightPosition = glm::vec3(2.0f, 0.3f, 2.0f),
+	    .globalLightPosition = glm::vec3(7.0f, 4.0f, 2.0f),
 	    .globalLightColor = glm::vec3(0.0, 0.8, 0.8),
 	    .globalLightIntensity = 1.0f,
 	    // .environmentColor = vec3(0.58, 0.81, 0.92),
