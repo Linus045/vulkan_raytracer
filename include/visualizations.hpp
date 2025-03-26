@@ -176,8 +176,8 @@ inline glm::mat2x2 jacobianBezierTriangle2(const std::array<glm::vec3, 6> contro
 	vec3 partialDerivative2 = partialBezierTriangle2Directional(controlPoints, dirV, u, v);
 
 	return glm::mat2x2(dot(n1, partialDerivative1),
-	                   dot(n1, partialDerivative2),
 	                   dot(n2, partialDerivative1),
+	                   dot(n1, partialDerivative2),
 	                   dot(n2, partialDerivative2));
 }
 
