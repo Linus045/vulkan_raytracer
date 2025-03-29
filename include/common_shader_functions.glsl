@@ -382,7 +382,7 @@ bool intersectWithPlane(const vec3 planeNormal,
                         const vec3 rayDirection,
                         out float t)
 {
-	float denom = dot(planeNormal, rayDirection);
+	float denom = dot(-planeNormal, rayDirection);
 	if (denom > 1e-6)
 	{
 		vec3 rayToPlanePoint = planeOrigin - rayOrigin;
@@ -446,6 +446,52 @@ float hitAabb(const Aabb aabb, const Ray r)
 	float t0 = max(tmin.x, max(tmin.y, tmin.z));
 	float t1 = min(tmax.x, min(tmax.y, tmax.z));
 	return t1 > max(t0, 0.0) ? t0 : -1.0;
+}
+
+// whether the hitPos is in front of the plane or not
+// TODO: figure out if this makes sense
+// takes in the ray origin because we don't wanna report being in front of the slicing
+// plane if the camera is behind the plane anyway
+bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos, Ray ray)
+{
+	vec3 hitPosDirToPlane = plane.planeOrigin - hitPos;
+	vec3 cameraDirToPlane = plane.planeOrigin - ray.origin;
+
+	bool hitPosInFront = false;
+	if (dot(cameraDirToPlane, plane.normal) > 0 && dot(hitPosDirToPlane, plane.normal) > 0)
+	{
+		// camera and hit point are both in front of the plane
+		// if (isCrosshairRay)
+		// {
+		// 	debugPrintfEXT("both behind plane - t: %0.2f", t);
+		// }
+		// hitPosInFront = true;
+	}
+	else if (dot(cameraDirToPlane, plane.normal) < 0 && dot(hitPosDirToPlane, plane.normal) < 0)
+	{
+		// if (isCrosshairRay)
+		// {
+		// 	debugPrintfEXT("both in front of plane - t: %0.2f", t);
+		// }
+
+		hitPosInFront = true;
+	}
+	else if (dot(cameraDirToPlane, plane.normal) < 0 && dot(hitPosDirToPlane, plane.normal) > 0)
+	{
+		// if (isCrosshairRay)
+		// {
+		// 	debugPrintfEXT("camera in front of plane and hitPos behind plane - t: %0.2f", t);
+		// }
+	}
+	else if (dot(cameraDirToPlane, plane.normal) > 0 && dot(hitPosDirToPlane, plane.normal) < 0)
+	{
+		// if (isCrosshairRay)
+		// {
+		// 	debugPrintfEXT("camera behind plane and hitPos in front of plane - t: %0.2f", t);
+		// }
+		hitPosInFront = true;
+	}
+	return hitPosInFront;
 }
 
 #endif // COMMON_SHADER_FUNCTIONS

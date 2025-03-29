@@ -90,10 +90,10 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .renderSide2 = 0.0f,
 	    .renderSide3 = 0.0f,
 	    .renderSide4 = 0.0f,
-	    .raysPerPixel = 1,
+	    .recursiveRaysPerPixel = 1,
 	    .debugPrintCrosshairRay = 1.0f,
 	    .debugSlicingPlanes = 0.0f,
-	    .enableSlicingPlanes = 0.0f,
+	    .enableSlicingPlanes = 1.0f,
 	    .debugShowSubdivisions = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};

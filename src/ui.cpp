@@ -241,7 +241,7 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
 			                                &uiData.raytracingDataConstants.newtonMaxIterations,
 			                                0,
-			                                100,
+			                                10,
 			                                "%d",
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
@@ -284,8 +284,8 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::Checkbox("Render Side 4", &renderSide4) || valueChanged;
 			uiData.raytracingDataConstants.renderSide4 = static_cast<float>(renderSide4 ? 1 : 0);
 
-			valueChanged = ImGui::SliderInt("Rays per Pixel",
-			                                &uiData.raytracingDataConstants.raysPerPixel,
+			valueChanged = ImGui::SliderInt("Recursive Rays per Pixel",
+			                                &uiData.raytracingDataConstants.recursiveRaysPerPixel,
 			                                0,
 			                                20,
 			                                "%d",

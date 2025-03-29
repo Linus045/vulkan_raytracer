@@ -27,6 +27,8 @@
 #ifndef COMMON_TYPES
 #define COMMON_TYPES
 
+const int MAX_NEWTON_ITERATIONS = 30;
+
 #ifdef __cplusplus
 #include <glm/glm.hpp>
 // GLSL Type
@@ -44,7 +46,7 @@ using uint = unsigned int;
  #define ALIGNAS(x) alignas(x)
 #else
  #define START_BINDING(a)  const uint
- #define END_BINDING() 
+ #define END_BINDING()
  #define ALIGNAS(x)
 #endif
 
@@ -95,7 +97,7 @@ END_BINDING();
 	ALIGNAS(4) float renderSide2;                                                                  \
 	ALIGNAS(4) float renderSide3;                                                                  \
 	ALIGNAS(4) float renderSide4;                                                                  \
-	ALIGNAS(4) int raysPerPixel;                                                                   \
+	ALIGNAS(4) int recursiveRaysPerPixel;                                                          \
 	ALIGNAS(4) float debugPrintCrosshairRay;                                                       \
 	ALIGNAS(4) float debugSlicingPlanes;                                                           \
 	ALIGNAS(4) float enableSlicingPlanes;                                                          \
