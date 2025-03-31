@@ -159,7 +159,7 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 	float previousErrorF = 100000.0;
 	float errorF = 100000.0;
 
-	for (; c < MAX_NEWTON_ITERATIONS; c++)
+	for (; c < raytracingDataConstants.newtonMaxIterations; c++)
 	{
 		mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
 		mat2x2 inv_j = inverseJacobian(j);
@@ -264,17 +264,20 @@ void main()
 		if (raytracingDataConstants.renderSideTriangle > 0.0)
 		{
 			// TODO: figure out what the best guess would be
-			const vec2 guesses[6] = {
+			const vec2 guesses[9] = {
 			    vec2(0, 0),
 			    vec2(0, 1),
 			    vec2(1, 0),
 			    vec2(.5, 0),
 			    vec2(0, .5),
 			    vec2(.5, .5),
+			    vec2(.2, .2),
+			    vec2(.8, .2),
+			    vec2(.2, .8),
 			};
 
 			vec2 hitCoord;
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < 9; i++)
 			{
 				const vec2 guess = guesses[i];
 				if (newtonsMethodTriangle2(

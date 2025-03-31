@@ -122,6 +122,9 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 	return fraction * powi * powj * powk * powz;
 }
 
+// not sure if the custom pow function is needed
+// but at least for i == 0 it's needed because pow() returns NaN
+// instead of 1 (at runtime)
 float customPow(float x, int i)
 {
 	if (i == 0)
@@ -222,6 +225,7 @@ vec3 partialHw(
 
 	for (int k = 0; k <= n - 1; k++)
 	{
+
 		for (int j = 0; j <= n - 1 - k; j++)
 		{
 			for (int i = 0; i <= n - 1 - k - j; i++)
@@ -455,43 +459,8 @@ float hitAabb(const Aabb aabb, const Ray r)
 bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos, Ray ray)
 {
 	vec3 planeToHitPos = hitPos - plane.planeOrigin;
-	vec3 planeToCameraPos = ray.origin - plane.planeOrigin;
-
-	bool hitPosInFront = false;
-	if (dot(planeToHitPos, plane.normal) > 0)
-	{
-		// camera and hit point are both in front of the plane
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT("both behind plane - t: %0.2f", t);
-		// }
-		hitPosInFront = true;
-	}
-	// else if (dot(planeToCameraPos, plane.normal) < 0 && dot(planeToHitPos, plane.normal) < 0)
-	// {
-	// 	// if (isCrosshairRay)
-	// 	// {
-	// 	// 	debugPrintfEXT("both in front of plane - t: %0.2f", t);
-	// 	// }
-
-	// 	hitPosInFront = true;
-	// }
-	// else if (dot(planeToCameraPos, plane.normal) < 0 && dot(planeToHitPos, plane.normal) > 0)
-	// {
-	// 	// if (isCrosshairRay)
-	// 	// {
-	// 	// 	debugPrintfEXT("camera in front of plane and hitPos behind plane - t: %0.2f", t);
-	// 	// }
-	// }
-	// else if (dot(planeToCameraPos, plane.normal) > 0 && dot(planeToHitPos, plane.normal) < 0)
-	// {
-	// 	// if (isCrosshairRay)
-	// 	// {
-	// 	// 	debugPrintfEXT("camera behind plane and hitPos in front of plane - t: %0.2f", t);
-	// 	// }
-	// 	hitPosInFront = true;
-	// }
-	return hitPosInFront;
+	// hit point is in front of the plane
+	return dot(planeToHitPos, plane.normal) > 0;
 }
 
 #endif // COMMON_SHADER_FUNCTIONS

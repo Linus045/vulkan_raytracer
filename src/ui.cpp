@@ -241,7 +241,7 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
 			                                &uiData.raytracingDataConstants.newtonMaxIterations,
 			                                0,
-			                                10,
+			                                MAX_NEWTON_ITERATIONS,
 			                                "%d",
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;

@@ -119,24 +119,10 @@ void main()
 
 		if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 		{
-			// count how many times we hit the bezier triangle again
-			// the hits only count when they are in front of the slicing plane
-			// if the count is odd, the hitpos on the slicing plane is inside the object
-			// if the count is even, the intersection pos with the ray and slicing plane is outside
-			// the object
-
-			// TODO: figure out what the maximum number of hits is for a given tetrahedron degree
-			// is it 2 * n ??
-			int recursiveRaysShot = 0;
 			for (int c = 0; c < 4; c++)
 			{
 				if (payload.lastHitInFrontOfSlicingPlane)
 				{
-					// int oldCounter = payload.hitBezierTriangleCounter;
-					// vec3 oldOrigin = payload.rayOrigin;
-					// payload.rayOrigin
-					//     += payload.rayDirection * raytracingDataConstants.someFloatingScalar;
-
 					traceRayEXT(topLevelAS,
 					            gl_RayFlagsOpaqueEXT,
 					            0xFF,
@@ -148,7 +134,6 @@ void main()
 					            payload.rayDirection,
 					            1000.0,
 					            0);
-					recursiveRaysShot++;
 					if (payload.hitOnSlicingPlaneInsideObject)
 					{
 						break;
@@ -156,14 +141,11 @@ void main()
 				}
 			}
 
-			if (isCrosshairRay)
-			{
-				debugPrintfEXT("Recursive rays for pixel: %d", recursiveRaysShot);
-			}
 			// if (isCrosshairRay)
 			// {
-			// 	debugPrintfEXT("Hit position: (%.02v3f)", payload.rayOrigin);
+			// 	debugPrintfEXT("Recursive rays for pixel: %d", recursiveRaysShot);
 			// }
+			// payload.directColor = vec3(recursiveRaysShot / 2.0, 0.0, 0.0);
 		}
 	}
 

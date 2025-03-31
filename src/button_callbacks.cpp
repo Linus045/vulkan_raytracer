@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <utility>
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -83,6 +84,19 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 	uiData.recreateAccelerationStructures.fullRebuild = true;
 };
 
+static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
+{
+	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& slicingPlane = raytracingScene.getSlicingPlanes()[0];
+
+	raytracingScene.getWorldObjectSpheres().clear();
+	ltracer::rt::visualizePlane(
+	    raytracingScene, slicingPlane.normal, slicingPlane.planeOrigin, 2.5, 2.5);
+
+	uiData.recreateAccelerationStructures.recreate = true;
+	uiData.recreateAccelerationStructures.fullRebuild = true;
+};
+
 void registerButtonFunctions(Window& window,
                              Renderer& renderer,
                              const Camera& camera,
@@ -103,6 +117,9 @@ void registerButtonFunctions(Window& window,
 	                    ltracer::KeyTriggerMode::KeyDown,
 	                    ltracer::KeyListeningMode::FLYING_CAMERA,
 	                    [&]() { visualizeRayPlanes(renderer, camera, uiData); });
+
+	uiData.buttonCallbacks.push_back(std::make_pair(
+	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
 }
 } // namespace rt
 } // namespace ltracer
