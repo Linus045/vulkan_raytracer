@@ -33,7 +33,8 @@ layout(location = 0) rayPayloadInEXT Payload
 	int rayDepth;
 
 	int rayActive;
-	int hitBezierTriangleCounter;
+	bool lastHitInFrontOfSlicingPlane;
+	bool hitOnSlicingPlaneInsideObject;
 }
 payload;
 
@@ -214,39 +215,75 @@ void main()
 		// 	               hitCoordinate.inFrontOfSlicingPlane);
 		// }
 
+		bool calculateHitColor = true;
 		// if we have slicing planes enables, we wanna treat points in front of the slicing
 		// plane special
-		if (raytracingDataConstants.enableSlicingPlanes > 0.0
-		    && hitCoordinate.inFrontOfSlicingPlane)
+		if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 		{
-
-			// TODO: this value does not work
-			// we somehoe need to figure out if the new intersection point reported by the
-			// intersection shader is actually a new point and not just the "outside" of the
-			// previous point, caused by the errorF value
-			float distanceTravelled = distance(payload.rayOrigin, position);
-			if (distanceTravelled > 0.01)
-			{
-				payload.hitBezierTriangleCounter += 1;
-			}
-
-			if (isCrosshairRay)
-			{
-				debugPrintfEXT(
-				    "hitCount: %d - start: (%.2v3f) hit: (%.2v3f) - distance travelled: %.8f",
-				    payload.hitBezierTriangleCounter,
-				    payload.rayOrigin,
-				    position,
-				    distanceTravelled);
-			}
-
 			// move the ray origin to the hit position so the next ray will be cast from there
-			payload.rayOrigin = position;
+			if (hitCoordinate.inFrontOfSlicingPlane)
+			{
+				payload.rayOrigin = position;
+				payload.lastHitInFrontOfSlicingPlane = true;
+				calculateHitColor = false;
+			}
+			else
+			{
+				if (payload.lastHitInFrontOfSlicingPlane)
+				{
+					SlicingPlane plane = slicingPlanes[0];
+					float t = 0;
+					if (intersectWithPlane(plane.normal,
+					                       plane.planeOrigin,
+					                       camera.position.xyz,
+					                       payload.rayDirection,
+					                       t))
+					{
+						payload.rayOrigin = payload.rayOrigin + payload.rayDirection * t;
+					}
+					else
+					{
+						payload.rayOrigin = position;
+					}
+
+					payload.hitOnSlicingPlaneInsideObject = true;
+
+					calculateHitColor = false;
+
+					vec3 normal = plane.normal;
+
+					payload.directColor
+					    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+					payload.indirectColor = vec3(0, 0, 0);
+					payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+					                        * raytracingDataConstants.environmentLightIntensity;
+
+					if (raytracingDataConstants.debugSlicingPlanes > 0.0)
+					{
+						payload.directColor = vec3(1.0, 0.0, 1.0);
+						payload.indirectColor = vec3(0.0, 0.0, 0.0);
+					}
+				}
+				else
+				{
+					payload.hitOnSlicingPlaneInsideObject = false;
+					payload.lastHitInFrontOfSlicingPlane = false;
+
+					payload.rayOrigin = position;
+					calculateHitColor = true;
+				}
+			}
 		}
 		else
 		{
-			float u = hitCoordinate.hitCoord.x;
-			float v = hitCoordinate.hitCoord.y;
+			calculateHitColor = true;
+			payload.rayOrigin = position;
+		}
+
+		float u = hitCoordinate.hitCoord.x;
+		float v = hitCoordinate.hitCoord.y;
+		if (calculateHitColor)
+		{
 			vec3 dirU = vec3(1, 0, -1);
 			vec3 dirV = vec3(0, 1, -1);
 			vec3 partialU
@@ -255,31 +292,20 @@ void main()
 			    = partialBezierTriangle2Directional(bezierTriangle.controlPoints, dirV, u, v);
 			vec3 normal = normalize(cross(partialU, partialV));
 
-			if (isCrosshairRay)
-			{
-				// debugPrintfEXT("uv: %f %f partialU: %.1v3f partialV: %.1v3f, normal: %.2v3f",
-				//                u,
-				//                v,
-				//                partialU,
-				//                partialV,
-				//                normal);
-			}
-
 			payload.directColor
 			    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
 			payload.indirectColor = vec3(0, 0, 0);
 			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
 			                        * raytracingDataConstants.environmentLightIntensity;
+		}
 
-			if (raytracingDataConstants.debugShowSubdivisions > 0.0)
+		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
+		{
+			if (u < 1e-2f || v < 1e-2f || abs(1.0 - u - v) < 1e-2f)
 			{
-				if (u < 1e-2f || v < 1e-2f || abs(1.0 - u - v) < 1e-2f)
-				{
-					payload.directColor = vec3(1, 1, 1);
-					payload.indirectColor = vec3(0, 0, 0);
-				}
+				payload.directColor = vec3(1, 1, 1);
+				payload.indirectColor = vec3(0, 0, 0);
 			}
-			payload.rayOrigin = position;
 		}
 	}
 	else if (gl_HitKindEXT == t_Sphere)
@@ -418,7 +444,8 @@ void main()
 
 		//     if (!isShadow) {
 		//       if (payload.rayDepth == 0) {
-		//         payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor *
+		//         payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor
+		//         *
 		//                               dot(geometricNormal, positionToLightDirection);
 		//       } else {
 		//         payload.indirectColor +=

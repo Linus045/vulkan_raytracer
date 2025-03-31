@@ -365,7 +365,7 @@ inline void visualizeVector(std::vector<Sphere>& spheres,
 	}
 }
 
-inline void visualizePlane(std::vector<Sphere>& spheres,
+inline void visualizePlane(RaytracingScene& raytracingScene,
                            const glm::vec3& normal,
                            const glm::vec3& pointOnPlane,
                            const float sizeX,
@@ -391,9 +391,8 @@ inline void visualizePlane(std::vector<Sphere>& spheres,
 		for (float z = 0; z <= sizeZ; z += stepSize)
 		{
 			// auto pos = glm::dot(pointOnPlane, normal);
-			spheres.emplace_back(pointOnPlane + (x - sizeX / 2.0f) * b2 + (z - sizeZ / 2.0f) * b3,
-			                     0.005f,
-			                     static_cast<int>(ColorIdx::t_pink));
+			auto pos = pointOnPlane + (x - sizeX / 2.0f) * b2 + (z - sizeZ / 2.0f) * b3;
+			raytracingScene.addObjectSphere(pos, 0.005f, ColorIdx::t_pink);
 		}
 	}
 }

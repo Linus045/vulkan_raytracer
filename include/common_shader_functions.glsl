@@ -386,7 +386,7 @@ bool intersectWithPlane(const vec3 planeNormal,
 	if (denom > 1e-6)
 	{
 		vec3 rayToPlanePoint = planeOrigin - rayOrigin;
-		t = dot(rayToPlanePoint, planeNormal) / denom;
+		t = dot(rayToPlanePoint, -planeNormal) / denom;
 		return t >= 0;
 	}
 	return false;
@@ -454,43 +454,43 @@ float hitAabb(const Aabb aabb, const Ray r)
 // plane if the camera is behind the plane anyway
 bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos, Ray ray)
 {
-	vec3 hitPosDirToPlane = plane.planeOrigin - hitPos;
-	vec3 cameraDirToPlane = plane.planeOrigin - ray.origin;
+	vec3 planeToHitPos = hitPos - plane.planeOrigin;
+	vec3 planeToCameraPos = ray.origin - plane.planeOrigin;
 
 	bool hitPosInFront = false;
-	if (dot(cameraDirToPlane, plane.normal) > 0 && dot(hitPosDirToPlane, plane.normal) > 0)
+	if (dot(planeToHitPos, plane.normal) > 0)
 	{
 		// camera and hit point are both in front of the plane
 		// if (isCrosshairRay)
 		// {
 		// 	debugPrintfEXT("both behind plane - t: %0.2f", t);
 		// }
-		// hitPosInFront = true;
+		hitPosInFront = true;
 	}
-	else if (dot(cameraDirToPlane, plane.normal) < 0 && dot(hitPosDirToPlane, plane.normal) < 0)
-	{
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT("both in front of plane - t: %0.2f", t);
-		// }
+	// else if (dot(planeToCameraPos, plane.normal) < 0 && dot(planeToHitPos, plane.normal) < 0)
+	// {
+	// 	// if (isCrosshairRay)
+	// 	// {
+	// 	// 	debugPrintfEXT("both in front of plane - t: %0.2f", t);
+	// 	// }
 
-		hitPosInFront = true;
-	}
-	else if (dot(cameraDirToPlane, plane.normal) < 0 && dot(hitPosDirToPlane, plane.normal) > 0)
-	{
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT("camera in front of plane and hitPos behind plane - t: %0.2f", t);
-		// }
-	}
-	else if (dot(cameraDirToPlane, plane.normal) > 0 && dot(hitPosDirToPlane, plane.normal) < 0)
-	{
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT("camera behind plane and hitPos in front of plane - t: %0.2f", t);
-		// }
-		hitPosInFront = true;
-	}
+	// 	hitPosInFront = true;
+	// }
+	// else if (dot(planeToCameraPos, plane.normal) < 0 && dot(planeToHitPos, plane.normal) > 0)
+	// {
+	// 	// if (isCrosshairRay)
+	// 	// {
+	// 	// 	debugPrintfEXT("camera in front of plane and hitPos behind plane - t: %0.2f", t);
+	// 	// }
+	// }
+	// else if (dot(planeToCameraPos, plane.normal) > 0 && dot(planeToHitPos, plane.normal) < 0)
+	// {
+	// 	// if (isCrosshairRay)
+	// 	// {
+	// 	// 	debugPrintfEXT("camera behind plane and hitPos in front of plane - t: %0.2f", t);
+	// 	// }
+	// 	hitPosInFront = true;
+	// }
 	return hitPosInFront;
 }
 

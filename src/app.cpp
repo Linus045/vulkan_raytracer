@@ -30,7 +30,7 @@
 #include "custom_user_data.hpp"
 #include "input.hpp"
 #include "raytracing_scene.hpp"
-#include "visualizations.hpp"
+#include "button_callbacks.hpp"
 
 // #include "tiny_obj_loader.h"
 
@@ -73,57 +73,8 @@ void Application::run()
 	if (raytracingSupported)
 	{
 		setupScene();
+		ltracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
 	}
-
-	auto shootRay = [=, this]()
-	{
-		glm::vec2 initialGuess = vec2(0.3, 0.3);
-
-		auto& raytracingScene = renderer->getRaytracingScene();
-		glm::vec3 intersectionPoint = glm::vec3(0);
-
-		Ray ray{
-		    .origin = camera.transform.getPos(),
-		    .direction = camera.transform.getForward(),
-		};
-
-		// TODO: test out other definition for normals
-		// Visualize planes
-		glm::vec3 v = (glm::abs(ray.direction.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
-		                                                  : glm::vec3(1.0f, 0.0f, 0.0f);
-		glm::vec3 n1 = normalize(cross(ray.direction, v));
-		glm::vec3 n2 = normalize(cross(ray.direction, n1));
-
-		for (size_t side = 0; side < 4; side++)
-		{
-			raytracingScene.getWorldObjectSpheres().clear();
-			if (ltracer::rt::newtonsMethodTriangle2(
-			        raytracingScene,
-			        renderer->getRaytracingDataConstants(),
-			        intersectionPoint,
-			        initialGuess,
-			        ray.origin,
-			        std::to_array(raytracingScene.getWorldObjectBezierTriangles()[side]
-			                          .getGeometry()
-			                          .getData()
-			                          .controlPoints),
-			        n1,
-			        n2))
-			{
-				raytracingScene.addObjectSphere(intersectionPoint, 0.2f, ColorIdx::t_red);
-				break;
-			}
-		}
-		uiData->recreateAccelerationStructures.recreate = true;
-		uiData->recreateAccelerationStructures.fullRebuild = true;
-	};
-
-	uiData->buttonCallbacks.push_back(std::make_pair("[R] CPU Raytrace", shootRay));
-	registerKeyListener(window,
-	                    GLFW_KEY_R,
-	                    ltracer::KeyTriggerMode::KeyDown,
-	                    ltracer::KeyListeningMode::FLYING_CAMERA,
-	                    shootRay);
 
 	mainLoop();
 
@@ -234,7 +185,7 @@ void Application::setupScene()
 	    renderer->getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
 
 	raytracingScene.addSlicingPlane(SlicingPlane{
-	    glm::vec3(1.7, 0, 0),
+	    glm::vec3(0.7, 0, 0),
 	    glm::vec3(-1, 0, 0),
 	});
 
