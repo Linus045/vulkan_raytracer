@@ -104,10 +104,17 @@ class RaytracingScene
 	}
 
 	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron2& tetrahedron2,
+	                                              const std::array<bool, 4>& sides
+	                                              = {true, true, true, true},
 	                                              const int subdivisions = 0)
 	{
 		for (int side = 1; side <= 4; side++)
 		{
+			if (!sides[static_cast<size_t>(side - 1)])
+			{
+				continue;
+			}
+
 			const auto& bezierTriangle
 			    = ltracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
 

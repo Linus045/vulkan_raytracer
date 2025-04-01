@@ -44,9 +44,37 @@ struct UIData
 	// pair - first value: recreateNeeded? second value: full rebuild?
 	struct recreateAccelerationStructure
 	{
-		bool recreate;
-		bool fullRebuild;
-	} recreateAccelerationStructures = {false, false};
+		/// @brief whether the acceleration structures need to be recreated and
+		/// if so, whether a full rebuild is needed
+		void requestRecreate(const bool _fullRebuild)
+		{
+			recreate = true;
+
+			// if something already requested a fullRebuild, don't override it
+			fullRebuild = fullRebuild || _fullRebuild;
+		}
+
+		void reset()
+		{
+			recreate = false;
+			fullRebuild = false;
+		}
+
+		bool isRecreateNeeded() const
+		{
+			return recreate;
+		}
+
+		bool isFullRebuildNeeded() const
+		{
+			return fullRebuild;
+		}
+
+	  private:
+		bool recreate = false;
+		bool fullRebuild = false;
+
+	} recreateAccelerationStructures;
 
 	std::vector<std::pair<std::string, std::function<void()>>> buttonCallbacks
 	    = std::vector<std::pair<std::string, std::function<void()>>>();

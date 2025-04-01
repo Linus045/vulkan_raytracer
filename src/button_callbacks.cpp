@@ -61,8 +61,7 @@ static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiDat
 			break;
 		}
 	}
-	uiData.recreateAccelerationStructures.recreate = true;
-	uiData.recreateAccelerationStructures.fullRebuild = true;
+	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
 static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UIData& uiData)
@@ -82,8 +81,7 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 	ltracer::rt::visualizePlane(raytracingScene, n1, camera.transform.getPos(), 1, 1);
 	ltracer::rt::visualizePlane(raytracingScene, n2, camera.transform.getPos(), 1, 1);
 
-	uiData.recreateAccelerationStructures.recreate = true;
-	uiData.recreateAccelerationStructures.fullRebuild = true;
+	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
 static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
@@ -95,8 +93,7 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 	ltracer::rt::visualizePlane(
 	    raytracingScene, slicingPlane.normal, slicingPlane.planeOrigin, 2.5, 2.5);
 
-	uiData.recreateAccelerationStructures.recreate = true;
-	uiData.recreateAccelerationStructures.fullRebuild = true;
+	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
 static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneIdx)
@@ -106,8 +103,7 @@ static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneIdx
 	std::printf("Loading scene %d\n", sceneIdx);
 	RaytracingScene::loadScene(renderer, raytracingScene, sceneIdx);
 
-	uiData.recreateAccelerationStructures.recreate = true;
-	uiData.recreateAccelerationStructures.fullRebuild = true;
+	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
 void registerButtonFunctions(Window& window,
@@ -134,7 +130,7 @@ void registerButtonFunctions(Window& window,
 	uiData.buttonCallbacks.push_back(std::make_pair(
 	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
 
-	const int scenesIndices[] = {1, 2, 3};
+	const int scenesIndices[] = {1, 2, 3, 4, 5};
 	for (int sceneIdx : scenesIndices)
 	{
 		auto label = std::format("[{}] Load Scene", sceneIdx);
@@ -143,7 +139,7 @@ void registerButtonFunctions(Window& window,
 		registerKeyListener(window,
 		                    GLFW_KEY_0 + sceneIdx,
 		                    ltracer::KeyTriggerMode::KeyDown,
-		                    ltracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
+		                    ltracer::KeyListeningMode::FLYING_CAMERA,
 		                    [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); });
 	}
 }

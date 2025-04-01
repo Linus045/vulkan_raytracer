@@ -93,7 +93,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .recursiveRaysPerPixel = 1,
 	    .debugPrintCrosshairRay = 1.0f,
 	    .debugSlicingPlanes = 0.0f,
-	    .enableSlicingPlanes = 1.0f,
+	    .enableSlicingPlanes = 0.0f,
 	    .debugShowSubdivisions = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
@@ -203,9 +203,9 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 	if (raytracingSupported)
 	{
-		if (uiData.recreateAccelerationStructures.recreate)
+		if (uiData.recreateAccelerationStructures.isRecreateNeeded())
 		{
-			bool fullRebuild = uiData.recreateAccelerationStructures.fullRebuild;
+			bool fullRebuild = uiData.recreateAccelerationStructures.isFullRebuildNeeded();
 			if (fullRebuild)
 			{
 				// TODO: replace this with a fence to improve performance
@@ -221,8 +221,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 			rt::updateAccelerationStructureDescriptorSet(
 			    logicalDevice, *raytracingScene, raytracingInfo);
 
-			uiData.recreateAccelerationStructures.recreate = false;
-			uiData.recreateAccelerationStructures.fullRebuild = false;
+			uiData.recreateAccelerationStructures.reset();
 			resetFrameCountRequested = true;
 		}
 
@@ -232,6 +231,21 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	updateUniformBuffer(currentFrame);
 
 	uiData.raytracingDataConstants.cameraDir = camera.transform.getForward();
+
+	// TODO: create a setUIData() and retrieveUIData() function that sets/loads these values
+	// correspondingly
+	//
+	// TODO: abstract this away so we just need get the reference and set the position
+	auto instanceIdx = raytracingScene->getWorldObjectSpheres()[0].getInstanceIndex();
+	if (instanceIdx)
+	{
+		// we assume the first sphere always represents the light
+		raytracingScene->getWorldObjectSpheres()[0].setPosition(
+		    uiData.raytracingDataConstants.globalLightPosition);
+		auto transformMatrix
+		    = raytracingScene->getWorldObjectSpheres()[0].getTransform().getTransformMatrix();
+		raytracingScene->setTransformMatrixForInstance(instanceIdx.value(), transformMatrix);
+	}
 
 	recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
 

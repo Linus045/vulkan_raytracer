@@ -314,14 +314,19 @@ void renderRaytracingOptions(UIData& uiData)
 
 		ImGui::SeparatorText("Light");
 		{
-			valueChanged
+			bool lightPositionChanged
 			    = ImGui::SliderFloat3("Global Light Position",
 			                          &uiData.raytracingDataConstants.globalLightPosition.x,
 			                          -10.0f,
 			                          10.0f,
 			                          "%.1f",
-			                          0)
-			      || valueChanged;
+			                          0);
+			if (lightPositionChanged)
+			{
+				uiData.recreateAccelerationStructures.requestRecreate(false);
+			}
+
+			valueChanged = lightPositionChanged || valueChanged;
 
 			valueChanged = ImGui::SliderFloat("Global Light Intensity",
 			                                  &uiData.raytracingDataConstants.globalLightIntensity,
@@ -387,7 +392,7 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 				                                   "%.2f")
 				               || valueChanged;
 			}
-			uiData.recreateAccelerationStructures.recreate = valueChanged;
+			uiData.recreateAccelerationStructures.requestRecreate(false);
 		}
 	}
 }
@@ -427,7 +432,7 @@ void renderSlicingPlaneSliders(UIData& uiData)
 				                          "%.2f")
 				      || valueChanged;
 			}
-			uiData.recreateAccelerationStructures.recreate = valueChanged;
+			uiData.recreateAccelerationStructures.requestRecreate(false);
 		}
 	}
 }

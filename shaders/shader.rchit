@@ -170,11 +170,11 @@ void main()
 
 		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 
-		if (isCrosshairRay)
-		{
-			debugPrintfEXT(
-			    "Hit object at: (%.2v3f) with normal: (%.2v3f)", hitData.point, hitData.normal);
-		}
+		// if (isCrosshairRay)
+		// {
+		// 	debugPrintfEXT(
+		// 	    "Hit object at: (%.2v3f) with normal: (%.2v3f)", hitData.point, hitData.normal);
+		// }
 
 		// if we have slicing planes enables, we wanna treat points in front of the slicing
 		// plane special
