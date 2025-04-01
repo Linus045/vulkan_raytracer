@@ -337,7 +337,7 @@ void renderRaytracingOptions(UIData& uiData)
 			               || valueChanged;
 		}
 	}
-	uiData.configurationChanged = valueChanged;
+	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 }
 
 void renderButtons(const ltracer::ui::UIData& uiData)
@@ -392,7 +392,7 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 	}
 }
 
-void renderSlicingPlaneSliders(ltracer::ui::UIData& uiData)
+void renderSlicingPlaneSliders(UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Raytracing - Slicing Planes"))
 	{
@@ -403,7 +403,8 @@ void renderSlicingPlaneSliders(ltracer::ui::UIData& uiData)
 			               || valueChanged;
 			uiData.raytracingDataConstants.enableSlicingPlanes
 			    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
-			uiData.configurationChanged = valueChanged;
+
+			uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 		}
 
 		{
