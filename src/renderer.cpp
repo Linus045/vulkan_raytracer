@@ -6,6 +6,8 @@
 #include "raytracing.hpp"
 #include "model.hpp"
 
+const uint64_t TIMEOUT_SECONDS_5 = 5l * 1000l * 1000l * 1000l;
+
 namespace ltracer
 {
 
@@ -171,15 +173,22 @@ void Renderer::createFramebuffers()
 
 void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIData& uiData)
 {
-	vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINT64_MAX);
+	VkResult result = vkWaitForFences(
+	    logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, TIMEOUT_SECONDS_5);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Renderer::drawFrame - failed to wait for fence");
+	}
+	vkResetFences(logicalDevice, 1, &inFlightFences[currentFrame]);
 
 	uint32_t imageIndex;
-	VkResult result = vkAcquireNextImageKHR(logicalDevice,
-	                                        window.getSwapChain(),
-	                                        UINT64_MAX,
-	                                        imageAvailableSemaphores[currentFrame],
-	                                        VK_NULL_HANDLE,
-	                                        &imageIndex);
+	result = vkAcquireNextImageKHR(logicalDevice,
+	                               window.getSwapChain(),
+	                               TIMEOUT_SECONDS_5,
+	                               imageAvailableSemaphores[currentFrame],
+	                               VK_NULL_HANDLE,
+	                               &imageIndex);
+
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		swapChainOutdated = true;
@@ -190,16 +199,11 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 		throw std::runtime_error("failed to acquire swap chain image");
 	}
 
-	vkResetFences(logicalDevice, 1, &inFlightFences[currentFrame]);
-
-	// TODO: figure out if this reset for the command buffer is necessary
-	// vkDeviceWaitIdle(logicalDevice);
-	// vkResetCommandBuffer(commandBuffers[currentFrame],
-	// VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT);
-
-	// (*worldObjects)[0].translate(0, -1.1 * delta, 0);
-	// worldObjects[0].translate(0, 0, 0.8 * delta);
-	// worldObjects[1].translate(0.8 * delta, 0, 0);
+	result = vkResetCommandBuffer(commandBuffers[currentFrame], 0);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Renderer::drawFrame - failed to reset command buffer");
+	}
 
 	if (raytracingSupported)
 	{
@@ -267,10 +271,10 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	VkResult test = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-	if (test != VK_SUCCESS)
+	result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
+	if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to submit draw command buffer!");
+		throw std::runtime_error("Renderer::drawFrame - failed to submit draw command buffer!");
 	}
 
 	VkPresentInfoKHR presentInfo{};
@@ -292,7 +296,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	}
 	else if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to present swap chain image");
+		throw std::runtime_error("Renderer::drawFrame - failed to present swap chain image");
 	}
 
 	currentFrame = (currentFrame + 1) % static_cast<uint32_t>(MAX_FRAMES_IN_FLIGHT);
@@ -690,12 +694,14 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT;
+	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	beginInfo.pInheritanceInfo = nullptr;
 
-	if (vkBeginCommandBuffer(commandBuffer, &beginInfo) != VK_SUCCESS)
+	VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
+	if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to begin recording command buffer");
+		throw std::runtime_error(
+		    "Renderer::recordCommandBuffer - failed to begin recording command buffer");
 	}
 
 	// Ensure the output image is in the right layout for clearing (transfer source layout)
@@ -912,9 +918,10 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
 	vkCmdEndRenderPass(commandBuffer);
 
-	if (vkEndCommandBuffer(commandBuffer) != VK_SUCCESS)
+	result = vkEndCommandBuffer(commandBuffer);
+	if (result != VK_SUCCESS)
 	{
-		throw std::runtime_error("failed to record command buffer");
+		throw std::runtime_error("Renderer::recordCommandBuffer - failed to record command buffer");
 	}
 }
 }; // namespace ltracer
