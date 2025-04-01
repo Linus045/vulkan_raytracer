@@ -374,11 +374,7 @@ class Window
 	VkFormat swapChainImageFormat = VK_FORMAT_UNDEFINED;
 	VkExtent2D swapChainExtent = {0, 0};
 
-#ifdef NDEBUG
-	bool cursorCaptureEnabled = true;
-#else
 	bool cursorCaptureEnabled = false;
-#endif
 };
 
 } // namespace ltracer
