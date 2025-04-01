@@ -382,17 +382,18 @@ void renderPositionSliders(ltracer::ui::UIData& uiData)
 	if (ImGui::CollapsingHeader("Raytracing - Positions"))
 	{
 
+		bool valueChanged = false;
+		for (size_t i = 0; i < uiData.positions.size(); i++)
 		{
-			bool valueChanged = false;
-			for (size_t i = 0; i < uiData.positions.size(); i++)
-			{
-				valueChanged = ImGui::SliderFloat3(("ControlPoint " + std::to_string(i)).c_str(),
-				                                   &uiData.positions[i].x,
-				                                   -10.0,
-				                                   10.0,
-				                                   "%.2f")
-				               || valueChanged;
-			}
+			valueChanged = ImGui::SliderFloat3(("ControlPoint " + std::to_string(i)).c_str(),
+			                                   &uiData.positions[i].x,
+			                                   -10.0,
+			                                   10.0,
+			                                   "%.2f")
+			               || valueChanged;
+		}
+		if (valueChanged)
+		{
 			uiData.recreateAccelerationStructures.requestRecreate(false);
 		}
 	}
@@ -433,7 +434,10 @@ void renderSlicingPlaneSliders(UIData& uiData)
 				                          "%.2f")
 				      || valueChanged;
 			}
-			uiData.recreateAccelerationStructures.requestRecreate(false);
+			if (valueChanged)
+			{
+				uiData.recreateAccelerationStructures.requestRecreate(false);
+			}
 		}
 	}
 }
