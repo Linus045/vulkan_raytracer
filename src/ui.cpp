@@ -373,6 +373,7 @@ void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Raytracing Properties:");
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
+	ImGui::Text("Estimated frame time: %.4fms", uiData.frameTimeMilliseconds);
 	ImGui::Text("BLAS Instances Count: %ld", uiData.blasInstancesCount);
 }
 

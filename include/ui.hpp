@@ -38,6 +38,7 @@ struct UIData
 	const uint32_t& frameCount;
 	const size_t& blasInstancesCount;
 	std::vector<SlicingPlane>& slicingPlanes;
+	float frameTimeMilliseconds = 0.0f;
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 

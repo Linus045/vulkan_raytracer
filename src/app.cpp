@@ -1,4 +1,5 @@
 #include "common_types.h"
+#include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
@@ -669,14 +670,6 @@ void Application::mainLoop()
 
 		ltracer::updateMovement(*customUserData, delta);
 
-		// static auto startTime = std::chrono::high_resolution_clock::now();
-
-		// auto currentTime = std::chrono::high_resolution_clock::now();
-		// float time = std::chrono::duration<float,
-		// std::chrono::seconds::period>(
-		//                  currentTime - startTime)
-		//                  .count();
-
 		renderer->updateViewProjectionMatrix(camera.getViewMatrix(), camera.getProjectionMatrix());
 
 		// std::cout << "Frame count: " << renderer->getFrameCount() << std::endl;
@@ -686,7 +679,14 @@ void Application::mainLoop()
 		// 	glfwSetWindowShouldClose(window.getGLFWWindow(), true);
 		// }
 
+		auto startTime = std::chrono::high_resolution_clock::now();
+
 		renderer->drawFrame(camera, delta, *uiData);
+
+		float frameTimeDelta = std::chrono::duration<float, std::chrono::milliseconds::period>(
+		                           std::chrono::high_resolution_clock::now() - startTime)
+		                           .count();
+		uiData->frameTimeMilliseconds = frameTimeDelta;
 
 		if (uiData->configurationChanged || camera.isCameraMoved())
 		{
