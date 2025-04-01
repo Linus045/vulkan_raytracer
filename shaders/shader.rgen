@@ -24,26 +24,13 @@ layout(location = 0) rayPayloadEXT Payload
 	int rayDepth;
 
 	int rayActive;
-	bool lastHitInFrontOfSlicingPlane;
-	bool hitOnSlicingPlaneInsideObject;
+	// bool hitOnSlicingPlaneInsideObject;
 }
 payload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, set = 0) uniform UniformStructure
-{
-	mat4 viewProj;
-	mat4 viewInverse;
-	mat4 projInverse;
-
-	vec4 position;
-	vec4 right;
-	vec4 up;
-	vec4 forward;
-
-	uint frameCount;
-}
-ubo;
+layout(binding = 1, set = 0) uniform UBO{// see common_types.h
+                                         UNIFORM_MEMBERS} ubo;
 
 layout(binding = 4, set = 0, rgba32f) uniform image2D image;
 
@@ -83,16 +70,6 @@ void main()
 
 	payload.rayActive = 1;
 
-	payload.lastHitInFrontOfSlicingPlane = false;
-
-	// if camera origin is in front of slicing plane, set lastHitInFrontOfSlicingPlane true
-	// if (dot(payload.rayOrigin - slicingPlanes[0].planeOrigin, slicingPlanes[0].normal) > 0)
-	// {
-	// 	payload.lastHitInFrontOfSlicingPlane = true;
-	// }
-
-	payload.hitOnSlicingPlaneInsideObject = false;
-
 	bool isCrosshairRay = false;
 	// whether or not the current ray direction is the crosshair's direction
 	vec3 cameraDir = raytracingDataConstants.cameraDir;
@@ -117,36 +94,23 @@ void main()
 		            1000.0,
 		            0);
 
-		if (raytracingDataConstants.enableSlicingPlanes > 0.0)
-		{
-			for (int c = 0; c < 4; c++)
-			{
-				if (payload.lastHitInFrontOfSlicingPlane)
-				{
-					traceRayEXT(topLevelAS,
-					            gl_RayFlagsOpaqueEXT,
-					            0xFF,
-					            0,
-					            0,
-					            1,
-					            payload.rayOrigin,
-					            0.001,
-					            payload.rayDirection,
-					            1000.0,
-					            0);
-					if (payload.hitOnSlicingPlaneInsideObject)
-					{
-						break;
-					}
-				}
-			}
-
-			// if (isCrosshairRay)
-			// {
-			// 	debugPrintfEXT("Recursive rays for pixel: %d", recursiveRaysShot);
-			// }
-			// payload.directColor = vec3(recursiveRaysShot / 2.0, 0.0, 0.0);
-		}
+		// if slicing planes are enabled, we ignore all hits in front of the slicing plane
+		// so the hit point must be behind the plane, in that case we need to figure out if we hit
+		// the inside or outside of the object (this is done in the closest-hit shader)
+		// if (raytracingDataConstants.enableSlicingPlanes > 0.0)
+		// {
+		// 	traceRayEXT(topLevelAS,
+		// 	            gl_RayFlagsOpaqueEXT,
+		// 	            0xFF,
+		// 	            0,
+		// 	            0,
+		// 	            1,
+		// 	            payload.rayOrigin,
+		// 	            0.001,
+		// 	            payload.rayDirection,
+		// 	            1000.0,
+		// 	            0);
+		// }
 	}
 
 	vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);

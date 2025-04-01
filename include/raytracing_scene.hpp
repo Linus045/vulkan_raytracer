@@ -14,8 +14,18 @@
 #include "tlas.hpp"
 #include "vk_utils.hpp"
 
+// TODO: move functions into raytracing_scene.cpp file
+
 namespace ltracer
 {
+// forward declaration
+class Renderer;
+
+namespace ui
+{
+struct UIData;
+}
+
 namespace rt
 {
 
@@ -32,6 +42,9 @@ class RaytracingScene
 
 	RaytracingScene(RaytracingScene&&) noexcept = delete;
 	RaytracingScene& operator=(RaytracingScene&&) noexcept = delete;
+
+	static void
+	loadScene(const Renderer& renderer, RaytracingScene& raytracingScene, const int index);
 
 	const RaytracingObjectBuffers& getObjectBuffers() const
 	{
@@ -259,21 +272,7 @@ class RaytracingScene
 			// if the amount of spheres changes, only create new buffers for the new spheres
 			deletionQueueForAccelerationStructure.flush();
 
-			objectBuffers.gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
-			objectBuffers.gpuObjectsBufferHandle = VK_NULL_HANDLE;
-			objectBuffers.spheresAABBBufferHandles.clear();
-			objectBuffers.spheresAABBDeviceMemoryHandles.clear();
-			objectBuffers.tetrahedronsAABBBufferHandles.clear();
-			objectBuffers.tetrahedronsAABBDeviceMemoryHandles.clear();
-
-			objectBuffers.tetrahedronsBufferHandle = VK_NULL_HANDLE;
-			objectBuffers.tetrahedronsDeviceMemoryHandles = VK_NULL_HANDLE;
-
-			objectBuffers.spheresBufferHandle = VK_NULL_HANDLE;
-			objectBuffers.spheresDeviceMemoryHandles = VK_NULL_HANDLE;
-
-			objectBuffers.rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
-			objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles = VK_NULL_HANDLE;
+			objectBuffers.clearAllHandles();
 
 			createBuffers();
 			createSlicingPlanesBuffer();

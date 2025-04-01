@@ -16,12 +16,13 @@
 
 struct HitData
 {
-	vec2 hitCoord;
-	bool inFrontOfSlicingPlane;
+	vec3 point;
+	vec2 coords;
+	vec3 normal;
 };
 
 bool isCrosshairRay = false;
-hitAttributeEXT HitData hitCoordinate;
+hitAttributeEXT HitData hitData;
 
 layout(set = 0, binding = 5, scalar) buffer Tetrahedrons
 {
@@ -121,22 +122,25 @@ vec2 fBezierTriangle(const vec3[6] controlPoints,
 	return vec2(dot(n1, surfacePoint) + d1, dot(n2, surfacePoint) + d2);
 }
 
-mat2x2 jacobianBezierTriangle2(
-    const vec3 controlPoints[6], const vec3 n1, const vec3 n2, const float u, const float v)
+mat2x2 jacobianBezierTriangle2(const vec3 controlPoints[6],
+                               const vec3 n1,
+                               const vec3 n2,
+                               const float u,
+                               const float v,
+                               out vec3 partialU,
+                               out vec3 partialV)
 {
 	vec3 dirU = vec3(1, 0, -1);
 	vec3 dirV = vec3(0, 1, -1);
-	vec3 partialDerivative1 = partialBezierTriangle2Directional(controlPoints, dirU, u, v);
-	vec3 partialDerivative2 = partialBezierTriangle2Directional(controlPoints, dirV, u, v);
+	partialU = partialBezierTriangle2Directional(controlPoints, dirU, u, v);
+	partialV = partialBezierTriangle2Directional(controlPoints, dirV, u, v);
 
-	return mat2x2(dot(n1, partialDerivative1),
-	              dot(n2, partialDerivative1),
-	              dot(n1, partialDerivative2),
-	              dot(n2, partialDerivative2));
+	return mat2x2(dot(n1, partialU), dot(n2, partialU), dot(n1, partialV), dot(n2, partialV));
 }
 
-bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
-                            inout vec2 hitCoord,
+bool newtonsMethodTriangle2(out vec3 hitPoint,
+                            out vec2 hitCoords,
+                            out vec3 hitNormal,
                             const vec2 initialGuess,
                             const vec3 origin,
                             const vec3[6] controlPoints,
@@ -159,9 +163,12 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 	float previousErrorF = 100000.0;
 	float errorF = 100000.0;
 
+	vec3 partialU = vec3(0);
+	vec3 partialV = vec3(0);
 	for (; c < raytracingDataConstants.newtonMaxIterations; c++)
 	{
-		mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
+		mat2x2 j
+		    = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y, partialU, partialV);
 		mat2x2 inv_j = inverseJacobian(j);
 		if (inv_j == mat2x2(0, 0, 0, 0))
 		{
@@ -185,7 +192,6 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 		}
 	}
 
-	intersectionPoint = vec3(0);
 	if (hit)
 	{
 		// TODO: why not c+1 ?
@@ -196,9 +202,10 @@ bool newtonsMethodTriangle2(inout vec3 intersectionPoint,
 			return hit;
 		}
 
-		intersectionPoint
+		hitPoint
 		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
-		hitCoordinate.hitCoord = vec2(u[idx].x, u[idx].y);
+		hitCoords = vec2(u[idx].x, u[idx].y);
+		hitNormal = cross(partialU, partialV);
 	}
 	return hit;
 }
@@ -244,7 +251,6 @@ void main()
 	// %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
 	float tHit = -1;
-	vec3 hitPoint = vec3(0);
 	if (objectType == t_BezierTriangle2)
 	{
 		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
@@ -264,54 +270,68 @@ void main()
 		if (raytracingDataConstants.renderSideTriangle > 0.0)
 		{
 			// TODO: figure out what the best guess would be
-			const vec2 guesses[9] = {
+			const vec2 guesses[6] = {
 			    vec2(0, 0),
 			    vec2(0, 1),
 			    vec2(1, 0),
 			    vec2(.5, 0),
 			    vec2(0, .5),
 			    vec2(.5, .5),
-			    vec2(.2, .2),
-			    vec2(.8, .2),
-			    vec2(.2, .8),
 			};
 
-			vec2 hitCoord;
-			for (int i = 0; i < 9; i++)
+			vec3 hitPoint = vec3(0);
+			vec2 hitCoords = vec2(0);
+			vec3 hitNormal = vec3(0);
+
+			for (int i = 0; i < 6; i++)
 			{
 				const vec2 guess = guesses[i];
-				if (newtonsMethodTriangle2(
-				        hitPoint, hitCoord, guess, o, bezierTriangle.controlPoints, n1, n2))
+				if (newtonsMethodTriangle2(hitPoint,
+				                           hitCoords,
+				                           hitNormal,
+				                           guess,
+				                           o,
+				                           bezierTriangle.controlPoints,
+				                           n1,
+				                           n2))
 				{
-					float dist = distance(hitPoint, o);
-					if (tHit < 0 || dist < tHit)
+					bool hitValid = true;
+					// check if hit point is in front of the slicing plane,
+					// if so, ignore the hit and search for a different point
+					if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 					{
-						tHit = dist;
-						hitCoordinate.hitCoord = hitCoord;
+						bool inFrontOfSlicingPlane = false;
+						// if we still hit no object, check if we hit a slicing plane
+						const int SLICING_PLANE_MAX_COUNT = 1;
+
+						for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
+						{
+							SlicingPlane plane = slicingPlanes[idx];
+							if (hitPosInFrontOfPlane(plane, hitPoint, ray))
+							{
+								// ignore hit
+								hitValid = false;
+								continue;
+							}
+							else
+							{
+								hitValid = true;
+							}
+						}
 					}
-				}
-			}
 
-			hitCoordinate.inFrontOfSlicingPlane = false;
-			if (tHit > 0 && raytracingDataConstants.enableSlicingPlanes > 0.0)
-			{
-				// if we still hit no object, check if we hit a slicing plane
-				const int SLICING_PLANE_MAX_COUNT = 1;
-				float oldTHit = tHit;
-
-				bool debugSlicingPlanes = raytracingDataConstants.debugSlicingPlanes > 0.0;
-				for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
-				{
-					SlicingPlane plane = slicingPlanes[idx];
-
-					hitCoordinate.inFrontOfSlicingPlane
-					    = hitPosInFrontOfPlane(plane, hitPoint, ray);
-
-					if (debugSlicingPlanes)
+					if (hitValid)
 					{
-					}
-					else
-					{
+						float dist = distance(hitPoint, o);
+						// if point is closer to camera, update values
+						if (tHit < 0 || dist < tHit)
+						{
+							tHit = dist;
+
+							hitData.point = hitPoint;
+							hitData.coords = hitCoords;
+							hitData.normal = hitNormal;
+						}
 					}
 				}
 			}

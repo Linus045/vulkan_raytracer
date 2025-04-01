@@ -76,6 +76,17 @@ START_BINDING(ColorIdx)
 END_BINDING();
 // clang-format on
 
+#define UNIFORM_MEMBERS                                                                            \
+	ALIGNAS(64) mat4 viewProj;                                                                     \
+	ALIGNAS(64) mat4 viewInverse;                                                                  \
+	ALIGNAS(64) mat4 projInverse;                                                                  \
+	ALIGNAS(4) uint frameCount;
+
+struct UniformStructure
+{
+	UNIFORM_MEMBERS
+};
+
 #define PUSH_CONSTANT_MEMBERS                                                                      \
 	ALIGNAS(4) float newtonErrorXTolerance;                                                        \
 	ALIGNAS(4) float newtonErrorFTolerance;                                                        \
@@ -109,9 +120,10 @@ struct RaytracingDataConstants
 {
 	PUSH_CONSTANT_MEMBERS
 };
+
 #else
 // because we are using push_constant a block is required so we
-// manually have to use PUSH_CONSTANT_DATA in the shader inside the block
+// manually have to use PUSH_CONSTANT_MEMBERS in the shader inside the block
 // we could also use a macro but I prefer the more explicit way
 #endif
 

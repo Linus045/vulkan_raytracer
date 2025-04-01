@@ -39,9 +39,11 @@ static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiDat
 	glm::vec3 n1 = normalize(cross(ray.direction, v));
 	glm::vec3 n2 = normalize(cross(ray.direction, n1));
 
-	raytracingScene.getWorldObjectSpheres().clear();
 	for (size_t side = 0; side < 4; side++)
 	{
+		// clear the spheres before we test a side so only corresponding spheres for that side
+		// remain
+		raytracingScene.getWorldObjectSpheres().clear();
 		if (ltracer::rt::newtonsMethodTriangle2(
 		        raytracingScene,
 		        renderer.getRaytracingDataConstants(),
@@ -97,6 +99,17 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 	uiData.recreateAccelerationStructures.fullRebuild = true;
 };
 
+static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneIdx)
+{
+	auto& raytracingScene = renderer.getRaytracingScene();
+
+	std::printf("Loading scene %d\n", sceneIdx);
+	RaytracingScene::loadScene(renderer, raytracingScene, sceneIdx);
+
+	uiData.recreateAccelerationStructures.recreate = true;
+	uiData.recreateAccelerationStructures.fullRebuild = true;
+};
+
 void registerButtonFunctions(Window& window,
                              Renderer& renderer,
                              const Camera& camera,
@@ -120,6 +133,19 @@ void registerButtonFunctions(Window& window,
 
 	uiData.buttonCallbacks.push_back(std::make_pair(
 	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
+
+	const int scenesIndices[] = {1, 2, 3};
+	for (int sceneIdx : scenesIndices)
+	{
+		auto label = std::format("[{}] Load Scene", sceneIdx);
+		uiData.buttonCallbacks.push_back(
+		    std::make_pair(label, [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); }));
+		registerKeyListener(window,
+		                    GLFW_KEY_0 + sceneIdx,
+		                    ltracer::KeyTriggerMode::KeyDown,
+		                    ltracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
+		                    [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); });
+	}
 }
 } // namespace rt
 } // namespace ltracer

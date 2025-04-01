@@ -43,15 +43,6 @@ struct SharedInfo
 	alignas(16) glm::mat4 proj;
 };
 
-struct UniformStructure
-{
-	glm::mat4 viewProj;
-	glm::mat4 viewInverse;
-	glm::mat4 projInverse;
-
-	uint32_t frameCount;
-};
-
 struct RaytracingObjectBuffers
 {
 	VkBuffer gpuObjectsBufferHandle = VK_NULL_HANDLE;
@@ -84,6 +75,35 @@ struct RaytracingObjectBuffers
 
 	VkBuffer slicingPlanesBufferHandle = VK_NULL_HANDLE;
 	VkDeviceMemory slicingPlanesDeviceMemoryHandle = VK_NULL_HANDLE;
+
+	inline void clearAllHandles()
+	{
+		gpuObjectsDeviceMemoryHandle = VK_NULL_HANDLE;
+		gpuObjectsBufferHandle = VK_NULL_HANDLE;
+		spheresAABBBufferHandles.clear();
+		spheresAABBDeviceMemoryHandles.clear();
+		tetrahedronsAABBBufferHandles.clear();
+		tetrahedronsAABBDeviceMemoryHandles.clear();
+		bezierTriangles2AABBBufferHandles.clear();
+		bezierTriangles2AABBDeviceMemoryHandles.clear();
+		rectangularBezierSurfacesAABB2x2BufferHandles.clear();
+		rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles.clear();
+
+		tetrahedronsBufferHandle = VK_NULL_HANDLE;
+		tetrahedronsDeviceMemoryHandles = VK_NULL_HANDLE;
+
+		spheresBufferHandle = VK_NULL_HANDLE;
+		spheresDeviceMemoryHandles = VK_NULL_HANDLE;
+
+		rectangularBezierSurfaces2x2BufferHandle = VK_NULL_HANDLE;
+		rectangularBezierSurfaces2x2DeviceMemoryHandles = VK_NULL_HANDLE;
+
+		slicingPlanesBufferHandle = VK_NULL_HANDLE;
+		slicingPlanesDeviceMemoryHandle = VK_NULL_HANDLE;
+
+		bezierTriangles2BufferHandle = VK_NULL_HANDLE;
+		bezierTriangles2DeviceMemoryHandles = VK_NULL_HANDLE;
+	}
 };
 
 // TODO: split this up a bit into more sensible structs

@@ -15,12 +15,13 @@
 
 struct HitData
 {
-	vec2 hitCoord;
-	bool inFrontOfSlicingPlane;
+	vec3 point;
+	vec2 coords;
+	vec3 normal;
 };
 
 bool isCrosshairRay = false;
-hitAttributeEXT HitData hitCoordinate;
+hitAttributeEXT HitData hitData;
 
 layout(location = 0) rayPayloadInEXT Payload
 {
@@ -33,8 +34,7 @@ layout(location = 0) rayPayloadInEXT Payload
 	int rayDepth;
 
 	int rayActive;
-	bool lastHitInFrontOfSlicingPlane;
-	bool hitOnSlicingPlaneInsideObject;
+	// bool hitOnSlicingPlaneInsideObject;
 }
 payload;
 
@@ -45,16 +45,8 @@ layout(location = 1) rayPayloadEXT BounceRayPayload
 bounceRayPayload;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
-layout(binding = 1, set = 0) uniform Camera
-{
-	vec4 position;
-	vec4 right;
-	vec4 up;
-	vec4 forward;
-
-	uint frameCount;
-}
-camera;
+layout(binding = 1, set = 0) uniform UBO{// see common_types.h
+                                         UNIFORM_MEMBERS} ubo;
 
 layout(push_constant) uniform RaytracingDataConstants{
     // see common_types.h
@@ -172,135 +164,95 @@ void main()
 	}
 	else if (gl_HitKindEXT == t_BezierTriangle2)
 	{
-		vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
 		vec3 positionToLightDirection
-		    = normalize(raytracingDataConstants.globalLightPosition - position);
+		    = normalize(raytracingDataConstants.globalLightPosition - hitData.point);
 		vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
-
-		// debugPrintfEXT(
-		//     "gl_InstanceCustomIndexEXT: %d gl_PrimitiveID: %d instance.id: %d,
-		//     instance.objectType: %d", gl_InstanceCustomIndexEXT, gl_PrimitiveID,
-		//     instance.bufferIndex,
-		//     instance.type);
-
-		//   float shadowRayDistance = length(lightPosition - position) - 0.001f;
-		//   hitSlicingPlane = false;
-		//   traceRayEXT(topLevelAS, shadowRayFlags, 0xFF, 0, 0, 1, position,
-		//               0.001, payload.rayDirection, 10000.0, 1);
-
-		//   if (!isShadow) {
-		//     if (payload.rayDepth == 0) {
-		//       payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor *
-		//                             dot(geometricNormal, positionToLightDirection);
-		//     } else {
-		//       payload.indirectColor +=
-		//           (1.0 / payload.rayDepth) * surfaceColor *
-		//           raytracingDataConstants.globalLightColor * dot(payload.previousNormal,
-		//           payload.rayDirection) * dot(geometricNormal, positionToLightDirection);
-		//     }
-		//   } else {
-		//     if (payload.rayDepth == 0) {
-		//       payload.directColor = vec3(0.0, 0.0, 0.0);
-		//     } else {
-		//       payload.rayActive = 0;
-		//     }
-		//   }
-		// }
 
 		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT("Hit in front of slicing plane: %d",
-		// 	               hitCoordinate.inFrontOfSlicingPlane);
-		// }
+		if (isCrosshairRay)
+		{
+			debugPrintfEXT(
+			    "Hit object at: (%.2v3f) with normal: (%.2v3f)", hitData.point, hitData.normal);
+		}
 
-		bool calculateHitColor = true;
 		// if we have slicing planes enables, we wanna treat points in front of the slicing
 		// plane special
-		if (raytracingDataConstants.enableSlicingPlanes > 0.0)
+		//
+		// check we hit the inside of the object by comparing the normal with our ray direction
+		// if the normal and the ray direction faces in the same direction, we hit the inside,
+		// if the normal is facing us we hit the outside of the object
+		if (raytracingDataConstants.enableSlicingPlanes > 0.0
+		    && dot(hitData.normal, payload.rayDirection) > 0.0)
 		{
-			// move the ray origin to the hit position so the next ray will be cast from there
-			if (hitCoordinate.inFrontOfSlicingPlane)
+			// we hit the inside of the object,
+			// so we need move the hitpoint to the slicing plane instead
+			SlicingPlane plane = slicingPlanes[0];
+			float t = 0;
+			vec4 cameraOrigin = ubo.viewInverse * vec4(0, 0, 0, 1);
+
+			if (intersectWithPlane(
+			        plane.normal, plane.planeOrigin, cameraOrigin.xyz, payload.rayDirection, t))
 			{
-				payload.rayOrigin = position;
-				payload.lastHitInFrontOfSlicingPlane = true;
-				calculateHitColor = false;
+				payload.rayOrigin = payload.rayOrigin + payload.rayDirection * t;
+
+				// payload.hitOnSlicingPlaneInsideObject = true;
+				vec3 normal = plane.normal;
+
+				payload.directColor
+				    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+				payload.indirectColor = vec3(0, 0, 0);
+				payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+				                        * raytracingDataConstants.environmentLightIntensity;
+
+				if (raytracingDataConstants.debugSlicingPlanes > 0.0)
+				{
+					payload.directColor = vec3(1.0, 0.0, 1.0);
+					payload.indirectColor = vec3(0.0, 0.0, 0.0);
+				}
 			}
 			else
 			{
-				if (payload.lastHitInFrontOfSlicingPlane)
-				{
-					SlicingPlane plane = slicingPlanes[0];
-					float t = 0;
-					if (intersectWithPlane(plane.normal,
-					                       plane.planeOrigin,
-					                       camera.position.xyz,
-					                       payload.rayDirection,
-					                       t))
-					{
-						payload.rayOrigin = payload.rayOrigin + payload.rayDirection * t;
-					}
-					else
-					{
-						payload.rayOrigin = position;
-					}
+				// this case should be impossible? how do we hit the inside of the object
+				// without hitting the slicing plane on the way? we can only hit the inside of
+				// an object if the slicing plane cuts it open because in the intersection
+				// shader we only ignore hits if they are in front of the slicing plane - any
+				// hit returned should be either on the outside aka. the normal faces us, or the
+				// inside by going through the slicing plane first therefore in that case
+				// the intersectionWithPlane() should always return true
 
-					payload.hitOnSlicingPlaneInsideObject = true;
+				// One possibility is if the calculation of the hitpoint with the outside
+				// fails and the hitpoint with the inside is returned instead
+				// the other more likely possibility is if the camera origin is behind the slicing
+				// plane therefore the ray direction is pointing away from the slicing plane
 
-					calculateHitColor = false;
+				// we can't differentiate if we hit the inside of the object because we went through
+				// the slicing plane or if we hit the inside because we failed to calculate the
+				// intersection with the outside
 
-					vec3 normal = plane.normal;
+				// it is possible to check if the camera is hehind or in front of the slicing plane
+				//  but that would not help really
 
-					payload.directColor
-					    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-					payload.indirectColor = vec3(0, 0, 0);
-					payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-					                        * raytracingDataConstants.environmentLightIntensity;
-
-					if (raytracingDataConstants.debugSlicingPlanes > 0.0)
-					{
-						payload.directColor = vec3(1.0, 0.0, 1.0);
-						payload.indirectColor = vec3(0.0, 0.0, 0.0);
-					}
-				}
-				else
-				{
-					payload.hitOnSlicingPlaneInsideObject = false;
-					payload.lastHitInFrontOfSlicingPlane = false;
-
-					payload.rayOrigin = position;
-					calculateHitColor = true;
-				}
+				payload.rayOrigin = hitData.point;
+				// calculation of the hit point failed, color red
+				payload.directColor = vec3(1.0, 0.0, 0.0);
+				payload.indirectColor = vec3(0.0, 0.0, 0.0);
 			}
 		}
 		else
 		{
-			calculateHitColor = true;
-			payload.rayOrigin = position;
-		}
-
-		float u = hitCoordinate.hitCoord.x;
-		float v = hitCoordinate.hitCoord.y;
-		if (calculateHitColor)
-		{
-			vec3 dirU = vec3(1, 0, -1);
-			vec3 dirV = vec3(0, 1, -1);
-			vec3 partialU
-			    = partialBezierTriangle2Directional(bezierTriangle.controlPoints, dirU, u, v);
-			vec3 partialV
-			    = partialBezierTriangle2Directional(bezierTriangle.controlPoints, dirV, u, v);
-			vec3 normal = normalize(cross(partialU, partialV));
-
+			// we hit the outside of the object, calculate color using surface normal
+			vec3 normal = hitData.normal;
 			payload.directColor
 			    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-			payload.indirectColor = vec3(0, 0, 0);
 			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
 			                        * raytracingDataConstants.environmentLightIntensity;
 		}
 
 		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
 		{
+			float u = hitData.coords.x;
+			float v = hitData.coords.y;
 			if (u < 1e-2f || v < 1e-2f || abs(1.0 - u - v) < 1e-2f)
 			{
 				payload.directColor = vec3(1, 1, 1);

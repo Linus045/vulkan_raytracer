@@ -101,12 +101,12 @@ inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& 
 	}
 	else if (side == 2)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
 		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
 		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[4];
 	}
 	else if (side == 3)
 	{
