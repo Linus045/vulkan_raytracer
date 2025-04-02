@@ -6,7 +6,7 @@
 #include "raytracing.hpp"
 #include "model.hpp"
 
-const uint64_t TIMEOUT_SECONDS_5 = 5l * 1000l * 1000l * 1000l;
+const uint64_t TIMEOUT_SECONDS_5 = 5ll * 1000ll * 1000ll * 1000ll;
 
 namespace ltracer
 {
