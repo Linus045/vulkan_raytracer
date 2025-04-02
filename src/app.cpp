@@ -483,13 +483,11 @@ Application::pickPhysicalDevice(const std::vector<const char*> requiredDeviceExt
 	for (const auto& device : devices)
 	{
 
-		// VkPhysicalDeviceProperties properties;
-		// vkGetPhysicalDeviceProperties(logicalDevice, &properties);
-		// std::cout << "Found device: " << properties.deviceName << std::endl;
-		// if (strcmp(properties.deviceName, "NVIDIA GeForce GTX 1060") == 0) {
-		//   std::cout << "skipping " << properties.deviceName << std::endl;
-		//   continue;
-		// }
+#ifndef NDEBUG
+		VkPhysicalDeviceProperties properties{};
+		vkGetPhysicalDeviceProperties(device, &properties);
+		std::cout << "Checking Device: " << properties.deviceName << std::endl;
+#endif
 
 		if (isDeviceSuitable(device, requiredDeviceExtensions))
 		{
@@ -591,9 +589,12 @@ bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 		    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-	// std::cout << "Indices.isComplete()" << indices.isComplete() <<
-	// std::endl; std::cout << "extensionsSupported" << extensionsSupported <<
-	// std::endl; std::cout << "isComplete" << swapChainAdequate << sd::endl;
+#ifndef NDEBUG
+	std::cout << "Indices.isComplete(): " << indices.isComplete() << '\n';
+	std::cout << "extensionsSupported: " << extensionsSupported << '\n';
+	std::cout << "swapChainAdequate: " << swapChainAdequate << std::endl;
+#endif
+
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
 
