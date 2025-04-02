@@ -258,6 +258,10 @@ void Application::initVulkan()
 		raytracingSupported = false;
 		deviceExtensions = &deviceExtensionsForDisplay;
 	}
+	else
+	{
+		throw std::runtime_error("Application::initVulkan - failed to find a suitable GPU!");
+	}
 
 	swapChainSupportDetails = updateSwapChainSupportDetails(physicalDevice, window);
 
