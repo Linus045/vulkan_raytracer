@@ -113,6 +113,9 @@ else()
 endif ( MSVC )
 
 
+# ensure the shaders output directory exists
+file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/shaders)
+
 add_custom_command(
   OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.frag" -o "${frag_shader_output}"
