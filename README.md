@@ -114,10 +114,18 @@ If you want to use clang as the compiler add:
 
 `-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`
 
-##### Example:
-E.g. to configure for `Debug` mode with `compile_commands.json`:
+Depending on your windowing system and installed packages you can compile GLFW for only wayland or x11 by disabling the other:
+```
+# Disable X11 support
+-DGLFW_BUILD_X11=OFF
+# or disable Wayland support
+-DGLFW_BUILD_WAYLAND=OFF
+```
 
-`cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_EXPORT_COMPILE_COMMANDS="ON"`
+##### Example:
+E.g. to configure for `Debug` mode with `compile_commands.json` without X11 support:
+
+`cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_EXPORT_COMPILE_COMMANDS="ON" -DGLFW_BUILD_X11=OFF`
 
 ____
 #### 4.1.2 Compile Project
