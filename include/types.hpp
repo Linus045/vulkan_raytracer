@@ -1,5 +1,6 @@
 #pragma once
 
+#include "logger.hpp"
 #include <cstdint>
 #include <optional>
 
@@ -21,20 +22,17 @@ struct QueueFamilyIndices
 {
 	std::optional<uint32_t> graphicsFamily = std::nullopt;
 	std::optional<uint32_t> presentFamily = std::nullopt;
-	std::optional<uint32_t> transferFamily = std::nullopt;
+	// std::optional<uint32_t> transferFamily = std::nullopt;
 
 	bool isComplete()
 	{
 
-#ifndef NDEBUG
-		std::cout << "QueueFamilyIndices::isComplete() -"
-		          << " graphicsFamily:  " << graphicsFamily.has_value()
-		          << " presentFamily:  " << presentFamily.has_value()
-		          << " transferFamily:  " << transferFamily.has_value() << '\n';
-#endif
+		debug_print("QueueFamilyIndices::isComplete() - graphicsFamily: %d presentFamily: %d ",
+		            graphicsFamily.has_value(),
+		            presentFamily.has_value());
 
-		return graphicsFamily.has_value() && presentFamily.has_value()
-		       && transferFamily.has_value();
+		return graphicsFamily.has_value() && presentFamily.has_value();
+		// && transferFamily.has_value();
 	}
 };
 

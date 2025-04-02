@@ -293,8 +293,8 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 		uniqueQueueFamilies.insert(indices.graphicsFamily.value());
 	if (indices.presentFamily.has_value())
 		uniqueQueueFamilies.insert(indices.presentFamily.value());
-	if (indices.transferFamily.has_value())
-		uniqueQueueFamilies.insert(indices.transferFamily.value());
+	// if (indices.transferFamily.has_value())
+	// 	uniqueQueueFamilies.insert(indices.transferFamily.value());
 
 	// add the unique families into a list
 	for (auto const queueFamily : uniqueQueueFamilies)
@@ -412,8 +412,8 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 		vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
 	debug_print("Present queue: %p\n", static_cast<void*>(presentQueue));
 
-	if (indices.transferFamily.has_value())
-		vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
+	// if (indices.transferFamily.has_value())
+	// 	vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
 	debug_print("Transfer queue: %p\n", static_cast<void*>(transferQueue));
 }
 

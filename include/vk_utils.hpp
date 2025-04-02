@@ -70,11 +70,11 @@ inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDe
 			indices.graphicsFamily = i;
 		}
 
-		bool hasTransferBit = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
-		if (!hasGraphicsBit && hasTransferBit)
-		{
-			indices.transferFamily = i;
-		}
+		// bool hasTransferBit = queueFamily.queueFlags & VK_QUEUE_TRANSFER_BIT;
+		// if (!hasGraphicsBit && hasTransferBit)
+		// {
+		// 	indices.transferFamily = i;
+		// }
 
 		VkBool32 presentCapabilitiesSupported = false;
 		vkGetPhysicalDeviceSurfaceSupportKHR(
