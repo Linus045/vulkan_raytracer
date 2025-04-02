@@ -1,23 +1,68 @@
 # Setup
 
-#### 1. Ensure the following dependencies are installed:
-- Vulkan SDK (https://vulkan.lunarg.com/sdk/home)
-- CMake (Version 3.28+)
-- Python (needed to build glslang tools)
-- Optional: Ninja (for faster builds)
+## 1. Install Dependencies
 
-#### 2. Clone repo with submodules using `--recursive`
+Ensure the following dependencies are installed
+- Git
+- Vulkan SDK (https://vulkan.lunarg.com/sdk/home)
+	- alternatively for Linux (Ubuntu) the following packages:
+		- libvulkan-dev
+		- vulkan-utility-libraries-dev
+		- vulkan-validationlayers
+- CMake (Version 3.28+vulkan-extra-layers
+- Python (needed to build glslang tools)
+- Optional (Windows only):  Visual Studio with:
+	- C++ Development tools
+	- CMake Build tools
+
+## 2. (Optional) Verify Vulkan installation
+To test if vulkan works correctly you can optionally install the
+`vulkan-tools` package and run the following commands:
 ```bash
-git clone --recursive https://github.com/Linus045/vulkan_experiments.git
+vkcube
 ```
 
-Or to add update submodules after cloning:
+Depending on the windowing system you're using you might need to provide the `--wsi` flag e.g.:
 ```bash
+vkcube --wsi xlib
+```
+or:
+```bash
+vkcube --wsi wayland
+```
+
+#### Note
+More info about the vulkan installation can then be seen with the `vulkaninfo` command.
+
+## 3. Clone repo
+
+### 3.1 Clone with submodules
+When cloning the repository submodules need to be cloned as well.
+To do that use the `--recursive` flag:
+```bash
+git clone --recursive https://github.com/Linus045/vulkan_experiments.git vulkan_experiments
+
+# change into the directory for the next step
+cd vulkan_experiments
+```
+
+### 3.1 Manually clone submodules
+If you have already cloned the repository without the submodules, you can initialize and clone the submodules with:
+```bash
+# clone the repository
+git clone https://github.com/Linus045/vulkan_experiments.git vulkan_experiments
+
+# change into the directory and load the submodules
+cd vulkan_experiments
 git submodule update --init
 ```
 
+### 3.2 Download zip archive and manually add submodules
 If you've downloaded the zip archive you need to manually add the submodules since they're not included with GitHub's zip archive:
 ```bash
+# Navigate into the directory where you extracted the zip archive
+cd <path to extracted vulkan_experiments zip directory>
+
 # Initialize a local git repository
 git init
 
@@ -32,50 +77,87 @@ git submodule add https://github.com/tinyobjloader/tinyobjloader.git 3rdparty/ti
 git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
 ```
 
-#### 3.1 Compile Project (Custom setup or Linux)
-Go back into the project root directory and compile
-```
-cmake -S . -B build
-cmake --build build
-```
+## 4 Compile Project
 
-If you have Ninja installed, you can use it to speed up the build process.
-Add the generator flag `-G Ninja` to the cmake command:
-```
-cmake -S . -B build -G Ninja
-cmake --build build
-```
+### 4.1 Linux
 
-Optional additional flags:
+#### 4.1.1 Configure Project
+Configure the project with CMake:
 ```
+# Debug build
+cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug"
+
+# Release build (with debug info)
+cmake -S . -B build -DCMAKE_BUILD_TYPE="RelWithDebInfo"
+
+# Release build
+cmake -S . -B build -DCMAKE_BUILD_TYPE="Release"
+```
+##### Note:
+If the `CMAKE_BUILD_TYPE` is not provided it will default to `RelWithDebInfo`.
+____
+Here are some optional additional flags that might be useful.
+
+
+##### Optional Flags:
 Set the build type to Debug or Release:
- -DCMAKE_BUILD_TYPE="<Debug/Release>"
-
-If using clangd as LSP
- -DCMAKE_EXPORT_COMPILE_COMMANDS="ON"
-
-If you want to use clang as the compiler
- -DCMAKE_C_COMPILER=clang
- -DCMAKE_CXX_COMPILER=clang++
-
-
+```
+ -DCMAKE_BUILD_TYPE="<Debug|Release|RelWithDebInfo>"
 ```
 
-#### 3.2 Compile Project (Windows with Visual Studio)
+If you're using clangd or other tools that rely on the `compile_commands.json` file add:
 
-To use Visual Studio, it is recommended to install the `CMake Toolset` and the `C++ Toolset`.
-With the `CMake Toolset` installed, you can open the root directory in Visual Studio and open the `CMakeLists.txt` file in the root directory.
-Visual Studio will automatically detect the CMake project and configure it for you.
-You might need to set the 'Run' application to `vulkan_experiments`.
+`-DCMAKE_EXPORT_COMPILE_COMMANDS="ON"`
 
 
-#### 4.1 Run programm (Linux)
+If you want to use clang as the compiler add:
+
+`-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`
+
+##### Example:
+E.g. to configure for `Debug` mode with `compile_commands.json`:
+
+`cmake -S . -B build -DCMAKE_BUILD_TYPE="Debug" -DCMAKE_EXPORT_COMPILE_COMMANDS="ON"`
+
+____
+#### 4.1.2 Compile Project
+Compile the project using cmake's `--build` flag:
+```bash
+cmake --build build
 ```
-./build/bin/vulkan_experiments
+Optionally to use all available cores for faster compilation:
+```bash
+cmake --build build -- -j $(nproc)
 ```
 
-#### 4.2 Run programm (Windows)
-Simply press the `Run` button in Visual Studio.
+
+### 4.2 Windows with Visual Studio
+
+To use Visual Studio, ensure the `CMake Toolset` and the `C++ Development Toolset` are installed.
+
+Open the project's root directory in Visual Studio (as a Folder) and open the `CMakeLists.txt` file located in the root directory.
+Visual Studio will automatically detect the CMake project and configure the project for you.
+
+To set the build type, simply change it in the drop-down to `Debug/Release` inside Visual Studio.
+
+Now simply build the project.
+
+
+## 5 Run programm
+### 5.1 Linus
+The program looks for the compiled shader files in the `./shaders` directory which is relative to the executable (see `build/bin/shaders/`).
+
+That means to run the program, you first need to navigate to the `<project root>/build/bin` directory and run the executable from there:
+```bash
+cd ./build/bin
+./vulkan_experiments
+```
+
+
+### 5.2 Windows with Visual Studio
+You might need to set the executable to `vulkan_experiments`.
+
+Afterwards simply press the `Start` button in Visual Studio.
 
 
 # Display FPS Counter
@@ -83,6 +165,4 @@ To display the FPS add the following environment variable for your user:
 ```
 VK_INSTANCE_LAYERS=VK_LAYER_LUNARG_monitor
 ```
-This will display the FPS in the top left corner (title) of the window.
-
-
+This will display the FPS on the left side in the window's titlebar.
