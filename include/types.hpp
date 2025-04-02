@@ -25,6 +25,14 @@ struct QueueFamilyIndices
 
 	bool isComplete()
 	{
+
+#ifndef NDEBUG
+		std::cout << "QueueFamilyIndices::isComplete() -"
+		          << " graphicsFamily:  " << graphicsFamily.has_value()
+		          << " presentFamily:  " << presentFamily.has_value()
+		          << " transferFamily:  " << transferFamily.has_value() << '\n';
+#endif
+
 		return graphicsFamily.has_value() && presentFamily.has_value()
 		       && transferFamily.has_value();
 	}

@@ -589,11 +589,10 @@ bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 		    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-#ifndef NDEBUG
-	std::cout << "Indices.isComplete(): " << indices.isComplete() << '\n';
-	std::cout << "extensionsSupported: " << extensionsSupported << '\n';
-	std::cout << "swapChainAdequate: " << swapChainAdequate << std::endl;
-#endif
+	debug_print("Indices.isComplete(): %d extensionsSupported: %d swapChainAdequate: %d\n",
+	            indices.isComplete(),
+	            extensionsSupported,
+	            swapChainAdequate);
 
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }
