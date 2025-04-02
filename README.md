@@ -1,21 +1,38 @@
 # Setup
 
-# Dependencies
+#### 1. Ensure the following dependencies are installed:
 - Vulkan SDK (https://vulkan.lunarg.com/sdk/home)
 - CMake (Version 3.28+)
 - Python (needed to build glslang tools)
 - Optional: Ninja (for faster builds)
 
-#### 1. Clone repo with submodules using `--recursive`
-```
+#### 2. Clone repo with submodules using `--recursive`
+```bash
 git clone --recursive https://github.com/Linus045/vulkan_experiments.git
 ```
 
 Or to add update submodules after cloning:
-```
+```bash
 git submodule update --init
 ```
-#### 2.1 Compile Project (Custom setup or Linux)
+
+If you've downloaded the zip archive you need to manually add the submodules since they're not included with GitHub's zip archive:
+```bash
+# Initialize a local git repository
+git init
+
+# Remove the empty directories
+rmdir 3rdparty/*
+
+# Add the submodules
+git submodule add https://github.com/glfw/glfw.git 3rdparty/glfw
+git submodule add https://github.com/icaven/glm.git 3rdparty/glm
+git submodule add https://github.com/KhronosGroup/glslang.git 3rdparty/glslang
+git submodule add https://github.com/tinyobjloader/tinyobjloader.git 3rdparty/tinyobjloader
+git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
+```
+
+#### 3.1 Compile Project (Custom setup or Linux)
 Go back into the project root directory and compile
 ```
 cmake -S . -B build
@@ -44,7 +61,7 @@ If you want to use clang as the compiler
 
 ```
 
-#### 2.2 Compile Project (Windows with Visual Studio)
+#### 3.2 Compile Project (Windows with Visual Studio)
 
 To use Visual Studio, it is recommended to install the `CMake Toolset` and the `C++ Toolset`.
 With the `CMake Toolset` installed, you can open the root directory in Visual Studio and open the `CMakeLists.txt` file in the root directory.
@@ -52,12 +69,12 @@ Visual Studio will automatically detect the CMake project and configure it for y
 You might need to set the 'Run' application to `vulkan_experiments`.
 
 
-#### 3.1 Run programm (Linux)
+#### 4.1 Run programm (Linux)
 ```
 ./build/bin/vulkan_experiments
 ```
 
-#### 3.2 Run programm (Windows)
+#### 4.2 Run programm (Windows)
 Simply press the `Run` button in Visual Studio.
 
 
