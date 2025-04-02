@@ -79,7 +79,7 @@ VkCommandPool createCommandPool(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreateCommandPool failed");
+		throw std::runtime_error("initRayTracing - vkCreateCommandPool failed");
 	}
 
 	deletionQueue.push_function(
@@ -136,7 +136,7 @@ void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkAllocateCommandBuffers failed");
+		throw std::runtime_error("initRayTracing - vkAllocateCommandBuffers failed");
 	}
 
 	deletionQueue.push_function(
@@ -173,7 +173,7 @@ VkDescriptorPool createDescriptorPool(VkDevice logicalDevice, DeletionQueue& del
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreateDescriptorPool");
+		throw std::runtime_error("initRayTracing - vkCreateDescriptorPool");
 	}
 
 	deletionQueue.push_function(
@@ -200,7 +200,7 @@ void allocateDescriptorSetLayouts(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkAllocateDescriptorSets");
+		throw std::runtime_error("initRayTracing - vkAllocateDescriptorSets");
 	}
 }
 
@@ -236,7 +236,7 @@ void createPipelineLayout(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreatePipelineLayout");
+		throw std::runtime_error("initRayTracing - vkCreatePipelineLayout");
 	}
 
 	deletionQueue.push_function(
@@ -358,7 +358,7 @@ VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
+		throw std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
 	}
 
 	deletionQueue.push_function(
@@ -398,7 +398,7 @@ VkDescriptorSetLayout createMaterialDescriptorSetLayout(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
+		throw std::runtime_error("initRayTracing - vkCreateDescriptorSetLayout");
 	}
 
 	deletionQueue.push_function(
@@ -608,7 +608,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTracing - vkCreateRayTracingPipelinesKHR");
+		throw std::runtime_error("initRayTracing - vkCreateRayTracingPipelinesKHR");
 	}
 
 	deletionQueue.push_function(
@@ -907,7 +907,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 
 // 	if (result != VK_SUCCESS)
 // 	{
-// 		throw new std::runtime_error("initRayTracing - vkMapMemory");
+// 		throw std::runtime_error("initRayTracing - vkMapMemory");
 // 	}
 
 // 	vkUnmapMemory(logicalDevice, meshObject.vertexBufferDeviceMemoryHandle);
@@ -949,7 +949,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 
 // 	if (result != VK_SUCCESS)
 // 	{
-// 		throw new std::runtime_error("initRayTracing - vkMapMemory");
+// 		throw std::runtime_error("initRayTracing - vkMapMemory");
 // 	}
 
 // 	vkUnmapMemory(logicalDevice, meshObject.indexBufferDeviceMemoryHandle);
@@ -1034,7 +1034,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	//     physicalDevice, window->getVkSurface(), &surfaceCapabilities);
 
 	// if (result != VK_SUCCESS) {
-	//   throw new std::runtime_error(
+	//   throw std::runtime_error(
 	//       "initRayTracing - vkGetPhysicalDeviceSurfaceCapabilitiesKHR");
 	// }
 
@@ -1255,7 +1255,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// 	if (result != VK_SUCCESS)
 	// 	{
-	// 		throw new std::runtime_error("initRayTraci - vkMapMemory");
+	// 		throw std::runtime_error("initRayTraci - vkMapMemory");
 	// 	}
 
 	// 	vkUnmapMemory(logicalDevice, materialIndexDeviceMemoryHandle);
@@ -1307,7 +1307,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// 	if (result != VK_SUCCESS)
 	// 	{
-	// 		throw new std::runtime_error("initRayTraci - vkMapMemory");
+	// 		throw std::runtime_error("initRayTraci - vkMapMemory");
 	// 	}
 
 	// 	vkUnmapMemory(logicalDevice, materialDeviceMemoryHandle);
@@ -1385,7 +1385,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkGetRayTracingShaderGroupHandlesKHR");
+		throw std::runtime_error("initRayTraci - vkGetRayTracingShaderGroupHandlesKHR");
 	}
 
 	void* hostShaderBindingTableMemoryBuffer;
@@ -1410,7 +1410,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkMapMemory");
+		throw std::runtime_error("initRayTraci - vkMapMemory");
 	}
 
 	vkUnmapMemory(logicalDevice, shaderBindingTableDeviceMemoryHandle);
@@ -1574,7 +1574,7 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
 
 		if (result != VK_SUCCESS)
 		{
-			throw new std::runtime_error("initRayTracing - vkMapMemory");
+			throw std::runtime_error("initRayTracing - vkMapMemory");
 		}
 
 		vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
@@ -1617,7 +1617,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkCreateImage");
+		throw std::runtime_error("initRayTraci - vkCreateImage");
 	}
 
 	VkMemoryRequirements rayTraceImageMemoryRequirements;
@@ -1654,7 +1654,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	                          &raytracingInfo.rayTraceImageDeviceMemoryHandle);
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkAllocateMemory");
+		throw std::runtime_error("initRayTraci - vkAllocateMemory");
 	}
 
 	result = vkBindImageMemory(logicalDevice,
@@ -1663,7 +1663,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	                           0);
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkBindImageMemory");
+		throw std::runtime_error("initRayTraci - vkBindImageMemory");
 	}
 }
 
@@ -1701,7 +1701,7 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice,
 
 	if (result != VK_SUCCESS)
 	{
-		throw new std::runtime_error("initRayTraci - vkCreateImageView");
+		throw std::runtime_error("initRayTraci - vkCreateImageView");
 	}
 	return rayTraceImageViewHandle;
 }

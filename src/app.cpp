@@ -848,6 +848,6 @@ Application::debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverit
 	std::fprintf(stderr, "%s", errMsg.c_str());
 	if (messageSeverity
 	    >= VkDebugUtilsMessageSeverityFlagBitsEXT::VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT)
-		throw new std::runtime_error(errMsg);
+		throw std::runtime_error(errMsg);
 	return VK_FALSE;
 }
