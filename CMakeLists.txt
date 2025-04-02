@@ -60,6 +60,11 @@ ExternalProject_Add(
 	BINARY_DIR ${glslang_build_dir}
 	STEP_TARGETS glslang_update_sources
 	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+	CMAKE_ARGS
+	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG=
+	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=
+	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL=
+	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO=
 	INSTALL_COMMAND ""
 	COMMENT "Building glslang to compile shaders"
 )
@@ -101,7 +106,12 @@ set(raytracing_shader_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader.rmiss.
 set(raytracing_shader_shadow_rmiss_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_shadow.rmiss.spv)
 set(raytracing_aabb_intersection_output ${CMAKE_BINARY_DIR}/bin/shaders/shader_aabb.rint.spv)
 
-set(glslang_executable_path ${glslang_build_dir}/StandAlone/glslang)
+if ( MSVC )
+	set(glslang_executable_path ${glslang_build_dir}/StandAlone/glslang.exe)
+else()
+	set(glslang_executable_path ${glslang_build_dir}/StandAlone/glslang)
+endif ( MSVC )
+
 
 add_custom_command(
   OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
