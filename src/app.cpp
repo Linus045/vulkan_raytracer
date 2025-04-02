@@ -414,7 +414,7 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 
 	// if (indices.transferFamily.has_value())
 	// 	vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
-	debug_print("Transfer queue: %p\n", static_cast<void*>(transferQueue));
+	// debug_print("Transfer queue: %p\n", static_cast<void*>(transferQueue));
 }
 
 bool Application::checkDeviceExtensionSupport(
