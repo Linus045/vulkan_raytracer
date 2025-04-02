@@ -95,6 +95,12 @@ inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDe
 	// std::cout << "indices.transferFamily: " << indices.transferFamily.value() << std::endl;
 	// std::cout << "indices.presentFamily: " << indices.presentFamily.value() << std::endl;
 
+	if (!indices.isComplete())
+	{
+		throw std::runtime_error(
+		    "QueueFamilyIndices::findQueueFamilies - failed to find suitable queue families!");
+	}
+
 	return indices;
 }
 

@@ -589,6 +589,9 @@ bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 		    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
+	debug_print("Application::isDeviceSuitable - hasValue: graphicsFamily: %d presentFamily: %d\n",
+	            indices.graphicsFamily.has_value(),
+	            indices.presentFamily.has_value());
 	debug_print("Indices.isComplete(): %d extensionsSupported: %d swapChainAdequate: %d\n",
 	            indices.isComplete(),
 	            extensionsSupported,

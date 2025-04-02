@@ -27,10 +27,6 @@ struct QueueFamilyIndices
 	bool isComplete()
 	{
 
-		debug_print("QueueFamilyIndices::isComplete() - graphicsFamily: %d presentFamily: %d ",
-		            graphicsFamily.has_value(),
-		            presentFamily.has_value());
-
 		return graphicsFamily.has_value() && presentFamily.has_value();
 		// && transferFamily.has_value();
 	}

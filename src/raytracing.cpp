@@ -1461,10 +1461,8 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
       .dstAccessMask = 0,
       .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
       .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-      .srcQueueFamilyIndex =
-          raytracingInfo.queueFamilyIndices.presentFamily.value(),
-      .dstQueueFamilyIndex =
-          raytracingInfo.queueFamilyIndices.presentFamily.value(),
+      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
       .image = raytracingInfo.rayTraceImageHandle,
       .subresourceRange =
           {

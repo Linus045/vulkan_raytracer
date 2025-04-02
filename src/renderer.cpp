@@ -15,6 +15,11 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 {
 	// this->worldObjects = worldObjects;
 
+	// grab the required queue families
+	ltracer::QueueFamilyIndices queueFamilyIndices
+	    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
+	raytracingInfo.queueFamilyIndices = queueFamilyIndices;
+
 	createImageViews();
 
 	createRenderPass();
@@ -36,10 +41,6 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	//   createIndexBuffer(obj);
 	// }
 
-	// grab the required queue families
-	ltracer::QueueFamilyIndices queueFamilyIndices
-	    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
-
 	ltracer::ui::initImgui(vulkanInstance,
 	                       logicalDevice,
 	                       physicalDevice,
@@ -58,8 +59,6 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 		raytracingInfo.rayTraceImageViewHandle = ltracer::rt::createRaytracingImageView(
 		    logicalDevice, window.getSwapChainImageFormat(), raytracingInfo.rayTraceImageHandle);
-
-		raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
 		raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
@@ -383,13 +382,10 @@ void Renderer::createCommandBuffers()
 
 void Renderer::createCommandPools()
 {
-	ltracer::QueueFamilyIndices queueFamilyIndices
-	    = findQueueFamilies(physicalDevice, window.getVkSurface());
-
 	VkCommandPoolCreateInfo poolInfo{};
 	poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-	poolInfo.queueFamilyIndex = queueFamilyIndices.graphicsFamily.value();
+	poolInfo.queueFamilyIndex = raytracingInfo.queueFamilyIndices.graphicsFamily.value();
 
 	if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool) != VK_SUCCESS)
 	{
@@ -689,9 +685,6 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                                    ui::UIData& uiData)
 {
 
-	ltracer::QueueFamilyIndices queueFamilyIndices
-	    = findQueueFamilies(physicalDevice, window.getVkSurface());
-
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
@@ -865,8 +858,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 		barrierSwapChainImagePresent.dstAccessMask = 0;
 		barrierSwapChainImagePresent.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		barrierSwapChainImagePresent.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-		barrierSwapChainImagePresent.srcQueueFamilyIndex = queueFamilyIndices.presentFamily.value();
-		barrierSwapChainImagePresent.dstQueueFamilyIndex = queueFamilyIndices.presentFamily.value();
+		barrierSwapChainImagePresent.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+		barrierSwapChainImagePresent.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 		barrierSwapChainImagePresent.image = swapChainImages[imageIndex];
 		barrierSwapChainImagePresent.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		barrierSwapChainImagePresent.subresourceRange.baseMipLevel = 0;
