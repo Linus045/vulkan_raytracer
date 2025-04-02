@@ -226,6 +226,11 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		-Wno-comment
 		-Werror
 	)
+
+	# explicitly link the math library
+	target_link_libraries(${target_name} PRIVATE
+		"m"
+	)
 elseif( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	# using MSVC
 	target_compile_options(${target_name} PRIVATE
