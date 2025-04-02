@@ -287,7 +287,8 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		            surfacePoint.y,
 		            surfacePoint.z);
 
-		if (raytracingDataConstants.newtonErrorFIgnoreIncrease == 0.0 && errorF > previousErrorF)
+		if ((glm::abs(raytracingDataConstants.newtonErrorFIgnoreIncrease) < 1e-8)
+		    && errorF > previousErrorF)
 		{
 			// debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
 			//                errorF,
@@ -526,19 +527,19 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
 					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
 					//               || glm::abs(v) <= 1e-5 || glm::abs(w) <= 1e-5;
-					auto isFace1 = u == 0 && v + w <= 1;
+					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (isFace1)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_red);
 					}
 
-					auto isFace2 = v == 0 && u + w <= 1;
+					auto isFace2 = glm::abs(v) < 1e-4 && u + w <= 1;
 					if (isFace2)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_purple);
 					}
 
-					auto isFace3 = w == 0 && u + v <= 1;
+					auto isFace3 = glm::abs(w) < 1e-4 && u + v <= 1;
 					if (isFace3)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_green);

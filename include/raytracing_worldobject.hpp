@@ -11,10 +11,10 @@ template <typename T>
 class RaytracingWorldObject : public WorldObject
 {
   public:
-	RaytracingWorldObject<T>(const ObjectType type,
-	                         const AABB& aabb,
-	                         const T& object,
-	                         const glm::vec3 position)
+	RaytracingWorldObject(const ObjectType type,
+	                      const AABB& aabb,
+	                      const T& object,
+	                      const glm::vec3 position)
 	    : WorldObject(position), geometry(Geometry(aabb, object)), type(type)
 	{
 	}

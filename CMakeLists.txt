@@ -219,8 +219,9 @@ elseif( CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
 		-Wshadow
 		-Wfloat-equal
 		-Wundef
+		-Wno-shadow
+		-Wno-comment
 		-Werror
-		-Wno-error=shadow
 	)
 elseif( CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 	# using MSVC

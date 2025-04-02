@@ -21,6 +21,8 @@ namespace ltracer
 namespace ui
 {
 
+static VkDescriptorPool imguiPool;
+
 void initImgui(VkInstance vulkanInstance,
                VkDevice logicalDevice,
                VkPhysicalDevice physicalDevice,
