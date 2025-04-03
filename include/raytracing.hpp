@@ -48,13 +48,6 @@ inline void resetFrameCount(RaytracingInfo& raytracingInfo)
 }
 
 /**
- * @brief Constructs the ray tracing pipeline features needed to create the logical device
- *
- * @return Physical device ray tracing pipeline features
- */
-
-VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatures();
-/**
  * @brief create a buffer for a vector of objects, used to create buffers for the spheres,
  * tetrahedrons and other geometry objects that will be converted to AABBs
  *

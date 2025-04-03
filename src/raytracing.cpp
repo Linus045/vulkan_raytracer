@@ -21,46 +21,6 @@ namespace ltracer
 namespace rt
 {
 
-VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatures()
-{
-	// =========================================================================
-	// Physical Device Features
-
-	VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures = {
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-	    .pNext = NULL,
-	    .bufferDeviceAddress = VK_TRUE,
-	    .bufferDeviceAddressCaptureReplay = VK_FALSE,
-	    .bufferDeviceAddressMultiDevice = VK_FALSE,
-	};
-
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR physicalDeviceAccelerationStructureFeatures = {
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
-	    .pNext = &physicalDeviceBufferDeviceAddressFeatures,
-	    .accelerationStructure = VK_TRUE,
-	    .accelerationStructureCaptureReplay = VK_FALSE,
-	    .accelerationStructureIndirectBuild = VK_FALSE,
-	    .accelerationStructureHostCommands = VK_FALSE,
-	    .descriptorBindingAccelerationStructureUpdateAfterBind = VK_FALSE,
-	};
-
-	VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures = {
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
-	    .pNext = &physicalDeviceAccelerationStructureFeatures,
-	    .rayTracingPipeline = VK_TRUE,
-	    .rayTracingPipelineShaderGroupHandleCaptureReplay = VK_FALSE,
-	    .rayTracingPipelineShaderGroupHandleCaptureReplayMixed = VK_FALSE,
-	    .rayTracingPipelineTraceRaysIndirect = VK_FALSE,
-	    .rayTraversalPrimitiveCulling = VK_FALSE,
-	};
-
-	// NOTE: is hardcoded into createLogicalDevice
-	// VkPhysicalDeviceFeatures deviceFeatures{
-	//    .geometryShader = VK_TRUE,
-	// };
-
-	return physicalDeviceRayTracingPipelineFeatures;
-}
 VkCommandPool createCommandPool(VkDevice logicalDevice,
                                 DeletionQueue& deletionQueue,
                                 RaytracingInfo& raytracingInfo)
