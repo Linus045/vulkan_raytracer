@@ -183,4 +183,37 @@ inline std::vector<char> readFile(const std::string& filename)
 	return buffer;
 }
 
+inline void addImageMemoryBarrier(VkCommandBuffer commandBuffer,
+                                  VkPipelineStageFlags2 srcStageMask,
+                                  VkAccessFlags2 srcAccessMask,
+                                  VkPipelineStageFlags2 dstStageMask,
+                                  VkAccessFlags2 dstAccessMask,
+                                  VkImageLayout oldLayout,
+                                  VkImageLayout newLayout,
+                                  VkImageSubresourceRange subresourceRange,
+                                  VkImage image)
+{
+	VkImageMemoryBarrier2 imageBarrier = {};
+	imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
+	imageBarrier.srcStageMask = srcStageMask;
+	imageBarrier.dstStageMask = dstStageMask;
+	imageBarrier.srcAccessMask = srcAccessMask; // No prior access
+	imageBarrier.dstAccessMask = dstAccessMask;
+	imageBarrier.oldLayout = oldLayout;
+	imageBarrier.newLayout = newLayout;
+	imageBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	imageBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	imageBarrier.image = image;
+
+	imageBarrier.subresourceRange = subresourceRange;
+
+	VkDependencyInfo dependencyInfo = {};
+	dependencyInfo.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
+	dependencyInfo.dependencyFlags = 0;
+	dependencyInfo.imageMemoryBarrierCount = 1;
+	dependencyInfo.pImageMemoryBarriers = &imageBarrier;
+
+	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
+}
+
 } // namespace ltracer

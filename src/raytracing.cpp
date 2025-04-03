@@ -61,7 +61,6 @@ VkPhysicalDeviceRayTracingPipelineFeaturesKHR getRaytracingPipelineFeatures()
 
 	return physicalDeviceRayTracingPipelineFeatures;
 }
-
 VkCommandPool createCommandPool(VkDevice logicalDevice,
                                 DeletionQueue& deletionQueue,
                                 RaytracingInfo& raytracingInfo)
@@ -1454,36 +1453,23 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
                                    VkExtent2D currentExtent,
                                    RaytracingInfo& raytracingInfo)
 {
-	VkImageMemoryBarrier rayTraceGeneralMemoryBarrier = {
-      .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-      .pNext = NULL,
-      .srcAccessMask = 0,
-      .dstAccessMask = 0,
-      .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-      .newLayout = VK_IMAGE_LAYOUT_GENERAL,
-      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-      .image = raytracingInfo.rayTraceImageHandle,
-      .subresourceRange =
-          {
-              .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-              .baseMipLevel = 0,
-              .levelCount = 1,
-              .baseArrayLayer = 0,
-              .layerCount = 1,
-          },
-  };
+	auto subResourceRange = VkImageSubresourceRange{
+	    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	    .baseMipLevel = 0,
+	    .levelCount = 1,
+	    .baseArrayLayer = 0,
+	    .layerCount = 1,
+	};
 
-	vkCmdPipelineBarrier(commandBuffer,
-	                     VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	                     VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
-	                     0,
-	                     0,
-	                     NULL,
-	                     0,
-	                     NULL,
-	                     1,
-	                     &rayTraceGeneralMemoryBarrier);
+	addImageMemoryBarrier(commandBuffer,
+	                      VK_PIPELINE_STAGE_2_NONE,
+	                      VK_ACCESS_2_NONE,
+	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+	                      VK_ACCESS_2_SHADER_WRITE_BIT,
+	                      VK_IMAGE_LAYOUT_UNDEFINED,
+	                      VK_IMAGE_LAYOUT_GENERAL,
+	                      subResourceRange,
+	                      raytracingInfo.rayTraceImageHandle);
 
 	// =========================================================================
 	// Record Render Pass Command Buffers
@@ -1518,30 +1504,15 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                                        currentExtent.height,
 	                                        1);
 
-	VkImageMemoryBarrier2 barrierRaytraceImage = {};
-	barrierRaytraceImage.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
-	barrierRaytraceImage.srcAccessMask = 0; // No prior access
-	barrierRaytraceImage.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-	barrierRaytraceImage.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
-	barrierRaytraceImage.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	barrierRaytraceImage.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrierRaytraceImage.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-	barrierRaytraceImage.image = raytracingInfo.rayTraceImageHandle;
-	barrierRaytraceImage.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrierRaytraceImage.subresourceRange.baseMipLevel = 0;
-	barrierRaytraceImage.subresourceRange.levelCount = 1;
-	barrierRaytraceImage.subresourceRange.baseArrayLayer = 0;
-	barrierRaytraceImage.subresourceRange.layerCount = 1;
-	barrierRaytraceImage.srcStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-	barrierRaytraceImage.dstStageMask = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-
-	VkDependencyInfo dependencyInfoRaytraceImage = {};
-	dependencyInfoRaytraceImage.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO;
-	dependencyInfoRaytraceImage.dependencyFlags = 0;
-	dependencyInfoRaytraceImage.imageMemoryBarrierCount = 1;
-	dependencyInfoRaytraceImage.pImageMemoryBarriers = &barrierRaytraceImage;
-
-	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfoRaytraceImage);
+	addImageMemoryBarrier(commandBuffer,
+	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+	                      VK_ACCESS_2_SHADER_WRITE_BIT,
+	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	                      VK_ACCESS_2_TRANSFER_READ_BIT,
+	                      VK_IMAGE_LAYOUT_GENERAL,
+	                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	                      subResourceRange,
+	                      raytracingInfo.rayTraceImageHandle);
 }
 
 void updateRaytraceBuffer(VkDevice logicalDevice,
