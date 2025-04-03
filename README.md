@@ -3,6 +3,8 @@
 ## 1. Install Dependencies
 
 Ensure the following dependencies are installed
+<details>
+  <summary> Linux (Ubuntu) </summary>
 
 ### 1.1 Linux (Ubuntu) Build Dependencies
 Build dependencies for Linux using the `apt` package manager:
@@ -42,6 +44,10 @@ Build dependencies for Linux using the `apt` package manager:
 
 `sudo apt install libvulkan-dev vulkan-utility-libraries-dev vulkan-validationlayers`
 ___
+</details>
+
+<details>
+  <summary> Windows Visual Studio </summary>
 
 ### 1.2 Windows Visual Studio Build Dependencies
 On Windows the easiest way to build the project is to use Visual Studio:
@@ -52,11 +58,16 @@ On Windows the easiest way to build the project is to use Visual Studio:
 - [Python](https://www.python.org/downloads/) (needed to build glslang)
 - [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
 
+</details>
 
 ## 2. (Optional) Verify Vulkan installation
 It is recommended to verify that Vulkan is installed correctly before building the project.
 To do this the Vulkan SDK provides a small program called `vkcube` which displays a rotating cube.
 If everything works correctly you should see a rotating cube in a window.
+
+
+<details>
+  <summary> Linux (Ubuntu) </summary>
 
 ### 2.1 Linux
 Note: If you did not install the SDK you need to install the `vulkan-tools` package first.
@@ -80,6 +91,10 @@ or on Wayland:
 vkcube --wsi wayland
 ```
 
+</details>
+
+<details>
+  <summary> Windows Visual Studio </summary>
 
 
 ### 2.2 Windows
@@ -87,6 +102,7 @@ Open a terminal and run the command `vkcube` or search for the "Vulkan Cube" pro
 
 General information about the Vulkan installation can be queried with the `vulkaninfo` command or by opening the "Vulkan Configurator" and selecting `Tools->Vulkan Info` in the menu bar.
 
+</details>
 
 ## 3. Clone repo
 
@@ -133,6 +149,8 @@ git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
 
 ## 4 Compile Project
 
+<details>
+  <summary> Linux (Ubuntu) </summary>
 ### 4.1 Linux
 
 #### 4.1.1 Configure Project
@@ -153,7 +171,7 @@ ____
 Here are some optional additional flags that might be useful.
 
 
-##### Optional Flags:
+#### Optional Flags:
 Set the build type to Debug or Release:
 ```
  -DCMAKE_BUILD_TYPE="<Debug|Release|RelWithDebInfo>"
@@ -192,6 +210,10 @@ Optionally to use all available cores for faster compilation:
 cmake --build build -- -j $(nproc)
 ```
 
+</details>
+<details>
+  <summary> Windows Visual Studio </summary>
+
 
 ### 4.2 Windows with Visual Studio
 
@@ -204,8 +226,13 @@ To set the build type, simply change it in the drop-down to `Debug/Release` insi
 
 Now simply build the project.
 
+</details>
 
 ## 5 Run programm
+
+<details>
+  <summary> Linux (Ubuntu) </summary>
+
 ### 5.1 Linux
 The program looks for the compiled shader files in the `./shaders` directory which is relative to the executable (see `build/bin/shaders/`).
 
@@ -215,12 +242,16 @@ cd ./build/bin
 ./vulkan_experiments
 ```
 
+</details>
+<details>
+  <summary> Windows Visual Studio </summary>
 
 ### 5.2 Windows with Visual Studio
 You might need to set the executable to `vulkan_experiments`.
 
 Afterwards simply press the `Start` button in Visual Studio.
 
+</details>
 
 # Display FPS Counter
 To display the FPS add the following environment variable for your user:
