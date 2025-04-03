@@ -134,28 +134,14 @@ class Application
 	// used to select a GPU that supports ray tracing
 	const std::vector<const char*> deviceExtensionsForRaytracing = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
-
-	    VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,
-
 	    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
 	    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-	    VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
-	    // VK_KHR_MAINTENANCE_3_EXTENSION_NAME,
-	    VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
 	    VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-	    // VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	    // needed for ray tracing capabilities
-	    VK_KHR_SPIRV_1_4_EXTENSION_NAME,
-	    // VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-	    VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
-	    // VK_KHR_DEVICE_GROUP_EXTENSION_NAME,
 	};
 
 	// if no device can be found that supports ray tracing, search for a device to display to
 	// the screen (to show messages, errors etc.) (when raytracingSupported is false)
 	const std::vector<const char*> deviceExtensionsForDisplay = {
 	    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-	    VK_KHR_SYNCHRONIZATION_2_EXTENSION_NAME,
 	};
 };

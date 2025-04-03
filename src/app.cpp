@@ -286,6 +286,10 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
+	// query the features of the device
+	VkPhysicalDeviceFeatures deviceFeatures{};
+	vkGetPhysicalDeviceFeatures(physicalDevice, &deviceFeatures);
+
 	// filter the unique families, some families can use the same queue
 	std::set<uint32_t> uniqueQueueFamilies = {};
 
@@ -319,11 +323,34 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 	createInfo.queueCreateInfoCount = static_cast<uint32_t>(queueCreateInfos.size());
 	createInfo.pQueueCreateInfos = queueCreateInfos.data();
 
+	// features vulkan enabled by default that are enabled here explicitly
+	deviceFeatures.fragmentStoresAndAtomics = VK_TRUE;
+	deviceFeatures.vertexPipelineStoresAndAtomics = VK_TRUE;
+	deviceFeatures.shaderInt64 = VK_TRUE;
+
+	VkPhysicalDeviceTimelineSemaphoreFeatures timelineSemaphoreFeature = {};
+	timelineSemaphoreFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES;
+	timelineSemaphoreFeature.timelineSemaphore = VK_TRUE;
+	timelineSemaphoreFeature.pNext = nullptr;
+
+	VkPhysicalDeviceVulkanMemoryModelFeatures memoryModelFeature = {};
+	memoryModelFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_MEMORY_MODEL_FEATURES;
+	memoryModelFeature.vulkanMemoryModelDeviceScope = VK_TRUE;
+	memoryModelFeature.vulkanMemoryModel = VK_TRUE;
+	memoryModelFeature.pNext = &timelineSemaphoreFeature;
+
+	VkPhysicalDevice8BitStorageFeatures storage8BitFeature = {};
+	storage8BitFeature.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_8BIT_STORAGE_FEATURES;
+	storage8BitFeature.storageBuffer8BitAccess = VK_TRUE;
+	storage8BitFeature.uniformAndStorageBuffer8BitAccess = VK_TRUE;
+	storage8BitFeature.pNext = &memoryModelFeature;
+
 	// Features that are always needed:
 	VkPhysicalDeviceScalarBlockLayoutFeatures deviceScalarBlockLayoutFeature = {};
 	deviceScalarBlockLayoutFeature.sType
 	    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES;
 	deviceScalarBlockLayoutFeature.scalarBlockLayout = VK_TRUE;
+	deviceScalarBlockLayoutFeature.pNext = &storage8BitFeature;
 
 	VkPhysicalDeviceSynchronization2Features synchronizationFeatures2{};
 	synchronizationFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SYNCHRONIZATION_2_FEATURES;
@@ -334,10 +361,10 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 	VkPhysicalDeviceBufferDeviceAddressFeatures physicalDeviceBufferDeviceAddressFeatures{};
 	VkPhysicalDeviceAccelerationStructureFeaturesKHR physicalDeviceAccelerationStructureFeatures{};
 	VkPhysicalDeviceRayTracingPipelineFeaturesKHR physicalDeviceRayTracingPipelineFeatures{};
-	VkPhysicalDeviceFeatures deviceFeatures{};
 	VkPhysicalDeviceDescriptorIndexingFeatures deviceDescriptorFeature = {};
 	if (raytracingSupported)
 	{
+		// Needs to be enabled for Raytracing
 		physicalDeviceBufferDeviceAddressFeatures.sType
 		    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES;
 		physicalDeviceBufferDeviceAddressFeatures.bufferDeviceAddress = VK_TRUE;
@@ -376,9 +403,6 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 		deviceDescriptorFeature.descriptorBindingPartiallyBound = true;
 		deviceDescriptorFeature.pNext = &physicalDeviceRayTracingPipelineFeatures;
 
-		// Needs to be enabled for Raytracing
-		createInfo.pEnabledFeatures = &deviceFeatures;
-
 		// link chain of pNext pointers
 		createInfo.pNext = &deviceDescriptorFeature;
 	}
@@ -396,6 +420,8 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 	{
 		createInfo.enabledLayerCount = 0;
 	}
+
+	createInfo.pEnabledFeatures = &deviceFeatures;
 
 	// create the logical device
 	if (vkCreateDevice(physicalDevice, &createInfo, nullptr, &logicalDevice) != VK_SUCCESS)
@@ -781,8 +807,11 @@ void Application::createInstanceForVulkan()
 	createInfo.enabledExtensionCount = static_cast<uint32_t>(glfwExtensions.size());
 	createInfo.ppEnabledExtensionNames = glfwExtensions.data();
 
-	VkValidationFeatureEnableEXT validationFeatureEnable[]
-	    = {VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT};
+	VkValidationFeatureEnableEXT validationFeatureEnable[] = {
+	    VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
+	    VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT,
+	    VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+	};
 
 	VkValidationFeaturesEXT features{};
 	features.sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT;
@@ -799,7 +828,7 @@ void Application::createInstanceForVulkan()
 
 		if (enableDebugShaderPrintf)
 		{
-			features.enabledValidationFeatureCount = 1;
+			features.enabledValidationFeatureCount = 3;
 			features.pEnabledValidationFeatures = validationFeatureEnable;
 		}
 		else
