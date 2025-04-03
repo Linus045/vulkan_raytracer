@@ -121,12 +121,12 @@ class RaytracingScene
 
 			std::vector<BezierTriangle2> subTriangles;
 			subTriangles.reserve(
-			    static_cast<size_t>(std::powl(4.0L, static_cast<long double>(subdivisions))));
+			    static_cast<size_t>(std::pow(4.0L, static_cast<long double>(subdivisions))));
 			subTriangles.push_back(bezierTriangle);
 
 			for (int i = 0; i < subdivisions; i++)
 			{
-				for (size_t j = 0; j < std::powl(4.0L, static_cast<long double>(i)); j++)
+				for (size_t j = 0; j < std::pow(4.0L, static_cast<long double>(i)); j++)
 				{
 					BezierTriangle2& t = subTriangles.front();
 					const auto& s = ltracer::subdivideBezierTriangle2(t);
