@@ -43,7 +43,6 @@ Build dependencies for Linux using the `apt` package manager:
 - vulkan-tools (optional for verifying installation see below)
 
 `sudo apt install libvulkan-dev vulkan-utility-libraries-dev vulkan-validationlayers`
-___
 </details>
 
 <details>
@@ -59,6 +58,8 @@ On Windows the easiest way to build the project is to use Visual Studio:
 - [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
 
 </details>
+
+___
 
 ## 2. (Optional) Verify Vulkan installation
 It is recommended to verify that Vulkan is installed correctly before building the project.
@@ -104,7 +105,12 @@ General information about the Vulkan installation can be queried with the `vulka
 
 </details>
 
+___
+
 ## 3. Clone repo
+
+<details>
+  <summary> Windows + Linux (Ubuntu) </summary>
 
 ### 3.1 Clone with submodules
 When cloning the repository submodules need to be cloned as well.
@@ -147,10 +153,15 @@ git submodule add https://github.com/tinyobjloader/tinyobjloader.git 3rdparty/ti
 git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
 ```
 
+</details>
+
+___
+
 ## 4 Compile Project
 
 <details>
   <summary> Linux (Ubuntu) </summary>
+
 ### 4.1 Linux
 
 #### 4.1.1 Configure Project
@@ -228,6 +239,7 @@ Now simply build the project.
 
 </details>
 
+___
 ## 5 Run programm
 
 <details>
@@ -252,6 +264,8 @@ You might need to set the executable to `vulkan_experiments`.
 Afterwards simply press the `Start` button in Visual Studio.
 
 </details>
+
+___
 
 # Display FPS Counter
 To display the FPS add the following environment variable for your user:
