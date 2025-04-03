@@ -13,6 +13,7 @@
 
 #include "types.hpp"
 #include "vk_utils.hpp"
+#include "logger.hpp"
 
 namespace ltracer
 {
@@ -293,12 +294,13 @@ class Window
 			if (result == VK_SUCCESS && availableFormat.format == VK_FORMAT_B8G8R8_SRGB
 			    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
+				debug_print("SwapSurface Format - using format: "
+				            "%s with color space: %s\n",
+				            string_VkFormat(availableFormat.format),
+				            string_VkColorSpaceKHR(availableFormat.colorSpace));
 				return availableFormat;
 			}
 		}
-
-		// if the good format cannot be found, just use the first one
-		std::cout << "Warning: Could not find the good format. Choosing first valid format:\n";
 
 		for (const VkSurfaceFormatKHR& availableFormat : availableFormats)
 		{
@@ -317,15 +319,14 @@ class Window
 			VkResult result = vkGetPhysicalDeviceImageFormatProperties2(
 			    physicalDevice, &formatInfo, &properties);
 
-			// std::cout << "  + Format:" << string_VkFormat(availableFormat.format)
-			//           << " | Color space: " << string_VkColorSpaceKHR(availableFormat.colorSpace)
-			//           << " | Error: " << result << '\n';
-
 			if (result == VK_SUCCESS)
 			{
-				// std::cout << "Found format: " << string_VkFormat(availableFormat.format)
-				//           << " | Color space: "
-				//           << string_VkColorSpaceKHR(availableFormat.colorSpace) << '\n';
+				debug_print("SwapSurface Foramt - Choosing first valid format: "
+				            "%s with color space: %s\n",
+				            string_VkFormat(availableFormat.format),
+				            string_VkColorSpaceKHR(availableFormat.colorSpace));
+
+				// if the good format cannot be found, just use the first one
 				return availableFormat;
 			}
 		}
