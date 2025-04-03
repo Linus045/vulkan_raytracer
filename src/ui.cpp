@@ -376,7 +376,11 @@ void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 	ImGui::SeparatorText("Raytracing Properties:");
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
 	ImGui::Text("Estimated frame time: %.4fms", uiData.frameTimeMilliseconds);
-	ImGui::Text("BLAS Instances Count: %ld", uiData.blasInstancesCount);
+
+	if (uiData.raytracingSupported)
+	{
+		ImGui::Text("BLAS Instances Count: %ld", uiData.blasInstancesCount);
+	}
 }
 
 void renderPositionSliders(ltracer::ui::UIData& uiData)
@@ -405,40 +409,43 @@ void renderSlicingPlaneSliders(UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Raytracing - Slicing Planes"))
 	{
+		if (uiData.raytracingSupported)
 		{
-			bool valueChanged = false;
-			bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
-			valueChanged = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes)
-			               || valueChanged;
-			uiData.raytracingDataConstants.enableSlicingPlanes
-			    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
-
-			uiData.configurationChanged = uiData.configurationChanged || valueChanged;
-		}
-
-		{
-			bool valueChanged = false;
-			for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
 			{
-				ImGui::LabelText("Slicingplane:", "%ld", i);
-				valueChanged
-				    = ImGui::SliderFloat3((std::string("Position#") + std::to_string(i)).c_str(),
-				                          &uiData.slicingPlanes[i].planeOrigin.x,
-				                          -10.0,
-				                          10.0,
-				                          "%.2f")
-				      || valueChanged;
-				valueChanged
-				    = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
-				                          &uiData.slicingPlanes[i].normal.x,
-				                          -1.0,
-				                          1.0,
-				                          "%.2f")
-				      || valueChanged;
+				bool valueChanged = false;
+				bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
+				valueChanged = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes)
+				               || valueChanged;
+				uiData.raytracingDataConstants.enableSlicingPlanes
+				    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
+
+				uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 			}
-			if (valueChanged)
+
 			{
-				uiData.recreateAccelerationStructures.requestRecreate(false);
+				bool valueChanged = false;
+				for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
+				{
+					ImGui::LabelText("Slicingplane:", "%ld", i);
+					valueChanged = ImGui::SliderFloat3(
+					                   (std::string("Position#") + std::to_string(i)).c_str(),
+					                   &uiData.slicingPlanes[i].planeOrigin.x,
+					                   -10.0,
+					                   10.0,
+					                   "%.2f")
+					               || valueChanged;
+					valueChanged
+					    = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
+					                          &uiData.slicingPlanes[i].normal.x,
+					                          -1.0,
+					                          1.0,
+					                          "%.2f")
+					      || valueChanged;
+				}
+				if (valueChanged)
+				{
+					uiData.recreateAccelerationStructures.requestRecreate(false);
+				}
 			}
 		}
 	}

@@ -235,19 +235,25 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 	uiData.raytracingDataConstants.cameraDir = camera.transform.getForward();
 
-	// TODO: create a setUIData() and retrieveUIData() function that sets/loads these values
-	// correspondingly
-	//
-	// TODO: abstract this away so we just need get the reference and set the position
-	auto instanceIdx = raytracingScene->getWorldObjectSpheres()[0].getInstanceIndex();
-	if (instanceIdx)
+	if (raytracingSupported)
 	{
-		// we assume the first sphere always represents the light
-		raytracingScene->getWorldObjectSpheres()[0].setPosition(
-		    uiData.raytracingDataConstants.globalLightPosition);
-		auto transformMatrix
-		    = raytracingScene->getWorldObjectSpheres()[0].getTransform().getTransformMatrix();
-		raytracingScene->setTransformMatrixForInstance(instanceIdx.value(), transformMatrix);
+		// TODO: create a setUIData() and retrieveUIData() function that sets/loads these values
+		// correspondingly
+		//
+		// TODO: abstract this away so we just need get the reference and set the position
+		if (raytracingScene->getWorldObjectSpheres().size() > 0)
+		{
+			auto& lightSphere = raytracingScene->getWorldObjectSpheres()[0];
+			auto instanceIdx = lightSphere.getInstanceIndex();
+			if (instanceIdx)
+			{
+				// we assume the first sphere always represents the light
+				lightSphere.setPosition(uiData.raytracingDataConstants.globalLightPosition);
+				auto transformMatrix = lightSphere.getTransform().getTransformMatrix();
+				raytracingScene->setTransformMatrixForInstance(instanceIdx.value(),
+				                                               transformMatrix);
+			}
+		}
 	}
 
 	recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
