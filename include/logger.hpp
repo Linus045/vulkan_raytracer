@@ -13,11 +13,18 @@
 
 #ifdef NDEBUG
 #define debug_print(fmt, ...)
+#define debug_printFmt(fmt, ...)
 #else
-#define debug_print(fmt, ...)                                                                      \
+#define debug_printFmt(fmt, ...)                                                                   \
 	do                                                                                             \
 	{                                                                                              \
 		std::fprintf(stderr, fmt, __VA_ARGS__);                                                    \
+	} while (0)
+
+#define debug_print(str)                                                                           \
+	do                                                                                             \
+	{                                                                                              \
+		std::fprintf(stderr, str);                                                                 \
 	} while (0)
 
 #endif

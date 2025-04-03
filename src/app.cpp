@@ -432,11 +432,11 @@ void Application::createLogicalDevice(const std::vector<const char*>& requiredDe
 	// get the handle to the graphics queue
 	if (indices.graphicsFamily.has_value())
 		vkGetDeviceQueue(logicalDevice, indices.graphicsFamily.value(), 0, &graphicsQueue);
-	debug_print("Graphics queue: %p\n", static_cast<void*>(graphicsQueue));
+	debug_printFmt("Graphics queue: %p\n", static_cast<void*>(graphicsQueue));
 
 	if (indices.presentFamily.has_value())
 		vkGetDeviceQueue(logicalDevice, indices.presentFamily.value(), 0, &presentQueue);
-	debug_print("Present queue: %p\n", static_cast<void*>(presentQueue));
+	debug_printFmt("Present queue: %p\n", static_cast<void*>(presentQueue));
 
 	// if (indices.transferFamily.has_value())
 	// 	vkGetDeviceQueue(logicalDevice, indices.transferFamily.value(), 0, &transferQueue);
@@ -615,13 +615,14 @@ bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 		    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
 	}
 
-	debug_print("Application::isDeviceSuitable - hasValue: graphicsFamily: %d presentFamily: %d\n",
-	            indices.graphicsFamily.has_value(),
-	            indices.presentFamily.has_value());
-	debug_print("Indices.isComplete(): %d extensionsSupported: %d swapChainAdequate: %d\n",
-	            indices.isComplete(),
-	            extensionsSupported,
-	            swapChainAdequate);
+	debug_printFmt(
+	    "Application::isDeviceSuitable - hasValue: graphicsFamily: %d presentFamily: %d\n",
+	    indices.graphicsFamily.has_value(),
+	    indices.presentFamily.has_value());
+	debug_printFmt("Indices.isComplete(): %d extensionsSupported: %d swapChainAdequate: %d\n",
+	               indices.isComplete(),
+	               extensionsSupported,
+	               swapChainAdequate);
 
 	return indices.isComplete() && extensionsSupported && swapChainAdequate;
 }

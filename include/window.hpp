@@ -294,10 +294,10 @@ class Window
 			if (result == VK_SUCCESS && availableFormat.format == VK_FORMAT_B8G8R8_SRGB
 			    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
-				debug_print("SwapSurface Format - using format: "
-				            "%s with color space: %s\n",
-				            string_VkFormat(availableFormat.format),
-				            string_VkColorSpaceKHR(availableFormat.colorSpace));
+				debug_printFmt("SwapSurface Format - using format: "
+				               "%s with color space: %s\n",
+				               string_VkFormat(availableFormat.format),
+				               string_VkColorSpaceKHR(availableFormat.colorSpace));
 				return availableFormat;
 			}
 		}
@@ -321,10 +321,10 @@ class Window
 
 			if (result == VK_SUCCESS)
 			{
-				debug_print("SwapSurface Foramt - Choosing first valid format: "
-				            "%s with color space: %s\n",
-				            string_VkFormat(availableFormat.format),
-				            string_VkColorSpaceKHR(availableFormat.colorSpace));
+				debug_printFmt(
+				    "SwapSurface Format - Choosing first valid format: %s with color space: %s\n",
+				    string_VkFormat(availableFormat.format),
+				    string_VkColorSpaceKHR(availableFormat.colorSpace));
 
 				// if the good format cannot be found, just use the first one
 				return availableFormat;
@@ -344,19 +344,32 @@ class Window
 		// does not wait for vsync
 		// VK_PRESENT_MODE_IMMEDIATE_KHR
 
-		// wait for vsync
+		// waits for vsync
 		// VK_PRESENT_MODE_MAILBOX_KHR
 		// VK_PRESENT_MODE_FIFO_KHR
 		// VK_PRESENT_MODE_FIFO_RELAXED_KHR
+
+		// prefer mailbox
 		for (const auto& availablePresentMode : availablePresentModes)
 		{
-			// prefer mailbox
-			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR) return availablePresentMode;
-
-			// fallback to fifo (always available)
-			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR) return availablePresentMode;
+			if (availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR)
+			{
+				debug_print("SwapPresentMode - using mailbox mode\n");
+				return availablePresentMode;
+			}
 		}
 
+		for (const auto& availablePresentMode : availablePresentModes)
+		{
+			if (availablePresentMode == VK_PRESENT_MODE_IMMEDIATE_KHR)
+			{
+				debug_print("SwapPresentMode - using immediate mode\n");
+				return availablePresentMode;
+			}
+		}
+
+		// fallback to fifo (always available)
+		debug_print("SwapPresentMode - using fifo mode\n");
 		return VK_PRESENT_MODE_FIFO_KHR;
 	}
 
