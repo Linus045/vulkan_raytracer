@@ -59,7 +59,7 @@ ExternalProject_Add(
 	SOURCE_DIR ${CMAKE_SOURCE_DIR}/3rdparty/glslang
 	BINARY_DIR ${glslang_build_dir}
 	STEP_TARGETS glslang_update_sources
-	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR>
+	BUILD_COMMAND ${CMAKE_COMMAND} --build <BINARY_DIR> --target glslang-standalone
 	CMAKE_ARGS
 	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG=
 	-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE=
