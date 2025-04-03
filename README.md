@@ -3,36 +3,90 @@
 ## 1. Install Dependencies
 
 Ensure the following dependencies are installed
-- Git
-- Vulkan SDK (https://vulkan.lunarg.com/sdk/home)
-	- alternatively for Linux (Ubuntu) the following packages:
-		- libvulkan-dev
-		- vulkan-utility-libraries-dev
-		- vulkan-validationlayers
-- CMake (Version 3.28+vulkan-extra-layers
-- Python (needed to build glslang tools)
-- Optional (Windows only):  Visual Studio with:
-	- C++ Development tools
-	- CMake Build tools
+
+### 1.1 Linux (Ubuntu) Build Dependencies
+Build dependencies for Linux using the `apt` package manager:
+- git
+- cmake
+- build-essential
+- [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
+	- Note: alternatively it's possible to manually install the required packages instead of the SDK, see note below
+
+`sudo apt install git cmake build-essential`
+
+- For GLFW on Wayland:
+	- libgl-dev
+	- libwayland-dev
+	- pkg-config
+	- libxkbcommon-dev
+
+`sudo apt install libgl-dev libwayland-dev pkg-config libxkbcommon-dev`
+
+- For GLFW on X11:
+	- libgl-dev
+	- libwayland-dev
+	- libx11-dev
+	- libxrandr-dev
+	- libxinerama-dev
+	- libxcursor-dev
+	- libxi-dev
+
+`sudo apt install libgl-dev libx11-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev`
+
+
+#### Note: If you don't want to install the Vulkan SDK you can install the following packages instead:
+- libvulkan-dev
+- vulkan-utility-libraries-dev
+- vulkan-validationlayers (for debug builds)
+- vulkan-tools (optional for verifying installation see below)
+
+`sudo apt install libvulkan-dev vulkan-utility-libraries-dev vulkan-validationlayers`
+___
+
+### 1.2 Windows Visual Studio Build Dependencies
+On Windows the easiest way to build the project is to use Visual Studio:
+- [Visual Studio](https://visualstudio.microsoft.com/downloads/) 2022 with:
+	- C++ tools ("Desktop development with C++")
+	- CMake tools (Individual components -> "C++ CMake tools for Windows")
+- [Git](https://git-scm.com/downloads/win)
+- [Python](https://www.python.org/downloads/) (needed to build glslang)
+- [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
+
 
 ## 2. (Optional) Verify Vulkan installation
-To test if vulkan works correctly you can optionally install the
-`vulkan-tools` package and run the following commands:
+It is recommended to verify that Vulkan is installed correctly before building the project.
+To do this the Vulkan SDK provides a small program called `vkcube` which displays a rotating cube.
+If everything works correctly you should see a rotating cube in a window.
+
+### 2.1 Linux
+Note: If you did not install the SDK you need to install the `vulkan-tools` package first.
+___
+
+General information about the Vulkan installation can be queried with the `vulkaninfo` command.
+
+To test if Vulkan works correctly run the following commands:
 ```bash
 vkcube
 ```
 
 Depending on the windowing system you're using you might need to provide the `--wsi` flag e.g.:
+
+On X11:
 ```bash
 vkcube --wsi xlib
 ```
-or:
+or on Wayland:
 ```bash
 vkcube --wsi wayland
 ```
 
-#### Note
-More info about the vulkan installation can then be seen with the `vulkaninfo` command.
+
+
+### 2.2 Windows
+Open a terminal and run the command `vkcube` or search for the "Vulkan Cube" program in the start menu.
+
+General information about the Vulkan installation can be queried with the `vulkaninfo` command or by opening the "Vulkan Configurator" and selecting `Tools->Vulkan Info` in the menu bar.
+
 
 ## 3. Clone repo
 
@@ -152,7 +206,7 @@ Now simply build the project.
 
 
 ## 5 Run programm
-### 5.1 Linus
+### 5.1 Linux
 The program looks for the compiled shader files in the `./shaders` directory which is relative to the executable (see `build/bin/shaders/`).
 
 That means to run the program, you first need to navigate to the `<project root>/build/bin` directory and run the executable from there:
