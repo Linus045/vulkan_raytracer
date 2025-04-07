@@ -113,6 +113,7 @@ else()
 endif ( MSVC )
 
 
+
 # ensure the shaders output directory exists
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin/shaders)
 
@@ -239,6 +240,9 @@ endif()
 
 # TODO: this is not working? we manually set -Werror
 set_property(TARGET ${target_name} PROPERTY CMAKE_COMPILE_WARNING_AS_ERROR ON)
+
+# set project as startup project in Visual Studio
+set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${target_name})
 
 ###############################################################################
 ## dependencies ###############################################################
