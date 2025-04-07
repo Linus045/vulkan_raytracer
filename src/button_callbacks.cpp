@@ -97,12 +97,12 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
-static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneIdx)
+static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneNr)
 {
 	auto& raytracingScene = renderer.getRaytracingScene();
 
-	std::printf("Loading scene %d\n", sceneIdx);
-	RaytracingScene::loadScene(renderer, raytracingScene, sceneIdx);
+	std::printf("Loading scene %d\n", sceneNr);
+	RaytracingScene::loadScene(renderer, raytracingScene, sceneNr);
 
 	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
@@ -132,17 +132,17 @@ void registerButtonFunctions(Window& window,
 	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
 
 	auto sceneCount = RaytracingScene::getSceneCount();
-	for (int sceneIdx = 0; sceneIdx < sceneCount; sceneIdx++)
+	for (int sceneNr = 1; sceneNr <= sceneCount; sceneNr++)
 	{
-		auto sceneName = RaytracingScene::getSceneName(sceneIdx);
-		auto label = std::format("[{}] Load Scene: {}", sceneIdx, sceneName);
+		auto sceneName = RaytracingScene::getSceneName(sceneNr);
+		auto label = std::format("[{}] Load Scene: {}", sceneNr, sceneName);
 		uiData.buttonCallbacks.push_back(
-		    std::make_pair(label, [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); }));
+		    std::make_pair(label, [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); }));
 		registerKeyListener(window,
-		                    GLFW_KEY_0 + sceneIdx,
+		                    GLFW_KEY_0 + sceneNr,
 		                    ltracer::KeyTriggerMode::KeyDown,
 		                    ltracer::KeyListeningMode::FLYING_CAMERA,
-		                    [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); });
+		                    [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); });
 	}
 }
 } // namespace rt

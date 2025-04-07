@@ -52,9 +52,9 @@ class RaytracingScene
 		return SCENE_COUNT;
 	}
 
-	static std::string getSceneName(const int sceneIdx)
+	static std::string getSceneName(const int sceneNr)
 	{
-		return sceneNames[static_cast<size_t>(sceneIdx)];
+		return sceneNames[static_cast<size_t>(sceneNr - 1)];
 	}
 
 	const RaytracingObjectBuffers& getObjectBuffers() const
@@ -754,16 +754,15 @@ class RaytracingScene
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;
 
-	static const int SCENE_COUNT = 8;
+	static const int SCENE_COUNT = 7;
 	inline static const std::vector<std::string> sceneNames = {
-	    "Tetrahedron Degree 2",
-	    "Tetrahedron Degree 2 with control points",
-	    "Tetrahedron Degree 2 deformed slightly",
-	    "Tetrahedron Degree 2 deformed strongly",
-	    "Two Tetrahedrons Degree2",
-	    "Two Tetrahedrons Degree2",
-	    "Tetrahedron 3 control points only",
-	    "Tetrahedron 2 random control points",
+	    "Tetrahedron degree 2 deformed slightly",
+	    "Tetrahedron degree 2 moved with control points",
+	    "Tetrahedron degree 2 deformed strongly",
+	    "Two Tetrahedrons degree 2 stuck together",
+	    "Two Tetrahedrons degree 2 stuck together",
+	    "Tetrahedron degree 2 control poitns only",
+	    "Tetrahedron degree 2 random control points",
 	};
 };
 
