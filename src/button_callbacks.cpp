@@ -131,10 +131,11 @@ void registerButtonFunctions(Window& window,
 	uiData.buttonCallbacks.push_back(std::make_pair(
 	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
 
-	const int scenesIndices[] = {1, 2, 3, 4, 5};
-	for (int sceneIdx : scenesIndices)
+	auto sceneCount = RaytracingScene::getSceneCount();
+	for (int sceneIdx = 0; sceneIdx < sceneCount; sceneIdx++)
 	{
-		auto label = std::format("[{}] Load Scene", sceneIdx);
+		auto sceneName = RaytracingScene::getSceneName(sceneIdx);
+		auto label = std::format("[{}] Load Scene: {}", sceneIdx, sceneName);
 		uiData.buttonCallbacks.push_back(
 		    std::make_pair(label, [&, sceneIdx]() { loadScene(renderer, uiData, sceneIdx); }));
 		registerKeyListener(window,

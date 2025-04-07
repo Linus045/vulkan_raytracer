@@ -47,6 +47,16 @@ class RaytracingScene
 	static void
 	loadScene(const Renderer& renderer, RaytracingScene& raytracingScene, const int index);
 
+	inline static int getSceneCount()
+	{
+		return SCENE_COUNT;
+	}
+
+	static std::string getSceneName(const int sceneIdx)
+	{
+		return sceneNames[static_cast<size_t>(sceneIdx)];
+	}
+
 	const RaytracingObjectBuffers& getObjectBuffers() const
 	{
 		return objectBuffers;
@@ -124,33 +134,34 @@ class RaytracingScene
 			    static_cast<size_t>(std::pow(4.0L, static_cast<long double>(subdivisions))));
 			subTriangles.push_back(bezierTriangle);
 
-			for (int i = 0; i < subdivisions; i++)
-			{
-				for (size_t j = 0; j < std::pow(4.0L, static_cast<long double>(i)); j++)
-				{
-					BezierTriangle2& t = subTriangles.front();
-					const auto& s = ltracer::subdivideBezierTriangle2(t);
+			assert(subdivisions == 0 && "Subdivisions > 0 not implemented");
+			// for (int i = 0; i < subdivisions; i++)
+			// {
+			// 	for (size_t j = 0; j < std::pow(4.0L, static_cast<long double>(i)); j++)
+			// 	{
+			// 		BezierTriangle2& t = subTriangles.front();
+			// 		const auto& s = ltracer::subdivideBezierTriangle2(t);
 
-					subTriangles.push_back(s.bottomLeft);
-					subTriangles.push_back(s.bottomRight);
-					subTriangles.push_back(s.top);
-					subTriangles.push_back(s.center);
-					subTriangles.erase(subTriangles.begin());
+			// 		subTriangles.push_back(s.bottomLeft);
+			// 		subTriangles.push_back(s.bottomRight);
+			// 		subTriangles.push_back(s.top);
+			// 		subTriangles.push_back(s.center);
+			// 		subTriangles.erase(subTriangles.begin());
 
-					// visualize center points
-					// for (int li = 0; li < 6; li++)
-					// {
-					// 	if (li <= 2)
-					// 	{
-					// 		addObjectSphere(s.center.controlPoints[li], 0.06f, ColorIdx::t_white);
-					// 	}
-					// 	else
-					// 	{
-					// 		addObjectSphere(s.center.controlPoints[li], 0.03f, ColorIdx::t_yellow);
-					// 	}
-					// }
-				}
-			}
+			// 		// visualize center points
+			// 		// for (int li = 0; li < 6; li++)
+			// 		// {
+			// 		// 	if (li <= 2)
+			// 		// 	{
+			// 		// 		addObjectSphere(s.center.controlPoints[li], 0.06f, ColorIdx::t_white);
+			// 		// 	}
+			// 		// 	else
+			// 		// 	{
+			// 		// 		addObjectSphere(s.center.controlPoints[li], 0.03f, ColorIdx::t_yellow);
+			// 		// 	}
+			// 		// }
+			// 	}
+			// }
 
 			for (const auto& subTriangle : subTriangles)
 			{
@@ -742,6 +753,18 @@ class RaytracingScene
 
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;
+
+	static const int SCENE_COUNT = 8;
+	inline static const std::vector<std::string> sceneNames = {
+	    "Tetrahedron Degree 2",
+	    "Tetrahedron Degree 2 with control points",
+	    "Tetrahedron Degree 2 deformed slightly",
+	    "Tetrahedron Degree 2 deformed strongly",
+	    "Two Tetrahedrons Degree2",
+	    "Two Tetrahedrons Degree2",
+	    "Tetrahedron 3 control points only",
+	    "Tetrahedron 2 random control points",
+	};
 };
 
 } // namespace rt
