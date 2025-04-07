@@ -71,7 +71,7 @@ bezierVolumePoint(const std::array<glm::vec3, C> controlPoints, int n, float u, 
 		{
 			for (int i = 0; i <= n - k - j; i++)
 			{
-				if (i + j + k == n)
+				if (i + j + k <= n)
 				{
 					size_t idx = getControlPointIndices(i, j, k);
 					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
