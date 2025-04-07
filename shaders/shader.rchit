@@ -38,11 +38,7 @@ layout(location = 0) rayPayloadInEXT Payload
 }
 payload;
 
-layout(location = 1) rayPayloadEXT BounceRayPayload
-{
-	bool isShadow;
-}
-bounceRayPayload;
+layout(location = 1) rayPayloadEXT bool isShadow;
 
 layout(binding = 0, set = 0) uniform accelerationStructureEXT topLevelAS;
 layout(binding = 1, set = 0) uniform UBO{// see common_types.h
@@ -127,59 +123,29 @@ void main()
 	    = raytracingDataConstants.globalLightColor * raytracingDataConstants.globalLightIntensity;
 
 	// debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
-	if (gl_HitKindEXT == t_SlicingPlane)
+	if (gl_HitKindEXT == t_AABBDebug)
 	{
-		// if (raytracingDataConstants.debugSlicingPlanes > 0.0)
-		// {
-		// 	vec3 normal = normalize(-slicingPlanes[0].normal);
-		// 	vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-		// 	vec3 positionToLightDirection
-		// 	    = normalize(raytracingDataConstants.globalLightPosition - position);
-
-		// 	vec3 surfaceColor = vec3(0.8, 0.2, 0.2);
-		// 	payload.directColor
-		// 	    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-		// 	payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-		// 	                        * raytracingDataConstants.environmentLightIntensity;
-		// }
-		// else
-		// {
-		vec3 normal = normalize(slicingPlanes[0].normal);
-		vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-		vec3 positionToLightDirection
-		    = normalize(raytracingDataConstants.globalLightPosition - position);
-
-		vec3 surfaceColor = vec3(1.0, 0.0, 0.0);
-		payload.directColor
-		    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-		                        * raytracingDataConstants.environmentLightIntensity;
-		// }
-	}
-	else if (gl_HitKindEXT == t_AABBDebug)
-	{
-		// we hit a AABB
+		// we hit a AABB (debugging)
 		payload.directColor = vec3(0.8, 0.8, 0.8);
 		payload.indirectColor = vec3(0, 0, 0);
 	}
 	else if (gl_HitKindEXT == t_BezierTriangle2)
 	{
-		vec3 positionToLightDirection
-		    = normalize(raytracingDataConstants.globalLightPosition - hitData.point);
 		vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
 
 		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 
-		// if (isCrosshairRay)
-		// {
-		// 	debugPrintfEXT(
-		// 	    "Hit object at: (%.2v3f) with normal: (%.2v3f)", hitData.point, hitData.normal);
-		// }
+		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+		                        * raytracingDataConstants.environmentLightIntensity;
+
+		vec3 actualHitpoint = hitData.point;
+		vec3 actualNormal = hitData.normal;
+		bool hitSlicingPlane = false;
 
 		// if we have slicing planes enables, we wanna treat points in front of the slicing
 		// plane special
 		//
-		// check we hit the inside of the object by comparing the normal with our ray direction
+		// check if we hit the inside of the object by comparing the normal with our ray direction
 		// if the normal and the ray direction faces in the same direction, we hit the inside,
 		// if the normal is facing us we hit the outside of the object
 		if (raytracingDataConstants.enableSlicingPlanes > 0.0
@@ -195,21 +161,9 @@ void main()
 			        plane.normal, plane.planeOrigin, cameraOrigin.xyz, payload.rayDirection, t))
 			{
 				payload.rayOrigin = payload.rayOrigin + payload.rayDirection * t;
-
-				// payload.hitOnSlicingPlaneInsideObject = true;
-				vec3 normal = plane.normal;
-
-				payload.directColor
-				    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-				payload.indirectColor = vec3(0, 0, 0);
-				payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-				                        * raytracingDataConstants.environmentLightIntensity;
-
-				if (raytracingDataConstants.debugSlicingPlanes > 0.0)
-				{
-					payload.directColor = vec3(1.0, 0.0, 1.0);
-					payload.indirectColor = vec3(0.0, 0.0, 0.0);
-				}
+				actualHitpoint = payload.rayOrigin;
+				actualNormal = plane.normal;
+				hitSlicingPlane = true;
 			}
 			else
 			{
@@ -233,20 +187,61 @@ void main()
 				// it is possible to check if the camera is hehind or in front of the slicing plane
 				//  but that would not help really
 
-				payload.rayOrigin = hitData.point;
 				// calculation of the hit point failed, color red
 				payload.directColor = vec3(1.0, 0.0, 0.0);
 				payload.indirectColor = vec3(0.0, 0.0, 0.0);
 			}
 		}
+
+		// fire a ray to the light to check if we are in shadow
+		vec3 positionToLightDirection
+		    = normalize(raytracingDataConstants.globalLightPosition - actualHitpoint);
+		vec3 shadowRayOrigin = actualHitpoint;
+		vec3 shadowRayDirection = positionToLightDirection;
+		uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT
+		                      | gl_RayFlagsSkipClosestHitShaderEXT;
+
+		float tMin = 0.001;
+		float tMax = length(raytracingDataConstants.globalLightPosition - shadowRayOrigin) - 0.005f;
+
+		isShadow = true;
+		traceRayEXT(topLevelAS,         // top level acceleration structure
+		            shadowRayFlags,     // rayFlags
+		            0xFF,               // cullMask
+		            0,                  // sbtRecordOffset
+		            0,                  // sbtRecordStride
+		            1,                  // miss index
+		            shadowRayOrigin,    // origin
+		            tMin,               // Tmin
+		            shadowRayDirection, // direction
+		            tMax,               // Tmax
+		            1                   // payloadIndex (location = 1)
+		);
+
+		if (isCrosshairRay)
+		{
+			// debugprint the hit pos, normal
+			debugPrintfEXT("HitPos: (%.2v3f), normal: (%.2v3f), isShadow: %d",
+			               actualHitpoint,
+			               actualNormal,
+			               isShadow);
+		}
+
+		// we hit the outside of the object, calculate color using surface normal
+		if (!isShadow)
+		{
+			payload.directColor
+			    = surfaceColor * lightColor * max(0, dot(actualNormal, positionToLightDirection));
+		}
 		else
 		{
-			// we hit the outside of the object, calculate color using surface normal
-			vec3 normal = hitData.normal;
-			payload.directColor
-			    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-			                        * raytracingDataConstants.environmentLightIntensity;
+			payload.directColor = vec3(0.0, 0.0, 0.0);
+		}
+
+		if (hitSlicingPlane && raytracingDataConstants.debugSlicingPlanes > 0.0)
+		{
+			payload.directColor = vec3(1.0, 0.0, 1.0);
+			payload.indirectColor = vec3(0.0, 0.0, 0.0);
 		}
 
 		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
@@ -262,54 +257,90 @@ void main()
 	}
 	else if (gl_HitKindEXT == t_Sphere)
 	{
-		vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-
 		Sphere s = spheres[instance.bufferIndex];
 
-		vec3 positionToLightDirection
-		    = normalize(raytracingDataConstants.globalLightPosition - position);
-
-		// see ColorIdx in common_types.h
-		vec3 colorlist[9] = {
-		    vec3(1.0, 1.0, 1.0), // t_white
-		    vec3(1.0, 0.0, 0.0), // t_red
-		    vec3(0.0, 0.0, 1.0), // t_blue
-		    vec3(0.0, 1.0, 0.0), // t_green
-		    vec3(1.0, 1.0, 0.0), // t_yellow
-		    vec3(1.0, 0.5, 0.0), // t_orange
-		    vec3(1.0, 0.5, 0.8), // t_pink
-		    vec3(0.5, 0.0, 1.0), // t_purple
-		    vec3(0.0, 0.0, 0.0)  // t_black
-		};
-		vec3 surfaceColor = colorlist[s.colorIdx - 1];
-
-		vec3 normal = normalize(position - s.center);
-
-		payload.directColor
-		    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
-		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
-		                        * raytracingDataConstants.environmentLightIntensity;
-	}
-	else if (gl_HitKindEXT == t_RectangularBezierSurface2x2)
-	{
-		// TODO: for now, disable any ray bounces from this surface
-		if (payload.rayDepth == 0)
+		if (instance.bufferIndex == 0)
 		{
-			vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
-			vec3 positionToLightDirection
-			    = normalize(raytracingDataConstants.globalLightPosition - position);
-			vec3 surfaceColor = vec3(0.0, 1.0, 0.0);
-
-			// TODO: do some light calculations via the normals?
-			// maybe subdivide into smaller patches that have normals defined
-			// or add normals to the control points OR somehow calculate the normals
-			vec3 surfaceNormal = vec3(0, 1, 0);
-			payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor
-			                      * dot(surfaceNormal, positionToLightDirection);
+			payload.directColor = vec3(1.0, 0.9, 0.3);
+			payload.indirectColor = vec3(0, 0, 0);
 		}
 		else
 		{
+			vec3 positionToLightDirection
+			    = normalize(raytracingDataConstants.globalLightPosition - hitData.point);
+			// fire a ray to the light to check if we are in shadow
+			vec3 shadowRayOrigin = hitData.point;
+			vec3 shadowRayDirection = positionToLightDirection;
+			uint shadowRayFlags = gl_RayFlagsTerminateOnFirstHitEXT | gl_RayFlagsOpaqueEXT
+			                      | gl_RayFlagsSkipClosestHitShaderEXT;
+
+			float tMin = 0.001;
+			float tMax
+			    = length(raytracingDataConstants.globalLightPosition - shadowRayOrigin) - 0.005f;
+
+			isShadow = true;
+			traceRayEXT(topLevelAS,         // top level acceleration structure
+			            shadowRayFlags,     // rayFlags
+			            0xFF,               // cullMask
+			            0,                  // sbtRecordOffset
+			            0,                  // sbtRecordStride
+			            1,                  // miss index
+			            shadowRayOrigin,    // origin
+			            tMin,               // Tmin
+			            shadowRayDirection, // direction
+			            tMax,               // Tmax
+			            1                   // payloadIndex (location = 1)
+			);
+
+			// see ColorIdx in common_types.h
+			vec3 colorlist[9] = {
+			    vec3(1.0, 1.0, 1.0), // t_white
+			    vec3(1.0, 0.0, 0.0), // t_red
+			    vec3(0.0, 0.0, 1.0), // t_blue
+			    vec3(0.0, 1.0, 0.0), // t_green
+			    vec3(1.0, 1.0, 0.0), // t_yellow
+			    vec3(1.0, 0.5, 0.0), // t_orange
+			    vec3(1.0, 0.5, 0.8), // t_pink
+			    vec3(0.5, 0.0, 1.0), // t_purple
+			    vec3(0.0, 0.0, 0.0)  // t_black
+			};
+			vec3 surfaceColor = colorlist[s.colorIdx - 1];
+
+			vec3 normal = normalize(hitData.point - s.center);
+
+			payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+			                        * raytracingDataConstants.environmentLightIntensity;
+			if (!isShadow)
+			{
+				payload.directColor
+				    = surfaceColor * lightColor * max(0, dot(normal, positionToLightDirection));
+			}
+			else
+			{
+				payload.directColor = vec3(0.0, 0.0, 0.0);
+			}
 		}
+	}
+	else if (gl_HitKindEXT == t_RectangularBezierSurface2x2)
+	{
+		// // TODO: for now, disable any ray bounces from this surface
+		// if (payload.rayDepth == 0)
+		// {
+		// 	vec3 position = gl_WorldRayOriginEXT + gl_WorldRayDirectionEXT * gl_HitTEXT;
+		// 	vec3 positionToLightDirection
+		// 	    = normalize(raytracingDataConstants.globalLightPosition - position);
+		// 	vec3 surfaceColor = vec3(0.0, 1.0, 0.0);
+
+		// 	// TODO: do some light calculations via the normals?
+		// 	// maybe subdivide into smaller patches that have normals defined
+		// 	// or add normals to the control points OR somehow calculate the normals
+		// 	vec3 surfaceNormal = vec3(0, 1, 0);
+		// 	payload.directColor = surfaceColor * raytracingDataConstants.globalLightColor
+		// 	                      * dot(surfaceNormal, positionToLightDirection);
+		// }
+		// else
+		// {
+		// }
 	}
 	else
 	{

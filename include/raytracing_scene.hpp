@@ -754,16 +754,16 @@ class RaytracingScene
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;
 
-	static const int SCENE_COUNT = 7;
-	inline static const std::vector<std::string> sceneNames = {
-	    "Tetrahedron degree 2 deformed slightly",
-	    "Tetrahedron degree 2 moved with control points",
-	    "Tetrahedron degree 2 deformed strongly",
-	    "Two Tetrahedrons degree 2 stuck together",
-	    "Two Tetrahedrons degree 2 stuck together",
-	    "Tetrahedron degree 2 control poitns only",
-	    "Tetrahedron degree 2 random control points",
-	};
+	static const int SCENE_COUNT = 8;
+	inline static const std::vector<std::string> sceneNames
+	    = {"Tetrahedron degree 2 deformed slightly",
+	       "Tetrahedron degree 2 moved with control points",
+	       "Tetrahedron degree 2 deformed strongly",
+	       "Two Tetrahedrons degree 2 stuck together",
+	       "Two Tetrahedrons degree 2 stuck together",
+	       "Tetrahedron degree 2 control poitns only",
+	       "Tetrahedron degree 2 random control points",
+	       "Two Tetrahedrons degree 2 slightly moved apart"};
 };
 
 } // namespace rt

@@ -35,8 +35,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	raytracingScene.getSlicingPlanes().clear();
 
 	// first sphere represents light
-	// raytracingScene.addObjectSphere(
-	//     renderer.getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
+	raytracingScene.addObjectSphere(
+	    renderer.getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
 
 	// we always wanna create one slicing plane
 	raytracingScene.addSlicingPlane(SlicingPlane{
@@ -234,7 +234,44 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		// Visualize control points
 		for (auto& point : tetrahedron2.controlPoints)
 		{
-			raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_black);
+			raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_pink);
+		}
+	}
+	else if (sceneNr == 8)
+	{
+		{
+			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			    glm::vec3(0.0f, 0.0f, 0.0f),
+			    glm::vec3(2.0f, 0.0f, 0.0f),
+			    glm::vec3(0.0f, 2.0f, 0.0f),
+			    glm::vec3(0.0f, 0.0f, 2.0f),
+
+			    glm::vec3(1.0f, 0.0f, 0.0f),
+			    glm::vec3(0.0f, 1.0f, 0.0f),
+			    glm::vec3(0.0f, 0.0f, 1.0f),
+
+			    glm::vec3(1.0f, 1.0f, 0.0f),
+			    glm::vec3(1.0f, 0.0f, 1.0f),
+			    glm::vec3(0.0f, 1.0f, 1.0f),
+			}));
+			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+		}
+		{
+			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			    glm::vec3(0.0f, 0.0f, -0.01f),
+			    glm::vec3(0.0f, 0.0f, -2.0f),
+			    glm::vec3(0.0f, 2.0f, -0.01f),
+			    glm::vec3(2.0f, 0.0f, -0.01f),
+
+			    glm::vec3(0.0f, 0.0f, -1.0f),
+			    glm::vec3(0.0f, 1.0f, -0.01f),
+			    glm::vec3(1.0f, 0.0f, -0.01f),
+
+			    glm::vec3(0.00, 1.0f, -1.0f),
+			    glm::vec3(1.0f, 0.0f, -1.0f),
+			    glm::vec3(1.0f, 1.0f, -0.01f),
+			}));
+			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 		}
 	}
 	else

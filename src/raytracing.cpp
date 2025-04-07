@@ -1,13 +1,17 @@
 #include <cassert>
-#include <glm/detail/qualifier.hpp>
+#include <cstdio>
 #include <string>
 #include <array>
+
 #include <vulkan/vulkan_core.h>
+
+#include <glm/detail/qualifier.hpp>
 
 #include "blas.hpp"
 #include "common_types.h"
 #include "deletion_queue.hpp"
 #include "raytracing.hpp"
+#include "logger.hpp"
 #include "raytracing_scene.hpp"
 #include "raytracing_worldobject.hpp"
 #include "shader_module.hpp"
@@ -524,7 +528,6 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 	    .pShaderGroupCaptureReplayHandle = NULL,
 	};
 
-	// Group 4
 	// Ray Miss Shadow
 	rayTracingShaderGroupCreateInfoList[raytracingInfo.missGroupOffset + 1] = {
 	    .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
@@ -547,7 +550,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 	    .pStages = pipelineShaderStageCreateInfoList.data(),
 	    .groupCount = static_cast<uint32_t>(rayTracingShaderGroupCreateInfoList.size()),
 	    .pGroups = rayTracingShaderGroupCreateInfoList.data(),
-	    .maxPipelineRayRecursionDepth = 1,
+	    .maxPipelineRayRecursionDepth = 2, // level of 2 needed for shadow rays
 	    .pLibraryInfo = NULL,
 	    .pLibraryInterface = NULL,
 	    .pDynamicState = NULL,
@@ -939,6 +942,15 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// Requesting ray tracing properties
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties{};
 	requestRaytracingProperties(physicalDevice, physicalDeviceRayTracingPipelineProperties);
+
+	debug_printFmt("physicalDeviceRayTracingPipelineProperties.maxRayRecursionDepth: {%d}\n",
+	               physicalDeviceRayTracingPipelineProperties.maxRayRecursionDepth);
+	// make sure that a recursion depth of at least 2 is supported (used for shadow rays)
+	if (physicalDeviceRayTracingPipelineProperties.maxRayRecursionDepth <= 1)
+	{
+		throw std::runtime_error(
+		    "Error: Device fails to support ray recursion (maxRayRecursionDepth <= 1)");
+	}
 
 	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
 	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);

@@ -58,7 +58,6 @@ START_BINDING(ObjectType)
 	t_Tetrahedron3 = 5,
 	t_RectangularBezierSurface2x2 = 6,
 	t_BezierTriangle2 = 7,
-	t_SlicingPlane = 80,
 	t_AABBDebug = 100
 END_BINDING();
 

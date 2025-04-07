@@ -24,7 +24,6 @@ layout(location = 0) rayPayloadEXT Payload
 	int rayDepth;
 
 	int rayActive;
-	// bool hitOnSlicingPlaneInsideObject;
 }
 payload;
 
@@ -89,7 +88,7 @@ void main()
 		            0,
 		            0,
 		            payload.rayOrigin,
-		            0.01,
+		            0.001,
 		            payload.rayDirection,
 		            1000.0,
 		            0);
@@ -113,6 +112,9 @@ void main()
 		// }
 	}
 
+	// directColor is the color of the light that hits directly, e.g. from our light source
+	// indirectColor is the color of the light that bounces off surfaces and hits the object or in
+	// our case also the environment light
 	vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);
 
 	if (ubo.frameCount > 0)

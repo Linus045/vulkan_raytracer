@@ -142,7 +142,8 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
                             out vec2 hitCoords,
                             out vec3 hitNormal,
                             const vec2 initialGuess,
-                            const vec3 origin,
+                            const vec3 rayOrigin,
+                            const vec3 rayDirection,
                             const vec3[6] controlPoints,
                             const vec3 n1,
                             const vec3 n2)
@@ -176,8 +177,8 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 			break;
 		}
 
-		vec2 f_value
-		    = fBezierTriangle(controlPoints, origin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
+		vec2 f_value = fBezierTriangle(
+		    controlPoints, rayOrigin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
 
 		previousErrorF = errorF;
 		errorF = abs(f_value.x) + abs(f_value.y);
@@ -195,17 +196,28 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 	if (hit)
 	{
 		// TODO: why not c+1 ?
-		const int idx = c;
+		const int idx = c + 1;
 		if (u[idx].x < 0 || u[idx].y < 0 || (u[idx].x + u[idx].y) > 1)
 		{
 			hit = false;
 			return hit;
 		}
 
-		hitPoint
+		vec3 pointOnSurface
 		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0 - u[idx].x - u[idx].y);
-		hitCoords = vec2(u[idx].x, u[idx].y);
-		hitNormal = cross(partialU, partialV);
+
+		// make sure hitPos is in front of ray
+		if (dot(pointOnSurface - rayOrigin, rayDirection) > 0)
+		{
+			hitPoint = pointOnSurface;
+			hitCoords = vec2(u[idx].x, u[idx].y);
+			hitNormal = normalize(cross(partialU, partialV));
+		}
+		else
+		{
+			hit = false;
+			return hit;
+		}
 	}
 	return hit;
 }
@@ -217,7 +229,10 @@ void main()
 	{
 		// here we should actually calculate the intersection with the AABB but
 		// for simple debugging this is enough to show the AABBs
-		reportIntersectionEXT(0.001, t_AABBDebug);
+
+		// NOTE: this fake hit distance must be greater than the tMin in the traceRayEXT used in the
+		// rGen shader
+		reportIntersectionEXT(0.1, t_AABBDebug);
 		return;
 	}
 
@@ -255,7 +270,6 @@ void main()
 	{
 		BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 
-		vec3 o = ray.origin;
 		vec3 n1, n2;
 
 		float dx = ray.direction.x;
@@ -290,7 +304,8 @@ void main()
 				                           hitCoords,
 				                           hitNormal,
 				                           guess,
-				                           o,
+				                           ray.origin,
+				                           ray.direction,
 				                           bezierTriangle.controlPoints,
 				                           n1,
 				                           n2))
@@ -322,7 +337,7 @@ void main()
 
 					if (hitValid)
 					{
-						float dist = distance(hitPoint, o);
+						float dist = distance(hitPoint, ray.origin);
 						// if point is closer to camera, update values
 						if (tHit < 0 || dist < tHit)
 						{
@@ -341,6 +356,7 @@ void main()
 	{
 		// Sphere intersection
 		Sphere sphere = spheres[instance.bufferIndex];
+
 		if (isCrosshairRay)
 		{
 			debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
@@ -350,7 +366,23 @@ void main()
 			               sphere.colorIdx);
 		}
 
-		tHit = hitSphere(sphere, ray);
+		bool isShadowRay = ((gl_IncomingRayFlagsEXT & gl_RayFlagsSkipClosestHitShaderEXT) > 0);
+		// first sphere is the light sphere, we want to ignore it for shadow test rays
+		if (instance.bufferIndex == 0 && isShadowRay)
+		{
+			// ignore hit if its the shadow test ray
+			tHit = -1;
+		}
+		else
+		{
+
+			tHit = hitSphere(sphere, ray);
+			if (tHit > 0)
+			{
+				hitData.point = ray.origin + tHit * ray.direction;
+				hitData.normal = hitData.point - sphere.center;
+			}
+		}
 	}
 	else
 	{

@@ -333,8 +333,8 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::SliderFloat("Global Light Intensity",
 			                                  &uiData.raytracingDataConstants.globalLightIntensity,
 			                                  0.0f,
-			                                  12.0f,
-			                                  "%.1f",
+			                                  1.0f,
+			                                  "%.4f",
 			                                  0)
 			               || valueChanged;
 
