@@ -9,6 +9,7 @@
 #include "glm/common.hpp"
 
 #include "tetrahedron.hpp"
+#include "rectangularBezierSurface.hpp"
 #include "common_types.h"
 
 namespace ltracer

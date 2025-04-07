@@ -84,7 +84,7 @@ void RaytracingScene::loadScene(const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		ltracer::rt::visualizeTetrahedron2(raytracingScene, tetrahedron2);
+		ltracer::rt::visualizeTetrahedron<Tetrahedron2, 10>(raytracingScene, tetrahedron2);
 	}
 	else if (index == 3)
 	{

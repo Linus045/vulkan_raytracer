@@ -181,6 +181,11 @@ struct Tetrahedron3
 	vec3 controlPoints[20];
 };
 
+struct Tetrahedron4
+{
+	vec3 controlPoints[35];
+};
+
 struct Triangle
 {
 	vec3 a;
@@ -191,6 +196,11 @@ struct Triangle
 struct BezierTriangle2
 {
 	vec3 controlPoints[6];
+};
+
+struct BezierTriangle3
+{
+	vec3 controlPoints[10];
 };
 
 struct SlicingPlane

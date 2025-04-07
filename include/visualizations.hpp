@@ -9,6 +9,7 @@
 #include <glm/geometric.hpp>
 #include <glm/matrix.hpp>
 
+#include "bezier_math.hpp"
 #include "common_types.h"
 #include "raytracing_scene.hpp"
 
@@ -59,8 +60,9 @@ inline float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, f
 	return fraction * powi * powj * powk;
 }
 
+template <unsigned int C>
 inline glm::vec3
-bezierVolumePoint(const std::array<glm::vec3, 10> controlPoints, int n, float u, float v, float w)
+bezierVolumePoint(const std::array<glm::vec3, C> controlPoints, int n, float u, float v, float w)
 {
 	auto sum = glm::vec3();
 	for (int k = 0; k <= n; k++)
@@ -500,17 +502,16 @@ inline void visualizeBezierSurface([[maybe_unused]] std::vector<Sphere>& spheres
 	// }
 }
 
-inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingScene,
-                                  [[maybe_unused]] const Tetrahedron2& tetrahedron)
+template <typename T, unsigned int C>
+inline void visualizeTetrahedron([[maybe_unused]] RaytracingScene& raytracingScene,
+                                 [[maybe_unused]] const T& tetrahedron)
 {
 	// Visualize control points
 	for (auto& point : tetrahedron.controlPoints)
 	{
 		raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_black);
 	}
-	// static auto min = 100000000.0f;
-	// static auto minParameter = glm::vec3(0);
-	// Visualize volume
+
 	float stepSize = 0.1f;
 	for (float u = 0; u <= 1; u += stepSize)
 	{
@@ -520,13 +521,9 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 			{
 				if (u + v + w <= 1)
 				{
-					// auto rayO = glm::vec3(0.5f, 0.8f, 0.6f);
-					auto p
-					    = bezierVolumePoint(std::to_array(tetrahedron.controlPoints), 2, u, v, w);
+					auto p = bezierVolumePoint<C>(
+					    std::to_array(tetrahedron.controlPoints), 2, u, v, w);
 
-					// auto isEdge = glm::abs(u - 1) <= 1e-5 || glm::abs(v - 1) <= 1e-5
-					//               || glm::abs(w - 1) <= 1e-5 || glm::abs(u) <= 1e-5
-					//               || glm::abs(v) <= 1e-5 || glm::abs(w) <= 1e-5;
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (isFace1)
 					{
@@ -559,15 +556,6 @@ inline void visualizeTetrahedron2([[maybe_unused]] RaytracingScene& raytracingSc
 			}
 		}
 	}
-
-	// std::cout << "Min with parameter (u,v,w) is:" << std::fixed << min << " (" <<
-	// minParameter.x
-	//           << " " << minParameter.y << " " << minParameter.z << ")" << std::endl;
-
-	// auto pO = bezierVolumePoint(
-	//     std::to_array(tetrahedron.controlPoints), minParameter.x, minParameter.y,
-	//     minParameter.z);
-	// spheres.emplace_back(pO, 0.01f, static_cast<int>(ColorIdx::t_red));
 }
 
 inline bool intersectWithPlane(const glm::vec3 planeNormal,
