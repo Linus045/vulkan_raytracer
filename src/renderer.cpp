@@ -6,8 +6,6 @@
 #include "raytracing.hpp"
 #include "model.hpp"
 
-const uint64_t TIMEOUT_SECONDS_5 = 5ll * 1000ll * 1000ll * 1000ll;
-
 namespace ltracer
 {
 
@@ -172,8 +170,8 @@ void Renderer::createFramebuffers()
 
 void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIData& uiData)
 {
-	VkResult result = vkWaitForFences(
-	    logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, TIMEOUT_SECONDS_5);
+	VkResult result
+	    = vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINTMAX_MAX);
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error("Renderer::drawFrame - failed to wait for fence");
@@ -183,7 +181,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 	uint32_t imageIndex;
 	result = vkAcquireNextImageKHR(logicalDevice,
 	                               window.getSwapChain(),
-	                               TIMEOUT_SECONDS_5,
+	                               UINTMAX_MAX,
 	                               imageAvailableSemaphores[currentFrame],
 	                               VK_NULL_HANDLE,
 	                               &imageIndex);
