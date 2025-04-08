@@ -200,7 +200,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 		for (auto& point : tetrahedron2.controlPoints)
 		{
-			if (point.x == 1 && point.y == 1 && point.z == 1)
+			if (glm::abs(point.x - 1) < 1e-8 && glm::abs(point.y - 1) < 1e-8
+			    && glm::abs(point.z - 1) < 1e-8)
 			{
 				raytracingScene.addObjectSphere(point, 0.08f, ColorIdx::t_red);
 			}
