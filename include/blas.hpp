@@ -7,7 +7,7 @@
 #include "device_procedures.hpp"
 #include "vk_utils.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -34,7 +34,7 @@ createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
 	    .buffer = aabbBufferHandle,
 	};
 
-	VkDeviceAddress aabbPositionsDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	VkDeviceAddress aabbPositionsDeviceAddress = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 	    logicalDevice, &aabbPositionsDeviceAddressInfo);
 
 	// create Bottom Level Acceleration Structure
@@ -157,7 +157,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .buildScratchSize = 0,
 	};
 
-	ltracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
+	tracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
 	    logicalDevice,
 	    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 	    &bottomLevelAccelerationStructureBuildGeometryInfo,
@@ -188,7 +188,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .deviceAddress = 0,
 	};
 
-	VkResult result = ltracer::procedures::pvkCreateAccelerationStructureKHR(
+	VkResult result = tracer::procedures::pvkCreateAccelerationStructureKHR(
 	    logicalDevice,
 	    &bottomLevelAccelerationStructureCreateInfo,
 	    NULL,
@@ -202,7 +202,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	deletionQueue.push_function(
 	    [=]()
 	    {
-		    ltracer::procedures::pvkDestroyAccelerationStructureKHR(
+		    tracer::procedures::pvkDestroyAccelerationStructureKHR(
 		        logicalDevice, bottomLevelAccelerationStructureHandle, NULL);
 	    });
 
@@ -226,7 +226,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	};
 
 	VkDeviceAddress bottomLevelAccelerationStructureScratchBufferDeviceAddress
-	    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	    = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 	        logicalDevice, &bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo);
 
 	bottomLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
@@ -274,7 +274,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 
 	vkCmdPipelineBarrier2(bottomLevelCommandBuffer, &dependencyInfoWaitforAccelerationStructure);
 
-	ltracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
+	tracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
 	    bottomLevelCommandBuffer,
 	    1,
 	    &bottomLevelAccelerationStructureBuildGeometryInfo,
@@ -360,7 +360,7 @@ inline std::pair<VkBuffer, VkDeviceMemory> createObjectBuffer(VkPhysicalDevice p
 // inline VkBuffer createAABBBuffer(VkPhysicalDevice physicalDevice,
 //                                  VkDevice logicalDevice,
 //                                  DeletionQueue& deletionQueue,
-//                                  const std::vector<ltracer::AABB>& aabbs)
+//                                  const std::vector<tracer::AABB>& aabbs)
 // {
 // 	std::vector<VkAabbPositionsKHR> aabbPositions = std::vector<VkAabbPositionsKHR>(0);
 // 	aabbPositions.reserve(aabbs.size());
@@ -420,4 +420,4 @@ createBottomLevelAccelerationStructureBuildDataForObject(VkDevice logicalDevice,
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

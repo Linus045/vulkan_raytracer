@@ -9,7 +9,7 @@
 
 #include "window.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 enum class KeyListeningMode
@@ -58,4 +58,4 @@ void handleInputCallback(GLFWwindow* window, int key, int scancode, int action, 
 
 void handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffset, double yOffset);
 
-} // namespace ltracer
+} // namespace tracer

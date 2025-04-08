@@ -20,7 +20,7 @@
 #include "device_procedures.hpp"
 #include "vk_utils.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -378,14 +378,14 @@ void loadShaderModules(VkDevice logicalDevice,
 
 	// =========================================================================
 	// Ray Closest Hit Shader Module
-	ltracer::shader::createShaderModule("shaders/shader.rchit.spv",
+	tracer::shader::createShaderModule("shaders/shader.rchit.spv",
 	                                    logicalDevice,
 	                                    deletionQueue,
 	                                    raytracingInfo.rayClosestHitShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Generate Shader Module
-	ltracer::shader::createShaderModule("shaders/shader.rgen.spv",
+	tracer::shader::createShaderModule("shaders/shader.rgen.spv",
 	                                    logicalDevice,
 	                                    deletionQueue,
 	                                    raytracingInfo.rayGenerateShaderModuleHandle);
@@ -393,7 +393,7 @@ void loadShaderModules(VkDevice logicalDevice,
 	// =========================================================================
 	// Ray Miss Shader Module
 
-	ltracer::shader::createShaderModule("shaders/shader.rmiss.spv",
+	tracer::shader::createShaderModule("shaders/shader.rmiss.spv",
 	                                    logicalDevice,
 	                                    deletionQueue,
 	                                    raytracingInfo.rayMissShaderModuleHandle);
@@ -401,14 +401,14 @@ void loadShaderModules(VkDevice logicalDevice,
 	// =========================================================================
 	// Ray Miss Shader Module (Shadow)
 
-	ltracer::shader::createShaderModule("shaders/shader_shadow.rmiss.spv",
+	tracer::shader::createShaderModule("shaders/shader_shadow.rmiss.spv",
 	                                    logicalDevice,
 	                                    deletionQueue,
 	                                    raytracingInfo.rayMissShadowShaderModuleHandle);
 
 	// =========================================================================
 	// Ray AABB Intersection Module
-	ltracer::shader::createShaderModule("shaders/shader_aabb.rint.spv",
+	tracer::shader::createShaderModule("shaders/shader_aabb.rint.spv",
 	                                    logicalDevice,
 	                                    deletionQueue,
 	                                    raytracingInfo.rayAABBIntersectionModuleHandle);
@@ -559,7 +559,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
 	    .basePipelineIndex = 0,
 	};
 
-	VkResult result = ltracer::procedures::pvkCreateRayTracingPipelinesKHR(
+	VkResult result = tracer::procedures::pvkCreateRayTracingPipelinesKHR(
 	    logicalDevice,
 	    VK_NULL_HANDLE,
 	    VK_NULL_HANDLE,
@@ -879,7 +879,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 // 	       .pNext = NULL,
 // 	       .buffer = meshObject.vertexBufferHandle};
 
-// 	meshObject.vertexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+// 	meshObject.vertexBufferDeviceAddress = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 // 	    logicalDevice, &vertexBufferDeviceAddressInfo);
 
 // 	// =========================================================================
@@ -921,7 +921,7 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 // 	       .pNext = NULL,
 // 	       .buffer = meshObject.indexBufferHandle};
 
-// 	meshObject.indexBufferDeviceAddress = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+// 	meshObject.indexBufferDeviceAddress = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 // 	    logicalDevice, &indexBufferDeviceAddressInfo);
 // }
 
@@ -984,7 +984,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Device Pointer Functions
-	ltracer::procedures::grabDeviceProcAddr(logicalDevice);
+	tracer::procedures::grabDeviceProcAddr(logicalDevice);
 
 	// =========================================================================
 	// Command Pool
@@ -1345,7 +1345,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	             shaderBindingTableDeviceMemoryHandle);
 
 	char* shaderHandleBuffer = new char[shaderBindingTableSize];
-	result = ltracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(
+	result = tracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(
 
 	    logicalDevice,
 	    raytracingInfo.rayTracingPipelineHandle,
@@ -1393,7 +1393,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	};
 
 	VkDeviceAddress shaderBindingTableBufferDeviceAddress
-	    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+	    = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 	        logicalDevice, &shaderBindingTableBufferDeviceAddressInfo);
 
 	VkDeviceSize hitGroupOffset = raytracingInfo.hitGroupOffset * progSize;
@@ -1467,7 +1467,7 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                   sizeof(RaytracingDataConstants),
 	                   &raytracingInfo.raytracingConstants);
 
-	ltracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
+	tracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
 	                                        &raytracingInfo.rgenShaderBindingTable,
 	                                        &raytracingInfo.rmissShaderBindingTable,
 	                                        &raytracingInfo.rchitShaderBindingTable,
@@ -1690,4 +1690,4 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

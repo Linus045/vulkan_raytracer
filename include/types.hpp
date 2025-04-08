@@ -15,7 +15,7 @@
 #include "common_types.h"
 #include "model.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 struct QueueFamilyIndices
@@ -128,7 +128,7 @@ struct RaytracingInfo
 
 	VkFence accelerationStructureBuildFence = VK_NULL_HANDLE;
 
-	ltracer::QueueFamilyIndices queueFamilyIndices = {};
+	tracer::QueueFamilyIndices queueFamilyIndices = {};
 
 	UniformStructure uniformStructure;
 
@@ -176,4 +176,4 @@ struct RaytracingInfo
 	VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
 };
 
-} // namespace ltracer
+} // namespace tracer

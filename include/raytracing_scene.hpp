@@ -17,7 +17,7 @@
 
 // TODO: move functions into raytracing_scene.cpp file
 
-namespace ltracer
+namespace tracer
 {
 // forward declaration
 class Renderer;
@@ -127,7 +127,7 @@ class RaytracingScene
 			}
 
 			const auto& bezierTriangle
-			    = ltracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
+			    = tracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
 
 			std::vector<BezierTriangle2> subTriangles;
 			subTriangles.reserve(
@@ -140,7 +140,7 @@ class RaytracingScene
 			// 	for (size_t j = 0; j < std::pow(4.0L, static_cast<long double>(i)); j++)
 			// 	{
 			// 		BezierTriangle2& t = subTriangles.front();
-			// 		const auto& s = ltracer::subdivideBezierTriangle2(t);
+			// 		const auto& s = tracer::subdivideBezierTriangle2(t);
 
 			// 		subTriangles.push_back(s.bottomLeft);
 			// 		subTriangles.push_back(s.bottomRight);
@@ -484,10 +484,10 @@ class RaytracingScene
 	{
 		copyObjectsToBuffers();
 
-		std::vector<ltracer::AABB> aabbsSpheres;
-		std::vector<ltracer::AABB> aabbsTetrahedrons;
-		std::vector<ltracer::AABB> aabbsBezierTriangles2;
-		std::vector<ltracer::AABB> aabbsRectangularSurfaces2x2;
+		std::vector<tracer::AABB> aabbsSpheres;
+		std::vector<tracer::AABB> aabbsTetrahedrons;
+		std::vector<tracer::AABB> aabbsBezierTriangles2;
+		std::vector<tracer::AABB> aabbsRectangularSurfaces2x2;
 
 		// extract and copy AABBs to buffers
 		std::vector<Sphere> spheresList
@@ -652,7 +652,7 @@ class RaytracingScene
 			    };
 
 			VkDeviceAddress bottomLevelAccelerationStructureDeviceAddress
-			    = ltracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
+			    = tracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
 			        logicalDevice, &bottomLevelAccelerationStructureDeviceAddressInfo);
 
 			// create the blas instance
@@ -767,4 +767,4 @@ class RaytracingScene
 };
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

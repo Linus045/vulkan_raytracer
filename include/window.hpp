@@ -15,7 +15,7 @@
 #include "vk_utils.hpp"
 #include "logger.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 class Window
@@ -218,7 +218,7 @@ class Window
 		                        | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		createInfo.minImageCount = imageCount;
 
-		ltracer::QueueFamilyIndices indices = findQueueFamilies(physicalDevice, vulkanSurface);
+		tracer::QueueFamilyIndices indices = findQueueFamilies(physicalDevice, vulkanSurface);
 		uint32_t queueFamilyIndices[] = {
 		    indices.graphicsFamily.value(),
 		    indices.presentFamily.value(),
@@ -256,7 +256,7 @@ class Window
 	void recreateSwapChain(VkPhysicalDevice& physicalDevice,
 	                       VkDevice& logicalDevice,
 	                       VkExtent2D& swapExtent,
-	                       ltracer::SwapChainSupportDetails& swapChainSupport)
+	                       tracer::SwapChainSupportDetails& swapChainSupport)
 	{
 
 		cleanupSwapChain(logicalDevice);
@@ -391,4 +391,4 @@ class Window
 	bool cursorCaptureEnabled = false;
 };
 
-} // namespace ltracer
+} // namespace tracer

@@ -15,7 +15,7 @@
 #include "camera.hpp"
 #include "backends/imgui_impl_glfw.h"
 
-namespace ltracer
+namespace tracer
 {
 
 void handleMouseInputCallback(GLFWwindow* window, int button, int action, int mods)
@@ -226,4 +226,4 @@ void handleMouseScrollCallback(GLFWwindow* window, [[maybe_unused]] double xOffs
 		userData.camera.setMovementSpeed(userData.camera.getMovementSpeed() + change);
 	}
 }
-} // namespace ltracer
+} // namespace tracer

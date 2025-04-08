@@ -1,5 +1,5 @@
 #include "geometry.hpp"
-namespace ltracer
+namespace tracer
 {
 
 template <>
@@ -53,4 +53,4 @@ bool Geometry<RectangularBezierSurface2x2>::recalculateAABB()
 	       || glm::abs(zDimension - oldZDimension) > 1e-5;
 }
 
-} // namespace ltracer
+} // namespace tracer

@@ -20,7 +20,7 @@
 #include "ui.hpp"
 #include "window.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 class Renderer
@@ -30,8 +30,8 @@ class Renderer
 
 	Renderer(VkPhysicalDevice physicalDevice,
 	         VkDevice logicalDevice,
-	         ltracer::DeletionQueue& deletionQueue,
-	         ltracer::Window& window,
+	         tracer::DeletionQueue& deletionQueue,
+	         tracer::Window& window,
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
 	         VkQueue transferQueue,
@@ -71,7 +71,7 @@ class Renderer
 		{
 			raytracingScene->cleanup(raytracingInfo.graphicsQueueHandle);
 
-			ltracer::rt::freeRaytraceImageAndImageView(
+			tracer::rt::freeRaytraceImageAndImageView(
 			    logicalDevice,
 			    raytracingInfo.rayTraceImageHandle,
 			    raytracingInfo.rayTraceImageViewHandle,
@@ -86,7 +86,7 @@ class Renderer
 	{
 		if (raytracingSupported)
 		{
-			ltracer::rt::recreateRaytracingImageBuffer(physicalDevice,
+			tracer::rt::recreateRaytracingImageBuffer(physicalDevice,
 			                                           logicalDevice,
 			                                           window.getSwapChainImageFormat(),
 			                                           window.getSwapChainExtent(),
@@ -119,19 +119,19 @@ class Renderer
 
 	void createFramebuffers();
 
-	inline void renderImguiFrame(const VkCommandBuffer commandBuffer, ltracer::ui::UIData& uiData)
+	inline void renderImguiFrame(const VkCommandBuffer commandBuffer, tracer::ui::UIData& uiData)
 	{
-		ltracer::ui::beginFrame();
-		ltracer::ui::renderMainPanel(uiData);
-		ltracer::ui::renderCrosshair(uiData);
-		ltracer::ui::endFrame();
+		tracer::ui::beginFrame();
+		tracer::ui::renderMainPanel(uiData);
+		tracer::ui::renderCrosshair(uiData);
+		tracer::ui::endFrame();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	}
 
 	void updateUniformBuffer([[maybe_unused]] uint32_t currentImage)
 	{
-		// for (ltracer::WorldObject &obj : *worldObjects) {
-		//   ltracer::UniformBufferObject ubo{};
+		// for (tracer::WorldObject &obj : *worldObjects) {
+		//   tracer::UniformBufferObject ubo{};
 		//   ubo.modelMatrix = obj.getModelMatrix();
 		//   // logMat4("MODEL MATRIX for Frame:" + std::to_string(currentImage) +
 		//   //             " and object:" + std::to_string(objectIdx),
@@ -207,11 +207,11 @@ class Renderer
 
 	inline void updateSharedInfoBuffer()
 	{
-		// ltracer::SharedInfo sharedInfo;
+		// tracer::SharedInfo sharedInfo;
 		// sharedInfo.view = viewMatrix;
 		// sharedInfo.proj = projectionMatrix;
 		// memcpy(sharedInfoBufferMemoryMapped, &sharedInfo,
-		//        sizeof(ltracer::SharedInfo));
+		//        sizeof(tracer::SharedInfo));
 	}
 
   private:
@@ -262,7 +262,7 @@ class Renderer
 	VkPipelineLayout pipelineLayout;
 	VkPipeline graphicsPipeline;
 
-	// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects;
+	// std::shared_ptr<std::vector<tracer::WorldObject>> worldObjects;
 };
 
-} // namespace ltracer
+} // namespace tracer

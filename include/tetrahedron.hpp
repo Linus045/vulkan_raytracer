@@ -11,7 +11,7 @@
 
 #include "common_types.h"
 
-namespace ltracer
+namespace tracer
 {
 
 struct SubdividedTetrahedron2
@@ -288,4 +288,4 @@ inline BezierTriangle3 extractBezierTriangleFromTetrahedron(const Tetrahedron3& 
 // 	};
 // }
 
-} // namespace ltracer
+} // namespace tracer

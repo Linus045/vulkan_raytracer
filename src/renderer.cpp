@@ -6,7 +6,7 @@
 #include "raytracing.hpp"
 #include "model.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 void Renderer::initRenderer(VkInstance& vulkanInstance)
@@ -14,8 +14,8 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	// this->worldObjects = worldObjects;
 
 	// grab the required queue families
-	ltracer::QueueFamilyIndices queueFamilyIndices
-	    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
+	tracer::QueueFamilyIndices queueFamilyIndices
+	    = tracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 	raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
 	createImageViews();
@@ -34,12 +34,12 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	createCommandBuffers();
 	createSyncObjects();
 
-	// for (ltracer::MeshObject &obj : *worldObjects) {
+	// for (tracer::MeshObject &obj : *worldObjects) {
 	//   createVertexBuffer(obj);
 	//   createIndexBuffer(obj);
 	// }
 
-	ltracer::ui::initImgui(vulkanInstance,
+	tracer::ui::initImgui(vulkanInstance,
 	                       logicalDevice,
 	                       physicalDevice,
 	                       window,
@@ -49,18 +49,18 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	if (raytracingSupported)
 	{
-		ltracer::rt::createRaytracingImage(physicalDevice,
+		tracer::rt::createRaytracingImage(physicalDevice,
 		                                   logicalDevice,
 		                                   window.getSwapChainImageFormat(),
 		                                   window.getSwapChainExtent(),
 		                                   raytracingInfo);
 
-		raytracingInfo.rayTraceImageViewHandle = ltracer::rt::createRaytracingImageView(
+		raytracingInfo.rayTraceImageViewHandle = tracer::rt::createRaytracingImageView(
 		    logicalDevice, window.getSwapChainImageFormat(), raytracingInfo.rayTraceImageHandle);
 
 		raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
-		ltracer::rt::initRayTracing(
+		tracer::rt::initRayTracing(
 		    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, *raytracingScene);
 	}
 
@@ -98,7 +98,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	};
 
 	// auto& cameraTransform = camera->transform;
-	// ltracer::updateUniformStructure(
+	// tracer::updateUniformStructure(
 	//     cameraTransform.position, cameraTransform.getRight(),
 	//     cameraTransform.getUp(), cameraTransform.getForward());
 }
@@ -226,7 +226,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 			resetFrameCountRequested = true;
 		}
 
-		ltracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
+		tracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
 		resetFrameCountRequested = false;
 	}
 	updateUniformBuffer(currentFrame);
@@ -461,8 +461,8 @@ void Renderer::createGraphicsPipeline()
 	    fragShaderStageCreateInfo,
 	};
 
-	auto bindingDescription = ltracer::Vertex::getBindingDescription();
-	// auto attributeDescriptions = ltracer::Vertex::getAttributeDescriptions();
+	auto bindingDescription = tracer::Vertex::getBindingDescription();
+	// auto attributeDescriptions = tracer::Vertex::getAttributeDescriptions();
 
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -740,7 +740,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
 	if (raytracingSupported)
 	{
-		ltracer::rt::recordRaytracingCommandBuffer(
+		tracer::rt::recordRaytracingCommandBuffer(
 		    commandBuffer, window.getSwapChainExtent(), raytracingInfo);
 
 		VkImageCopy2 region = {};
@@ -835,4 +835,4 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 		throw std::runtime_error("Renderer::recordCommandBuffer - failed to record command buffer");
 	}
 }
-}; // namespace ltracer
+}; // namespace tracer

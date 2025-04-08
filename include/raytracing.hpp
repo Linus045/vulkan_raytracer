@@ -29,7 +29,7 @@
 
 #include "tiny_obj_loader.h"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -313,4 +313,4 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    RaytracingInfo& raytracingInfo);
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

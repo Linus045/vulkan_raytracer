@@ -13,7 +13,7 @@
 // forward declarations
 struct RaytracingDataConstants;
 
-namespace ltracer
+namespace tracer
 {
 
 // forward declarations
@@ -122,11 +122,11 @@ void renderErrors(const UIData& uiData);
 
 void renderRaytracingOptions(UIData& uiData);
 
-void renderHelpInfo(const ltracer::ui::UIData& uiData);
+void renderHelpInfo(const tracer::ui::UIData& uiData);
 
-void renderButtons(const ltracer::ui::UIData& uiData);
+void renderButtons(const tracer::ui::UIData& uiData);
 
-void renderRaytracingProperties(const ltracer::ui::UIData& uiData);
+void renderRaytracingProperties(const tracer::ui::UIData& uiData);
 
 void renderCrosshair(const UIData& uiData);
 
@@ -137,4 +137,4 @@ void beginFrame();
 void endFrame();
 
 } // namespace ui
-} // namespace ltracer
+} // namespace tracer

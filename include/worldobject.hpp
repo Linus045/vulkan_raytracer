@@ -11,7 +11,7 @@
 
 #include "transform.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 class WorldObject
@@ -69,4 +69,4 @@ class WorldObject
 	Transform transform;
 };
 
-} // namespace ltracer
+} // namespace tracer

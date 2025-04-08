@@ -15,7 +15,7 @@
 #include "deletion_queue.hpp"
 #include "window.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 namespace ui
@@ -347,7 +347,7 @@ void renderRaytracingOptions(UIData& uiData)
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 }
 
-void renderButtons(const ltracer::ui::UIData& uiData)
+void renderButtons(const tracer::ui::UIData& uiData)
 {
 	for (const auto& button : uiData.buttonCallbacks)
 	{
@@ -358,7 +358,7 @@ void renderButtons(const ltracer::ui::UIData& uiData)
 	}
 }
 
-void renderHelpInfo(const ltracer::ui::UIData& uiData)
+void renderHelpInfo(const tracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Control:");
 	ImGui::Text("Press Q to quit");
@@ -371,7 +371,7 @@ void renderHelpInfo(const ltracer::ui::UIData& uiData)
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
 }
 
-void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
+void renderRaytracingProperties(const tracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Raytracing Properties:");
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
@@ -383,7 +383,7 @@ void renderRaytracingProperties(const ltracer::ui::UIData& uiData)
 	}
 }
 
-void renderPositionSliders(ltracer::ui::UIData& uiData)
+void renderPositionSliders(tracer::ui::UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Raytracing - Positions"))
 	{
@@ -517,4 +517,4 @@ void endFrame()
 }
 
 } // namespace ui
-} // namespace ltracer
+} // namespace tracer

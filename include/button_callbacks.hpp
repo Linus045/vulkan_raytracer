@@ -1,6 +1,6 @@
 #pragma once
 
-namespace ltracer
+namespace tracer
 {
 // forward declarations
 class Window;
@@ -20,4 +20,4 @@ void registerButtonFunctions(Window& window,
                              const Camera& camera,
                              ui::UIData& uiData);
 }
-} // namespace ltracer
+} // namespace tracer

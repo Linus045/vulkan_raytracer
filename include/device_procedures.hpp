@@ -2,7 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-namespace ltracer
+namespace tracer
 {
 namespace procedures
 {
@@ -21,4 +21,4 @@ extern PFN_vkGetRayTracingShaderGroupHandlesKHR pvkGetRayTracingShaderGroupHandl
 void grabDeviceProcAddr(VkDevice logicalDevice);
 
 } // namespace procedures
-} // namespace ltracer
+} // namespace tracer

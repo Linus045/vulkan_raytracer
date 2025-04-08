@@ -3,7 +3,7 @@
 
 #include "aabb.hpp"
 #include <stdexcept>
-namespace ltracer
+namespace tracer
 {
 
 template <typename T>
@@ -61,4 +61,4 @@ bool Geometry<Tetrahedron2>::recalculateAABB();
 template <>
 bool Geometry<RectangularBezierSurface2x2>::recalculateAABB();
 
-} // namespace ltracer
+} // namespace tracer

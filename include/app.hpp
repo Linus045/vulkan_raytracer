@@ -36,19 +36,19 @@ class Application
 
 	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
 	                              VkDevice logicalDevice,
-	                              ltracer::Renderer& renderer,
-	                              ltracer::Window& window,
-	                              ltracer::Camera& camera,
-	                              ltracer::SwapChainSupportDetails& swapChainSupportDetails);
+	                              tracer::Renderer& renderer,
+	                              tracer::Window& window,
+	                              tracer::Camera& camera,
+	                              tracer::SwapChainSupportDetails& swapChainSupportDetails);
 
-	static ltracer::SwapChainSupportDetails
-	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, ltracer::Window& window)
+	static tracer::SwapChainSupportDetails
+	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, tracer::Window& window)
 	{
 		return querySwapChainSupport(physicalDevice, window);
 	}
 
-	static ltracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
-	                                                              ltracer::Window& window);
+	static tracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
+	                                                              tracer::Window& window);
 
 	bool isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 	                      const std::vector<const char*> requiredDeviceExtensions);
@@ -78,15 +78,15 @@ class Application
 
   private:
 	// stores the data displayed in the ui
-	std::unique_ptr<ltracer::ui::UIData> uiData;
+	std::unique_ptr<tracer::ui::UIData> uiData;
 
 	// stores the data needed for the window callback events, e.g. mouse move, keyboard input, etc.
-	std::unique_ptr<ltracer::CustomUserData> customUserData;
+	std::unique_ptr<tracer::CustomUserData> customUserData;
 
 	// the deletion queue used for the deinitialization of vulkan objects on exit
-	ltracer::DeletionQueue mainDeletionQueue;
+	tracer::DeletionQueue mainDeletionQueue;
 
-	ltracer::SwapChainSupportDetails swapChainSupportDetails;
+	tracer::SwapChainSupportDetails swapChainSupportDetails;
 
 	// whether the GPU supports ray tracing, if false, only the ui is renderer
 	bool raytracingSupported = false;
@@ -101,9 +101,9 @@ class Application
 	// properties of the selected GPU (info is displayed via the UI)
 	VkPhysicalDeviceProperties physicalDeviceProperties;
 
-	ltracer::Window window;
-	std::unique_ptr<ltracer::Renderer> renderer;
-	ltracer::Camera camera;
+	tracer::Window window;
+	std::unique_ptr<tracer::Renderer> renderer;
+	tracer::Camera camera;
 
 	// Handle for the debug message callback
 	VkDebugUtilsMessengerEXT debugMessenger;

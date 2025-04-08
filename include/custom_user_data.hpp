@@ -5,7 +5,7 @@
 
 #include "input.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 // forward declarations
@@ -44,4 +44,4 @@ struct CustomUserData
 	bool ignoreFirstMouseMovement = false;
 };
 
-} // namespace ltracer
+} // namespace tracer

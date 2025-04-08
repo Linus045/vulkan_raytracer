@@ -9,7 +9,7 @@
 #include "device_procedures.hpp"
 #include "vk_utils.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -97,7 +97,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		};
 
 		VkDeviceAddress blasGeometryInstancesDeviceAddress
-		    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+		    = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 		        logicalDevice, &blasGeometryInstancesAddressesInfo);
 
 		// VkAccelerationStructureGeometryDataKHR topLevelAccelerationStructureGeometryData = {};
@@ -150,7 +150,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		std::vector<uint32_t> topLevelMaxPrimitiveCountList
 		    = {static_cast<unsigned int>(instances.size())};
 
-		ltracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
+		tracer::procedures::pvkGetAccelerationStructureBuildSizesKHR(
 		    logicalDevice,
 		    VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
 		    &topLevelAccelerationStructureBuildGeometryInfo,
@@ -184,7 +184,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		    .deviceAddress = 0,
 		};
 
-		result = ltracer::procedures::pvkCreateAccelerationStructureKHR(
+		result = tracer::procedures::pvkCreateAccelerationStructureKHR(
 		    logicalDevice,
 		    &topLevelAccelerationStructureCreateInfo,
 		    NULL,
@@ -198,7 +198,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		deletionQueue.push_function(
 		    [=]()
 		    {
-			    ltracer::procedures::pvkDestroyAccelerationStructureKHR(
+			    tracer::procedures::pvkDestroyAccelerationStructureKHR(
 			        logicalDevice, topLevelAccelerationStructureHandle, NULL);
 		    });
 
@@ -213,7 +213,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		// };
 
 		// VkDeviceAddress topLevelAccelerationStructureDeviceAddress
-		//     = ltracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
+		//     = tracer::procedures::pvkGetAccelerationStructureDeviceAddressKHR(
 		//         logicalDevice, &topLevelAccelerationStructureDeviceAddressInfo);
 
 		createBuffer(physicalDevice,
@@ -233,7 +233,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		};
 
 		VkDeviceAddress topLevelAccelerationStructureScratchBufferDeviceAddress
-		    = ltracer::procedures::pvkGetBufferDeviceAddressKHR(
+		    = tracer::procedures::pvkGetBufferDeviceAddressKHR(
 		        logicalDevice, &topLevelAccelerationStructureScratchBufferDeviceAddressInfo);
 
 		topLevelAccelerationStructureBuildGeometryInfo.dstAccelerationStructure
@@ -275,7 +275,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
 	}
 
-	ltracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
+	tracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
 	    commandBufferBuildTopAndBottomLevel,
 	    1,
 	    &topLevelAccelerationStructureBuildGeometryInfo,
@@ -339,4 +339,4 @@ inline void createAndBuildTopLevelAccelerationStructure(
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

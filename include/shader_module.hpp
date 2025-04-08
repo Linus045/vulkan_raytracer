@@ -7,7 +7,7 @@
 
 #include "deletion_queue.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 namespace shader
@@ -46,4 +46,4 @@ inline void createShaderModule(const std::filesystem::path& filePath,
 	    [=]() { vkDestroyShaderModule(logicalDevice, shaderModuleHandle, NULL); });
 }
 }; // namespace shader
-} // namespace ltracer
+} // namespace tracer

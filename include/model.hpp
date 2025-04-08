@@ -17,7 +17,7 @@
 
 #include "worldobject.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 struct Vertex
@@ -184,4 +184,4 @@ class MeshObject : public WorldObject
 	// VkBuffer uniformBufferHandle;
 };
 
-} // namespace ltracer
+} // namespace tracer

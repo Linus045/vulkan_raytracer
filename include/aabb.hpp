@@ -12,7 +12,7 @@
 #include "rectangularBezierSurface.hpp"
 #include "common_types.h"
 
-namespace ltracer
+namespace tracer
 {
 
 // Axis Aligned Bounding Box
@@ -183,4 +183,4 @@ class AABB
 	}
 };
 
-} // namespace ltracer
+} // namespace tracer

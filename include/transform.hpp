@@ -11,7 +11,7 @@
 #include "glm/gtx/quaternion.hpp"
 #include "glm/ext/matrix_transform.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 struct Transform
@@ -110,4 +110,4 @@ struct Transform
 	glm::vec3 scale{1.0f, 1.0f, 1.0f};
 };
 
-} // namespace ltracer
+} // namespace tracer

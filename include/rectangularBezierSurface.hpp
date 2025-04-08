@@ -9,7 +9,7 @@
 
 #include "common_types.h"
 
-namespace ltracer
+namespace tracer
 {
 class RectangularBezierSurface
 {
@@ -52,4 +52,4 @@ class RectangularBezierSurface
 	[[maybe_unused]] const uint32_t m;
 	const std::vector<glm::vec3> controlPoints;
 };
-} // namespace ltracer
+} // namespace tracer

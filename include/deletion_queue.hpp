@@ -3,7 +3,7 @@
 #include <deque>
 #include <functional>
 
-namespace ltracer
+namespace tracer
 {
 
 struct DeletionQueue
@@ -27,4 +27,4 @@ struct DeletionQueue
 	}
 };
 
-} // namespace ltracer
+} // namespace tracer

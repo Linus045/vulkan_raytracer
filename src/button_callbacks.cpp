@@ -17,7 +17,7 @@
 #include "input.hpp"
 #include "visualizations.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -45,7 +45,7 @@ static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiDat
 		// clear the spheres before we test a side so only corresponding spheres for that side
 		// remain
 		raytracingScene.getWorldObjectSpheres().clear();
-		if (ltracer::rt::newtonsMethodTriangle2(
+		if (tracer::rt::newtonsMethodTriangle2(
 		        raytracingScene,
 		        renderer.getRaytracingDataConstants(),
 		        intersectionPoint,
@@ -79,8 +79,8 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 	glm::vec3 n2 = normalize(cross(ray.direction, n1));
 
 	raytracingScene.getWorldObjectSpheres().clear();
-	ltracer::rt::visualizePlane(raytracingScene, n1, camera.transform.getPos(), 1, 1);
-	ltracer::rt::visualizePlane(raytracingScene, n2, camera.transform.getPos(), 1, 1);
+	tracer::rt::visualizePlane(raytracingScene, n1, camera.transform.getPos(), 1, 1);
+	tracer::rt::visualizePlane(raytracingScene, n2, camera.transform.getPos(), 1, 1);
 
 	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
@@ -91,7 +91,7 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 	auto& slicingPlane = raytracingScene.getSlicingPlanes()[0];
 
 	raytracingScene.getWorldObjectSpheres().clear();
-	ltracer::rt::visualizePlane(
+	tracer::rt::visualizePlane(
 	    raytracingScene, slicingPlane.normal, slicingPlane.planeOrigin, 2.5, 2.5);
 
 	uiData.recreateAccelerationStructures.requestRecreate(true);
@@ -116,16 +116,16 @@ void registerButtonFunctions(Window& window,
 	    std::make_pair("[R] CPU Raytrace", [&]() { shootRay(renderer, camera, uiData); }));
 	registerKeyListener(window,
 	                    GLFW_KEY_R,
-	                    ltracer::KeyTriggerMode::KeyDown,
-	                    ltracer::KeyListeningMode::FLYING_CAMERA,
+	                    tracer::KeyTriggerMode::KeyDown,
+	                    tracer::KeyListeningMode::FLYING_CAMERA,
 	                    [&]() { shootRay(renderer, camera, uiData); });
 
 	uiData.buttonCallbacks.push_back(std::make_pair(
 	    "[T] Visualize Ray Planes", [&]() { visualizeRayPlanes(renderer, camera, uiData); }));
 	registerKeyListener(window,
 	                    GLFW_KEY_T,
-	                    ltracer::KeyTriggerMode::KeyDown,
-	                    ltracer::KeyListeningMode::FLYING_CAMERA,
+	                    tracer::KeyTriggerMode::KeyDown,
+	                    tracer::KeyListeningMode::FLYING_CAMERA,
 	                    [&]() { visualizeRayPlanes(renderer, camera, uiData); });
 
 	uiData.buttonCallbacks.push_back(std::make_pair(
@@ -140,10 +140,10 @@ void registerButtonFunctions(Window& window,
 		    std::make_pair(label, [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); }));
 		registerKeyListener(window,
 		                    GLFW_KEY_0 + sceneNr,
-		                    ltracer::KeyTriggerMode::KeyDown,
-		                    ltracer::KeyListeningMode::FLYING_CAMERA,
+		                    tracer::KeyTriggerMode::KeyDown,
+		                    tracer::KeyListeningMode::FLYING_CAMERA,
 		                    [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); });
 	}
 }
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

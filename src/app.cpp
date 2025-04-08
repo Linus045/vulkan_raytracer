@@ -49,7 +49,7 @@ void Application::run()
 
 	createRenderer();
 
-	uiData = std::make_unique<ltracer::ui::UIData>(camera,
+	uiData = std::make_unique<tracer::ui::UIData>(camera,
 	                                               window,
 	                                               raytracingSupported,
 	                                               physicalDeviceProperties,
@@ -60,7 +60,7 @@ void Application::run()
 
 	);
 
-	customUserData = std::make_unique<ltracer::CustomUserData>(vulkan_initialized,
+	customUserData = std::make_unique<tracer::CustomUserData>(vulkan_initialized,
 	                                                           window,
 	                                                           camera,
 	                                                           *renderer,
@@ -75,7 +75,7 @@ void Application::run()
 	if (raytracingSupported)
 	{
 		setupScene();
-		ltracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
+		tracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
 	}
 
 	mainLoop();
@@ -83,8 +83,8 @@ void Application::run()
 	cleanupApp();
 }
 
-// std::shared_ptr<std::vector<ltracer::WorldObject>> worldObjects
-//     = std::make_shared<std::vector<ltracer::WorldObject>>();
+// std::shared_ptr<std::vector<tracer::WorldObject>> worldObjects
+//     = std::make_shared<std::vector<tracer::WorldObject>>();
 
 void Application::createWindow()
 {
@@ -95,7 +95,7 @@ void Application::createRenderer()
 {
 	int width, height;
 	window.getFramebufferSize(&width, &height);
-	renderer = std::make_unique<ltracer::Renderer>(physicalDevice,
+	renderer = std::make_unique<tracer::Renderer>(physicalDevice,
 	                                               logicalDevice,
 	                                               mainDeletionQueue,
 	                                               window,
@@ -141,9 +141,9 @@ bool Application::checkValidationLayerSupport()
 
 void Application::setupScene()
 {
-	ltracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
+	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
 
-	ltracer::rt::RaytracingScene::loadScene(*renderer, raytracingScene, 1);
+	tracer::rt::RaytracingScene::loadScene(*renderer, raytracingScene, 1);
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
@@ -151,7 +151,7 @@ void Application::setupScene()
 
 	// =========================================================================
 	// Update Descriptor Set
-	ltracer::rt::updateAccelerationStructureDescriptorSet(
+	tracer::rt::updateAccelerationStructureDescriptorSet(
 	    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
 
 	// TODO: move this to a more appropriate place
@@ -180,7 +180,7 @@ void Application::setupScene()
 // 	// std::cout << "Loaded " << (*meshObjects).size() << " models\n";
 // }
 
-// ltracer::WorldObject& loadModel(std::filesystem::path modelPath,
+// tracer::WorldObject& loadModel(std::filesystem::path modelPath,
 //                                 glm::vec3 color = glm::vec3{1.0f, 1.0f, 1.0f},
 //                                 glm::vec3 position = glm::vec3(0, 0, 0))
 // {
@@ -189,7 +189,7 @@ void Application::setupScene()
 
 // 	if (loadout)
 // 	{
-// 		std::vector<ltracer::Vertex> vertices;
+// 		std::vector<tracer::Vertex> vertices;
 // 		vertices.reserve(modelLoader.LoadedMeshes[0].Vertices.size());
 // 		std::vector<unsigned int> indices;
 // 		indices.reserve(modelLoader.LoadedMeshes[0].Indices.size());
@@ -221,10 +221,10 @@ void Application::setupScene()
 
 void Application::initInputHandlers()
 {
-	glfwSetKeyCallback(window.getGLFWWindow(), &ltracer::handleInputCallback);
-	glfwSetMouseButtonCallback(window.getGLFWWindow(), &ltracer::handleMouseInputCallback);
-	glfwSetCursorPosCallback(window.getGLFWWindow(), &ltracer::handleMouseMovementCallback);
-	glfwSetScrollCallback(window.getGLFWWindow(), &ltracer::handleMouseScrollCallback);
+	glfwSetKeyCallback(window.getGLFWWindow(), &tracer::handleInputCallback);
+	glfwSetMouseButtonCallback(window.getGLFWWindow(), &tracer::handleMouseInputCallback);
+	glfwSetCursorPosCallback(window.getGLFWWindow(), &tracer::handleMouseMovementCallback);
+	glfwSetScrollCallback(window.getGLFWWindow(), &tracer::handleMouseScrollCallback);
 
 	// additional callbacks only needed by Imgui
 	glfwSetWindowFocusCallback(window.getGLFWWindow(), ImGui_ImplGlfw_WindowFocusCallback);
@@ -281,8 +281,8 @@ void Application::initVulkan()
 void Application::createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions)
 {
 	// grab the required queue families
-	ltracer::QueueFamilyIndices indices
-	    = ltracer::findQueueFamilies(physicalDevice, window.getVkSurface());
+	tracer::QueueFamilyIndices indices
+	    = tracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 
 	std::vector<VkDeviceQueueCreateInfo> queueCreateInfos{};
 
@@ -528,10 +528,10 @@ Application::pickPhysicalDevice(const std::vector<const char*> requiredDeviceExt
 
 void Application::resizeFramebuffer(VkPhysicalDevice physicalDevice,
                                     VkDevice logicalDevice,
-                                    ltracer::Renderer& renderer,
-                                    ltracer::Window& window,
-                                    ltracer::Camera& camera,
-                                    ltracer::SwapChainSupportDetails& swapChainSupportDetails)
+                                    tracer::Renderer& renderer,
+                                    tracer::Window& window,
+                                    tracer::Camera& camera,
+                                    tracer::SwapChainSupportDetails& swapChainSupportDetails)
 {
 	VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);
 	if (extent.height > 0 && extent.width > 0)
@@ -551,8 +551,8 @@ void Application::framebufferResizeCallback(GLFWwindow* window,
                                             [[maybe_unused]] int width,
                                             [[maybe_unused]] int height)
 {
-	ltracer::CustomUserData& userData
-	    = *reinterpret_cast<ltracer::CustomUserData*>(glfwGetWindowUserPointer(window));
+	tracer::CustomUserData& userData
+	    = *reinterpret_cast<tracer::CustomUserData*>(glfwGetWindowUserPointer(window));
 	if (!userData.vulkan_initialized) return;
 
 	userData.swapChainSupportDetails
@@ -566,10 +566,10 @@ void Application::framebufferResizeCallback(GLFWwindow* window,
 	                  userData.swapChainSupportDetails);
 }
 
-ltracer::SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice physicalDevice,
-                                                                    ltracer::Window& window)
+tracer::SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice physicalDevice,
+                                                                    tracer::Window& window)
 {
-	ltracer::SwapChainSupportDetails details;
+	tracer::SwapChainSupportDetails details;
 
 	vkGetPhysicalDeviceSurfaceCapabilitiesKHR(
 	    physicalDevice, window.getVkSurface(), &details.capabilities);
@@ -600,8 +600,8 @@ ltracer::SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDe
 bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
                                    const std::vector<const char*> requiredDeviceExtensions)
 {
-	ltracer::QueueFamilyIndices indices
-	    = ltracer::findQueueFamilies(physicalDeviceToCheck, window.getVkSurface());
+	tracer::QueueFamilyIndices indices
+	    = tracer::findQueueFamilies(physicalDeviceToCheck, window.getVkSurface());
 
 	bool extensionsSupported
 	    = checkDeviceExtensionSupport(physicalDeviceToCheck, requiredDeviceExtensions);
@@ -609,7 +609,7 @@ bool Application::isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 	bool swapChainAdequate = false;
 	if (extensionsSupported)
 	{
-		ltracer::SwapChainSupportDetails swapChainSupport
+		tracer::SwapChainSupportDetails swapChainSupport
 		    = querySwapChainSupport(physicalDeviceToCheck, window);
 		swapChainAdequate
 		    = !swapChainSupport.formats.empty() && !swapChainSupport.presentModes.empty();
@@ -703,7 +703,7 @@ void Application::mainLoop()
 		delta = glfwGetTime() - lastFrame;
 		lastFrame = currentFrame;
 
-		ltracer::updateMovement(*customUserData, delta);
+		tracer::updateMovement(*customUserData, delta);
 
 		renderer->updateViewProjectionMatrix(camera.getViewMatrix(), camera.getProjectionMatrix());
 

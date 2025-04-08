@@ -2,7 +2,7 @@
 #include <vulkan/vulkan_core.h>
 #include "device_procedures.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace procedures
 {
@@ -105,4 +105,4 @@ void grabDeviceProcAddr(VkDevice logicalDevice)
 }
 
 } // namespace procedures
-} // namespace ltracer
+} // namespace tracer

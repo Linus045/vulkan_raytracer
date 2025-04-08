@@ -4,7 +4,7 @@
 #include "visualizations.hpp"
 #include <random>
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -53,7 +53,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 	if (sceneNr == 1)
 	{
-		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f),
 		    glm::vec3(2.0f, 0.0f, 0.0f),
 		    glm::vec3(2.0f, 2.0f, 2.0f),
@@ -74,7 +74,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	{
 		float scalar = 1.0f;
 		glm::vec3 offset = glm::vec3(8.0f, 0, 10.0f);
-		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
@@ -90,13 +90,13 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		ltracer::rt::visualizeTetrahedron<Tetrahedron2, 10>(raytracingScene, tetrahedron2);
+		tracer::rt::visualizeTetrahedron<Tetrahedron2, 10>(raytracingScene, tetrahedron2);
 	}
 	else if (sceneNr == 3)
 	{
 		float scalar = 1.0f;
 		glm::vec3 offset = glm::vec3(0.0f, 0, 0.0f);
-		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0, 0, 0) * scalar + offset,
 		    glm::vec3(4, 0, 2) * scalar + offset,
 		    glm::vec3(7, 0, 9) * scalar + offset,
@@ -116,7 +116,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	else if (sceneNr == 4)
 	{
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f),
 			    glm::vec3(2.0f, 0.0f, 0.0f),
 			    glm::vec3(0.0f, 2.0f, 0.0f),
@@ -133,7 +133,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 		}
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f),
 			    glm::vec3(0.0f, 0.0f, -2.0f),
 			    glm::vec3(0.0f, 2.0f, 0.0f),
@@ -153,7 +153,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	else if (sceneNr == 5)
 	{
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f),
 			    glm::vec3(2.0f, 0.0f, 0.0f),
 			    glm::vec3(2.0f, 2.0f, 2.0f),
@@ -170,7 +170,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 		}
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f),
 			    glm::vec3(0.0f, 0.0f, -2.0f),
 			    glm::vec3(2.0f, 2.0f, 2.0f),
@@ -190,7 +190,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	}
 	else if (sceneNr == 6)
 	{
-		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron3(std::to_array({
+		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron3(std::to_array({
 		    glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 2), glm::vec3(0, 0, 3),
 		    glm::vec3(0, 1, 0), glm::vec3(0, 1, 1), glm::vec3(0, 1, 2), glm::vec3(0, 2, 0),
 		    glm::vec3(0, 2, 1), glm::vec3(0, 3, 0), glm::vec3(1, 0, 0), glm::vec3(1, 0, 1),
@@ -215,7 +215,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 		float scalar = 1.0f;
 		glm::vec3 offset = glm::vec3(0.0f, 0, 0.0f);
-		[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 0),
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 2),
 		    glm::vec3(2.0f, 2.0f, 2.0f) * scalar + offset + getRandomOffset(-0, 2),
@@ -240,7 +240,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	else if (sceneNr == 8)
 	{
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, 0.0f),
 			    glm::vec3(2.0f, 0.0f, 0.0f),
 			    glm::vec3(0.0f, 2.0f, 0.0f),
@@ -257,7 +257,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 		}
 		{
-			[[maybe_unused]] auto tetrahedron2 = ltracer::createTetrahedron2(std::to_array({
+			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 			    glm::vec3(0.0f, 0.0f, -0.01f),
 			    glm::vec3(0.0f, 0.0f, -2.0f),
 			    glm::vec3(0.0f, 2.0f, -0.01f),
@@ -281,4 +281,4 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

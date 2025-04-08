@@ -13,7 +13,7 @@
 #include "common_types.h"
 #include "raytracing_scene.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -699,4 +699,4 @@ inline vec3 partialBezierTriangle2U(vec3 controlPoints[6], float u, float v)
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

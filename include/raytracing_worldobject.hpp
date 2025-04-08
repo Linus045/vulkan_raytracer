@@ -2,7 +2,7 @@
 
 #include "worldobject.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -100,4 +100,4 @@ template <>
 void RaytracingWorldObject<Sphere>::translate(const float x, const float y, const float z);
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer

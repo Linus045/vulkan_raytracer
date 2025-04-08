@@ -21,7 +21,7 @@
 
 #include "transform.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 class Camera
@@ -231,4 +231,4 @@ class Camera
 	float rotationSpeed = 60.0f;
 };
 
-} // namespace ltracer
+} // namespace tracer

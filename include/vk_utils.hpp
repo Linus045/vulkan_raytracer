@@ -9,7 +9,7 @@
 #include "deletion_queue.hpp"
 #include "types.hpp"
 
-namespace ltracer
+namespace tracer
 {
 
 constexpr VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
@@ -40,10 +40,10 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
 }
 
 // TODO: probably add some form of caching
-inline ltracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice,
+inline tracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice,
                                                      VkSurfaceKHR vulkanSurface)
 {
-	ltracer::QueueFamilyIndices indices;
+	tracer::QueueFamilyIndices indices;
 
 	uint32_t queueFamilyCount = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &queueFamilyCount, nullptr);
@@ -216,4 +216,4 @@ inline void addImageMemoryBarrier(VkCommandBuffer commandBuffer,
 	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 }
 
-} // namespace ltracer
+} // namespace tracer

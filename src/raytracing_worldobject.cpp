@@ -1,6 +1,6 @@
 #include "raytracing_worldobject.hpp"
 
-namespace ltracer
+namespace tracer
 {
 namespace rt
 {
@@ -31,4 +31,4 @@ void RaytracingWorldObject<Sphere>::translate(const float x, const float y, cons
 }
 
 } // namespace rt
-} // namespace ltracer
+} // namespace tracer
