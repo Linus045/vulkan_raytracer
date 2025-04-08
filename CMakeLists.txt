@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.28)
-project(vulkan_experiments VERSION 1.0)
+project(vulkan_raytracer VERSION 1.0)
 
 
 ### Require out-of-source builds
@@ -24,7 +24,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CXX_STANDARD_REQUIRED ON)
 
 
-set(target_name vulkan_experiments)
+set(target_name vulkan_raytracer)
 
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
@@ -248,7 +248,7 @@ set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT ${target_name})
 ## dependencies ###############################################################
 ###############################################################################
 # source code
-# target_include_directories(vulkan_experiments PUBLIC src/)
+# target_include_directories(vulkan_raytracer PUBLIC src/)
 
 # Vulkan
 find_package(Vulkan REQUIRED)

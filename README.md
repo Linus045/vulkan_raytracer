@@ -116,20 +116,20 @@ ___
 When cloning the repository submodules need to be cloned as well.
 To do that use the `--recursive` flag:
 ```bash
-git clone --recursive https://github.com/Linus045/vulkan_experiments.git vulkan_experiments
+git clone --recursive https://github.com/Linus045/vulkan_raytracer.git vulkan_raytracer
 
 # change into the directory for the next step
-cd vulkan_experiments
+cd vulkan_raytracer
 ```
 
 ### 3.1 Manually clone submodules
 If you have already cloned the repository without the submodules, you can initialize and clone the submodules with:
 ```bash
 # clone the repository
-git clone https://github.com/Linus045/vulkan_experiments.git vulkan_experiments
+git clone https://github.com/Linus045/vulkan_raytracer.git vulkan_raytracer
 
 # change into the directory and load the submodules
-cd vulkan_experiments
+cd vulkan_raytracer
 git submodule update --init
 ```
 
@@ -137,7 +137,7 @@ git submodule update --init
 If you've downloaded the zip archive you need to manually add the submodules since they're not included with GitHub's zip archive:
 ```bash
 # Navigate into the directory where you extracted the zip archive
-cd <path to extracted vulkan_experiments zip directory>
+cd <path to extracted vulkan_raytracer zip directory>
 
 # Initialize a local git repository
 git init
@@ -251,7 +251,7 @@ The program looks for the compiled shader files in the `./shaders` directory whi
 That means to run the program, you first need to navigate to the `<project root>/build/bin` directory and run the executable from there:
 ```bash
 cd ./build/bin
-./vulkan_experiments
+./vulkan_raytracer
 ```
 
 </details>
@@ -259,7 +259,7 @@ cd ./build/bin
   <summary> Windows Visual Studio </summary>
 
 ### 5.2 Windows with Visual Studio
-You might need to set the executable to `vulkan_experiments`.
+You might need to set the executable to `vulkan_raytracer`.
 
 Afterwards simply press the `Start` button in Visual Studio.
 

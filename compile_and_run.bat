@@ -23,5 +23,5 @@ export "MANGOHUD=1"
 
 :runcmake
 
-cmake "-B" "build" "-S" "." "-G" "Visual Studio 17 2022" "-DCMAKE_BUILD_TYPE="%~1"" && cmake "--build" "build" --config "%~1" && PUSHD "build/bin" && call "vulkan_experiments.exe"
+cmake "-B" "build" "-S" "." "-G" "Visual Studio 17 2022" "-DCMAKE_BUILD_TYPE="%~1"" && cmake "--build" "build" --config "%~1" && PUSHD "build/bin" && call "vulkan_raytracer.exe"
 POPD

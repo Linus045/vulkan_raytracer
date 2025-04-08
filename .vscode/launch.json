@@ -5,7 +5,7 @@
 			"name": "Launch (codelldb)",
 			"type": "cppvsdbg",
 			"request": "launch",
-			"program": "${workspaceFolder}/build/bin/vulkan_experiments",
+			"program": "${workspaceFolder}/build/bin/vulkan_raytracer",
 			"cwd": "${workspaceFolder}/build/bin",
 			"args": [],
             "preLaunchTask": "CMake: build"
@@ -15,7 +15,7 @@
             "type": "cppdbg",
             "request": "launch",
             "nvim_preLaunchTask": "cmake --build ${workspaceFolder}/build",
-			"program": "${workspaceFolder}/build/bin/vulkan_experiments",
+			"program": "${workspaceFolder}/build/bin/vulkan_raytracer",
             "args": [],
             "stopAtEntry": false,
 			"cwd": "${workspaceFolder}/build/bin",

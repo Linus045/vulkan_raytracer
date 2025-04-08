@@ -80,6 +80,6 @@ cmake -B build -S . -G "$generator" \
 	&& \
 	cd ./build/bin \
 	&& \
-	./vulkan_experiments
+	./vulkan_raytracer
 
 cd $current_dir
