@@ -1524,7 +1524,6 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
 
 void createRaytracingImage(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
-                           VkFormat swapChainFormat,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo)
 {
@@ -1533,7 +1532,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
         .pNext = NULL,
         .flags = 0,
         .imageType = VK_IMAGE_TYPE_2D,
-        .format = swapChainFormat,
+        .format = VK_FORMAT_R32G32B32A32_SFLOAT,
         .extent =
             {
                 .width = currentExtent.width,
@@ -1608,9 +1607,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	}
 }
 
-VkImageView createRaytracingImageView(VkDevice logicalDevice,
-                                      VkFormat swapChainFormat,
-                                      const VkImage& rayTraceImageHandle)
+VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& rayTraceImageHandle)
 {
 	VkImageView rayTraceImageViewHandle = VK_NULL_HANDLE;
 	VkImageViewCreateInfo rayTraceImageViewCreateInfo = {
@@ -1619,7 +1616,7 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice,
         .flags = 0,
         .image = rayTraceImageHandle,
         .viewType = VK_IMAGE_VIEW_TYPE_2D,
-        .format = swapChainFormat,
+        .format = VK_FORMAT_R32G32B32A32_SFLOAT,
         .components =
             {
                 .r = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -1667,7 +1664,6 @@ void freeRaytraceImageAndImageView(VkDevice logicalDevice,
 
 void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
-                                   VkFormat swapChainImageFormat,
                                    VkExtent2D windowExtent,
                                    RaytracingScene& raytracingScene,
                                    RaytracingInfo& raytracingInfo)
@@ -1677,11 +1673,10 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	                              raytracingInfo.rayTraceImageViewHandle,
 	                              raytracingInfo.rayTraceImageDeviceMemoryHandle);
 
-	createRaytracingImage(
-	    physicalDevice, logicalDevice, swapChainImageFormat, windowExtent, raytracingInfo);
+	createRaytracingImage(physicalDevice, logicalDevice, windowExtent, raytracingInfo);
 
-	raytracingInfo.rayTraceImageViewHandle = createRaytracingImageView(
-	    logicalDevice, swapChainImageFormat, raytracingInfo.rayTraceImageHandle);
+	raytracingInfo.rayTraceImageViewHandle
+	    = createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
 
 	updateAccelerationStructureDescriptorSet(logicalDevice, raytracingScene, raytracingInfo);
 

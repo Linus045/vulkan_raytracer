@@ -280,7 +280,6 @@ void freeRaytraceImageAndImageView(VkDevice logicalDevice,
  */
 void createRaytracingImage(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
-                           VkFormat swapChainFormat,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo);
 
@@ -292,9 +291,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
  * @param rayTraceImageHandle
  * @return VkImageView the image view for the image
  */
-VkImageView createRaytracingImageView(VkDevice logicalDevice,
-                                      VkFormat swapChainFormat,
-                                      const VkImage& rayTraceImageHandle);
+VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& rayTraceImageHandle);
 
 /**
  * @brief frees the current ray tracing image and recreates it with the new window dimensions, this
@@ -307,7 +304,6 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice,
  */
 void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
-                                   VkFormat swapChainImageFormat,
                                    VkExtent2D windowExtent,
                                    RaytracingScene& raytracingScene,
                                    RaytracingInfo& raytracingInfo);

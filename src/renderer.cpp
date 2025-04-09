@@ -49,14 +49,11 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	if (raytracingSupported)
 	{
-		tracer::rt::createRaytracingImage(physicalDevice,
-		                                   logicalDevice,
-		                                   window.getSwapChainImageFormat(),
-		                                   window.getSwapChainExtent(),
-		                                   raytracingInfo);
+		tracer::rt::createRaytracingImage(
+		    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
 
 		raytracingInfo.rayTraceImageViewHandle = tracer::rt::createRaytracingImageView(
-		    logicalDevice, window.getSwapChainImageFormat(), raytracingInfo.rayTraceImageHandle);
+		    logicalDevice, raytracingInfo.rayTraceImageHandle);
 
 		raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
@@ -766,7 +763,6 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 		copyImageInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2;
 		copyImageInfo.srcImage = raytracingInfo.rayTraceImageHandle;
 		copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-
 		copyImageInfo.dstImage = swapChainImages[imageIndex];
 		copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 		copyImageInfo.pNext = NULL;

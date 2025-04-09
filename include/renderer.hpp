@@ -87,11 +87,10 @@ class Renderer
 		if (raytracingSupported)
 		{
 			tracer::rt::recreateRaytracingImageBuffer(physicalDevice,
-			                                           logicalDevice,
-			                                           window.getSwapChainImageFormat(),
-			                                           window.getSwapChainExtent(),
-			                                           *raytracingScene,
-			                                           raytracingInfo);
+			                                          logicalDevice,
+			                                          window.getSwapChainExtent(),
+			                                          *raytracingScene,
+			                                          raytracingInfo);
 		}
 	}
 
