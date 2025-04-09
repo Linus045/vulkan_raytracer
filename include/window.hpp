@@ -272,7 +272,6 @@ class Window
 	chooseSwapSurfaceFormat(VkPhysicalDevice physicalDevice,
 	                        const std::vector<VkSurfaceFormatKHR>& availableFormats)
 	{
-
 		// try to find the good SRGB format with 8-bit RGB colors
 		for (const auto& availableFormat : availableFormats)
 		{
@@ -291,7 +290,26 @@ class Window
 			VkResult result = vkGetPhysicalDeviceImageFormatProperties2(
 			    physicalDevice, &formatInfo, &properties);
 
+			if (result != VK_SUCCESS)
+			{
+				debug_printFmt("Format unavailable - format: "
+				               "%s with color space: %s\n",
+				               string_VkFormat(availableFormat.format),
+				               string_VkColorSpaceKHR(availableFormat.colorSpace));
+				continue;
+			}
+
 			if (result == VK_SUCCESS && availableFormat.format == VK_FORMAT_B8G8R8_SRGB
+			    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+			{
+				debug_printFmt("SwapSurface Format - using format: "
+				               "%s with color space: %s\n",
+				               string_VkFormat(availableFormat.format),
+				               string_VkColorSpaceKHR(availableFormat.colorSpace));
+				return availableFormat;
+			}
+
+			if (result == VK_SUCCESS && availableFormat.format == VK_FORMAT_B8G8R8A8_SRGB
 			    && availableFormat.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
 			{
 				debug_printFmt("SwapSurface Format - using format: "
