@@ -53,6 +53,8 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	raytracingInfo.rayTraceImageViewHandle
 	    = tracer::createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
 
+	createRaytracingRenderpassAndFramebuffer();
+
 	raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
 	if (raytracingSupported)
@@ -624,7 +626,7 @@ void Renderer::createRenderPass()
 	    .flags = 0,
 	    .format = window.getSwapChainImageFormat(),
 	    .samples = VK_SAMPLE_COUNT_1_BIT,
-	    .loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+	    .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
 	    .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
 	    .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
 	    .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -859,8 +861,6 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                                    ui::UIData& uiData)
 {
 	auto swapChainExtent = window.getSwapChainExtent();
-	auto width = static_cast<uint32_t>(swapChainExtent.width);
-	auto height = static_cast<uint32_t>(swapChainExtent.height);
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -897,27 +897,9 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	VkClearValue clearValue{};
 	clearValue.color = clearColor;
 
-	// Offscreen render pass
+	if (raytracingSupported)
 	{
-		VkRenderPassBeginInfo renderPassInfo{};
-		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassInfo.renderPass = raytracingRenderPass;
-		renderPassInfo.framebuffer = raytracingFramebuffer;
-		renderPassInfo.renderArea.offset = {0, 0};
-		renderPassInfo.renderArea.extent = {
-		    width,
-		    height,
-		};
-		renderPassInfo.clearValueCount = 1;
-		renderPassInfo.pClearValues = &clearValue;
-
-		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
-		if (raytracingSupported)
-		{
-			tracer::rt::recordRaytracingCommandBuffer(
-			    commandBuffer, swapChainExtent, raytracingInfo);
-		}
-		vkCmdEndRenderPass(commandBuffer);
+		tracer::rt::recordRaytracingCommandBuffer(commandBuffer, swapChainExtent, raytracingInfo);
 	}
 
 	VkRenderPassBeginInfo renderPassInfo{};
@@ -926,8 +908,8 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	renderPassInfo.framebuffer = swapChainFramebuffers[imageIndex];
 	renderPassInfo.renderArea.offset = {0, 0};
 	renderPassInfo.renderArea.extent = swapChainExtent;
-	renderPassInfo.clearValueCount = 0; // 1;
-	renderPassInfo.pClearValues = NULL;
+	renderPassInfo.clearValueCount = 1;
+	renderPassInfo.pClearValues = &clearValue;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
