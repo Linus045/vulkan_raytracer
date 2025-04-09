@@ -40,12 +40,12 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	// }
 
 	tracer::ui::initImgui(vulkanInstance,
-	                       logicalDevice,
-	                       physicalDevice,
-	                       window,
-	                       renderPass,
-	                       graphicsQueue,
-	                       deletionQueue);
+	                      logicalDevice,
+	                      physicalDevice,
+	                      window,
+	                      renderPass,
+	                      graphicsQueue,
+	                      deletionQueue);
 
 	if (raytracingSupported)
 	{

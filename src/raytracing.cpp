@@ -379,39 +379,39 @@ void loadShaderModules(VkDevice logicalDevice,
 	// =========================================================================
 	// Ray Closest Hit Shader Module
 	tracer::shader::createShaderModule("shaders/shader.rchit.spv",
-	                                    logicalDevice,
-	                                    deletionQueue,
-	                                    raytracingInfo.rayClosestHitShaderModuleHandle);
+	                                   logicalDevice,
+	                                   deletionQueue,
+	                                   raytracingInfo.rayClosestHitShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Generate Shader Module
 	tracer::shader::createShaderModule("shaders/shader.rgen.spv",
-	                                    logicalDevice,
-	                                    deletionQueue,
-	                                    raytracingInfo.rayGenerateShaderModuleHandle);
+	                                   logicalDevice,
+	                                   deletionQueue,
+	                                   raytracingInfo.rayGenerateShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Miss Shader Module
 
 	tracer::shader::createShaderModule("shaders/shader.rmiss.spv",
-	                                    logicalDevice,
-	                                    deletionQueue,
-	                                    raytracingInfo.rayMissShaderModuleHandle);
+	                                   logicalDevice,
+	                                   deletionQueue,
+	                                   raytracingInfo.rayMissShaderModuleHandle);
 
 	// =========================================================================
 	// Ray Miss Shader Module (Shadow)
 
 	tracer::shader::createShaderModule("shaders/shader_shadow.rmiss.spv",
-	                                    logicalDevice,
-	                                    deletionQueue,
-	                                    raytracingInfo.rayMissShadowShaderModuleHandle);
+	                                   logicalDevice,
+	                                   deletionQueue,
+	                                   raytracingInfo.rayMissShadowShaderModuleHandle);
 
 	// =========================================================================
 	// Ray AABB Intersection Module
 	tracer::shader::createShaderModule("shaders/shader_aabb.rint.spv",
-	                                    logicalDevice,
-	                                    deletionQueue,
-	                                    raytracingInfo.rayAABBIntersectionModuleHandle);
+	                                   logicalDevice,
+	                                   deletionQueue,
+	                                   raytracingInfo.rayAABBIntersectionModuleHandle);
 }
 
 void createRaytracingPipeline(VkDevice logicalDevice,
@@ -1468,13 +1468,13 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                   &raytracingInfo.raytracingConstants);
 
 	tracer::procedures::pvkCmdTraceRaysKHR(commandBuffer,
-	                                        &raytracingInfo.rgenShaderBindingTable,
-	                                        &raytracingInfo.rmissShaderBindingTable,
-	                                        &raytracingInfo.rchitShaderBindingTable,
-	                                        &raytracingInfo.callableShaderBindingTable,
-	                                        currentExtent.width,
-	                                        currentExtent.height,
-	                                        1);
+	                                       &raytracingInfo.rgenShaderBindingTable,
+	                                       &raytracingInfo.rmissShaderBindingTable,
+	                                       &raytracingInfo.rchitShaderBindingTable,
+	                                       &raytracingInfo.callableShaderBindingTable,
+	                                       currentExtent.width,
+	                                       currentExtent.height,
+	                                       1);
 
 	addImageMemoryBarrier(commandBuffer,
 	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,

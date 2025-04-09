@@ -41,7 +41,7 @@ inline uint32_t findMemoryType(VkPhysicalDevice physicalDevice,
 
 // TODO: probably add some form of caching
 inline tracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDevice,
-                                                     VkSurfaceKHR vulkanSurface)
+                                                    VkSurfaceKHR vulkanSurface)
 {
 	tracer::QueueFamilyIndices indices;
 

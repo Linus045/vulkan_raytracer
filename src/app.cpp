@@ -50,24 +50,24 @@ void Application::run()
 	createRenderer();
 
 	uiData = std::make_unique<tracer::ui::UIData>(camera,
-	                                               window,
-	                                               raytracingSupported,
-	                                               physicalDeviceProperties,
-	                                               renderer->getRaytracingDataConstants(),
-	                                               renderer->getFrameCount(),
-	                                               renderer->getBLASInstancesCount(),
-	                                               renderer->getRaytracingScene().getSlicingPlanes()
+	                                              window,
+	                                              raytracingSupported,
+	                                              physicalDeviceProperties,
+	                                              renderer->getRaytracingDataConstants(),
+	                                              renderer->getFrameCount(),
+	                                              renderer->getBLASInstancesCount(),
+	                                              renderer->getRaytracingScene().getSlicingPlanes()
 
 	);
 
 	customUserData = std::make_unique<tracer::CustomUserData>(vulkan_initialized,
-	                                                           window,
-	                                                           camera,
-	                                                           *renderer,
-	                                                           *uiData,
-	                                                           swapChainSupportDetails,
-	                                                           logicalDevice,
-	                                                           physicalDevice);
+	                                                          window,
+	                                                          camera,
+	                                                          *renderer,
+	                                                          *uiData,
+	                                                          swapChainSupportDetails,
+	                                                          logicalDevice,
+	                                                          physicalDevice);
 
 	window.setWindowUserPointer(customUserData.get());
 	initInputHandlers();
@@ -96,13 +96,13 @@ void Application::createRenderer()
 	int width, height;
 	window.getFramebufferSize(&width, &height);
 	renderer = std::make_unique<tracer::Renderer>(physicalDevice,
-	                                               logicalDevice,
-	                                               mainDeletionQueue,
-	                                               window,
-	                                               graphicsQueue,
-	                                               presentQueue,
-	                                               transferQueue,
-	                                               raytracingSupported);
+	                                              logicalDevice,
+	                                              mainDeletionQueue,
+	                                              window,
+	                                              graphicsQueue,
+	                                              presentQueue,
+	                                              transferQueue,
+	                                              raytracingSupported);
 
 	window.createSwapChain(
 	    physicalDevice,
@@ -567,7 +567,7 @@ void Application::framebufferResizeCallback(GLFWwindow* window,
 }
 
 tracer::SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice physicalDevice,
-                                                                    tracer::Window& window)
+                                                                   tracer::Window& window)
 {
 	tracer::SwapChainSupportDetails details;
 

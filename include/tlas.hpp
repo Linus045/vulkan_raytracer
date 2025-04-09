@@ -97,8 +97,8 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		};
 
 		VkDeviceAddress blasGeometryInstancesDeviceAddress
-		    = tracer::procedures::pvkGetBufferDeviceAddressKHR(
-		        logicalDevice, &blasGeometryInstancesAddressesInfo);
+		    = tracer::procedures::pvkGetBufferDeviceAddressKHR(logicalDevice,
+		                                                       &blasGeometryInstancesAddressesInfo);
 
 		// VkAccelerationStructureGeometryDataKHR topLevelAccelerationStructureGeometryData = {};
 		// topLevelAccelerationStructureGeometryData.aabbs = {

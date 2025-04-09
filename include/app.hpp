@@ -48,7 +48,7 @@ class Application
 	}
 
 	static tracer::SwapChainSupportDetails querySwapChainSupport(VkPhysicalDevice physicalDevice,
-	                                                              tracer::Window& window);
+	                                                             tracer::Window& window);
 
 	bool isDeviceSuitable(VkPhysicalDevice physicalDeviceToCheck,
 	                      const std::vector<const char*> requiredDeviceExtensions);
