@@ -784,19 +784,18 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 		                      VK_IMAGE_LAYOUT_GENERAL,
 		                      subresourceRange,
 		                      raytracingInfo.rayTraceImageHandle);
-
-		addImageMemoryBarrier(commandBuffer,
-		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-		                      VK_ACCESS_TRANSFER_WRITE_BIT,
-		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-		                      VK_ACCESS_NONE,
-		                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-		                      subresourceRange,
-		                      swapChainImages[imageIndex]);
 	}
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
 
+	addImageMemoryBarrier(commandBuffer,
+	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	                      VK_ACCESS_TRANSFER_WRITE_BIT,
+	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	                      VK_ACCESS_NONE,
+	                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	                      subresourceRange,
+	                      swapChainImages[imageIndex]);
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
 	auto swapChainExtent = window.getSwapChainExtent();
 	// TODO: don't clear image
 
