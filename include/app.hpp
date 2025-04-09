@@ -39,7 +39,8 @@ class Application
 	                              tracer::Renderer& renderer,
 	                              tracer::Window& window,
 	                              tracer::Camera& camera,
-	                              tracer::SwapChainSupportDetails& swapChainSupportDetails);
+	                              tracer::SwapChainSupportDetails& swapChainSupportDetails,
+	                              const bool raytracingSupported);
 
 	static tracer::SwapChainSupportDetails
 	updateSwapChainSupportDetails(VkPhysicalDevice physicalDevice, tracer::Window& window)

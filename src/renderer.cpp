@@ -47,16 +47,16 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	                      graphicsQueue,
 	                      deletionQueue);
 
+	tracer::createRaytracingImage(
+	    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
+
+	raytracingInfo.rayTraceImageViewHandle
+	    = tracer::createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
+
+	raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
+
 	if (raytracingSupported)
 	{
-		tracer::rt::createRaytracingImage(
-		    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
-
-		raytracingInfo.rayTraceImageViewHandle = tracer::rt::createRaytracingImageView(
-		    logicalDevice, raytracingInfo.rayTraceImageHandle);
-
-		raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
-
 		tracer::rt::initRayTracing(
 		    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, *raytracingScene);
 	}
@@ -216,21 +216,22 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
 
-			rt::updateAccelerationStructureDescriptorSet(
+			updateAccelerationStructureDescriptorSet(
 			    logicalDevice, *raytracingScene, raytracingInfo);
 
 			uiData.recreateAccelerationStructures.reset();
 			resetFrameCountRequested = true;
 		}
 
-		tracer::rt::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
+		tracer::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
 		resetFrameCountRequested = false;
 	}
+
 	updateUniformBuffer(currentFrame);
 
 	uiData.raytracingDataConstants.cameraDir = camera.transform.getForward();
 
-	if (raytracingSupported)
+	// if (raytracingSupported)
 	{
 		// TODO: create a setUIData() and retrieveUIData() function that sets/loads these values
 		// correspondingly
@@ -681,10 +682,185 @@ void Renderer::createRenderPass()
 	                            { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
 }
 
+void Renderer::createRaytracingRenderpassAndFramebuffer()
+{
+	// // Setting the image layout for both color and depth
+	{
+		VkCommandPool commandPool1 = VK_NULL_HANDLE;
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = 0;
+		poolInfo.queueFamilyIndex = raytracingInfo.queueFamilyIndices.graphicsFamily.value();
+
+		if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &commandPool1) != VK_SUCCESS)
+		{
+			throw std::runtime_error("failed to create command pool!");
+		}
+
+		VkCommandBuffer commandBuffer1 = VK_NULL_HANDLE;
+
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = commandPool1;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = 1;
+
+		if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, &commandBuffer1) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+			                         "to allocate command buffers!");
+		}
+
+		VkCommandBufferBeginInfo beginInfo = {};
+		beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+		beginInfo.flags = 0;
+		beginInfo.pInheritanceInfo = 0;
+
+		VkResult result = vkBeginCommandBuffer(commandBuffer1, &beginInfo);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+			                         "to begin command buffer");
+		}
+
+		// addImageMemoryBarrier(commandBuffer,
+		//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		//                       VK_ACCESS_2_NONE,
+		//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		//                       VK_ACCESS_TRANSFER_READ_BIT,
+		//                       VK_IMAGE_LAYOUT_UNDEFINED,
+		//                       VK_IMAGE_LAYOUT_GENERAL,
+		//                       subresourceRange,
+		//                       raytracingInfo.rayTraceImageHandle);
+
+		auto subresourceRange = VkImageSubresourceRange{
+		    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+		    .baseMipLevel = 0,
+		    .levelCount = 1,
+		    .baseArrayLayer = 0,
+		    .layerCount = 1,
+		};
+		addImageMemoryBarrier(commandBuffer1,
+		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		                      VK_ACCESS_NONE,
+		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+		                      VK_ACCESS_2_TRANSFER_WRITE_BIT,
+		                      VK_IMAGE_LAYOUT_UNDEFINED,
+		                      VK_IMAGE_LAYOUT_GENERAL,
+		                      subresourceRange,
+		                      raytracingInfo.rayTraceImageHandle);
+
+		result = vkEndCommandBuffer(commandBuffer1);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+			                         "to end command buffer");
+		}
+
+		VkSubmitInfo submit{};
+		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		submit.commandBufferCount = 1;
+		submit.pCommandBuffers = &commandBuffer1;
+
+		result = vkQueueSubmit(graphicsQueue, 1, &submit, nullptr);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error(
+			    "Renderer::createRaytracingRenderpassAndFramebuffer - failed to submit queue");
+		}
+
+		result = vkQueueWaitIdle(graphicsQueue);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+			                         "to wait for queue idle");
+		}
+
+		vkFreeCommandBuffers(logicalDevice, commandPool1, 1, &commandBuffer1);
+		vkDestroyCommandPool(logicalDevice, commandPool1, nullptr);
+	}
+
+	// Creating a renderpass for the offscreen
+	if (raytracingRenderPass == VK_NULL_HANDLE)
+	{
+		VkAttachmentDescription colorAttachment = {};
+		colorAttachment.format = raytracingImageColorFormat;
+		colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
+		colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+		colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		colorAttachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		colorAttachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+		colorAttachment.initialLayout = VK_IMAGE_LAYOUT_GENERAL;
+		colorAttachment.finalLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+		VkAttachmentReference colorAttachmentRef = {};
+		colorAttachmentRef.attachment = 0;
+		colorAttachmentRef.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		VkSubpassDescription subpass = {};
+		subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+		subpass.colorAttachmentCount = 1;
+		subpass.pColorAttachments = &colorAttachmentRef;
+		subpass.pDepthStencilAttachment = VK_NULL_HANDLE;
+
+		VkSubpassDependency dependency = {};
+		dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
+		dependency.dstSubpass = 0;
+		dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		dependency.srcAccessMask = 0;
+		dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+
+		VkRenderPassCreateInfo renderPassCreateInfo{};
+		renderPassCreateInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+		renderPassCreateInfo.attachmentCount = 1;
+		renderPassCreateInfo.pAttachments = &colorAttachment;
+		renderPassCreateInfo.subpassCount = 1;
+		renderPassCreateInfo.pSubpasses = &subpass;
+		renderPassCreateInfo.dependencyCount = 1;
+		renderPassCreateInfo.pDependencies = &dependency;
+
+		VkResult result = vkCreateRenderPass(
+		    logicalDevice, &renderPassCreateInfo, nullptr, &raytracingRenderPass);
+		if (result != VK_SUCCESS)
+		{
+			throw std::runtime_error(
+			    "createRaytracingRenderpassAndFramebuffer - failed to create render pass");
+		}
+	}
+
+	// Creating the frame buffer for offscreen
+	std::vector<VkImageView> attachments = {};
+
+	// destroy old framebuffer
+	vkDestroyFramebuffer(logicalDevice, raytracingFramebuffer, nullptr);
+
+	// create new framebuffer
+	auto extent = window.getSwapChainExtent();
+	VkFramebufferCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+	createInfo.renderPass = raytracingRenderPass;
+	createInfo.attachmentCount = 1;
+	createInfo.pAttachments = &raytracingInfo.rayTraceImageViewHandle;
+	createInfo.width = extent.width;
+	createInfo.height = extent.height;
+	createInfo.layers = 1;
+	VkResult result
+	    = vkCreateFramebuffer(logicalDevice, &createInfo, nullptr, &raytracingFramebuffer);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error(
+		    "createRaytracingRenderpassAndFramebuffer - failed to create framebuffer");
+	}
+}
+
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                                    uint32_t imageIndex,
                                    ui::UIData& uiData)
 {
+	auto swapChainExtent = window.getSwapChainExtent();
+	auto width = static_cast<uint32_t>(swapChainExtent.width);
+	auto height = static_cast<uint32_t>(swapChainExtent.height);
 
 	VkCommandBufferBeginInfo beginInfo{};
 	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -718,82 +894,31 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	                      swapChainImages[imageIndex]);
 
 	VkClearColorValue clearColor = {{0.6f, 0.1f, 0.1f, 1.0f}};
-	vkCmdClearColorImage(commandBuffer,
-	                     swapChainImages[imageIndex],
-	                     VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	                     &clearColor,
-	                     1,
-	                     &subresourceRange);
+	VkClearValue clearValue{};
+	clearValue.color = clearColor;
 
-	addImageMemoryBarrier(commandBuffer,
-	                      VK_PIPELINE_STAGE_2_CLEAR_BIT,
-	                      VK_ACCESS_2_TRANSFER_WRITE_BIT,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_2_TRANSFER_WRITE_BIT,
-	                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	                      subresourceRange,
-	                      swapChainImages[imageIndex]);
-
-	if (raytracingSupported)
+	// Offscreen render pass
 	{
-		tracer::rt::recordRaytracingCommandBuffer(
-		    commandBuffer, window.getSwapChainExtent(), raytracingInfo);
-
-		VkImageCopy2 region = {};
-		region.sType = VK_STRUCTURE_TYPE_IMAGE_COPY_2;
-		region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.srcSubresource.mipLevel = 0;
-		region.srcSubresource.baseArrayLayer = 0;
-		region.srcSubresource.layerCount = 1;
-		region.srcOffset = {0, 0, 0}; // Source start
-
-		region.dstSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		region.dstSubresource.mipLevel = 0;
-		region.dstSubresource.baseArrayLayer = 0;
-		region.dstSubresource.layerCount = 1;
-		region.dstOffset = {0, 0, 0}; // Destination start
-		region.extent = {
-		    static_cast<uint32_t>(window.getSwapChainExtent().width),
-		    static_cast<uint32_t>(window.getSwapChainExtent().height),
-		    1,
+		VkRenderPassBeginInfo renderPassInfo{};
+		renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassInfo.renderPass = raytracingRenderPass;
+		renderPassInfo.framebuffer = raytracingFramebuffer;
+		renderPassInfo.renderArea.offset = {0, 0};
+		renderPassInfo.renderArea.extent = {
+		    width,
+		    height,
 		};
+		renderPassInfo.clearValueCount = 1;
+		renderPassInfo.pClearValues = &clearValue;
 
-		VkCopyImageInfo2 copyImageInfo = {};
-		copyImageInfo.sType = VK_STRUCTURE_TYPE_COPY_IMAGE_INFO_2;
-		copyImageInfo.srcImage = raytracingInfo.rayTraceImageHandle;
-		copyImageInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		copyImageInfo.dstImage = swapChainImages[imageIndex];
-		copyImageInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		copyImageInfo.pNext = NULL;
-		copyImageInfo.regionCount = 1;
-		copyImageInfo.pRegions = &region;
-
-		vkCmdCopyImage2(commandBuffer, &copyImageInfo);
-		//////////////////////////////////////////////////////////////////////////////////////////////////////
-		addImageMemoryBarrier(commandBuffer,
-		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-		                      VK_ACCESS_2_NONE,
-		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-		                      VK_ACCESS_TRANSFER_READ_BIT,
-		                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		                      VK_IMAGE_LAYOUT_GENERAL,
-		                      subresourceRange,
-		                      raytracingInfo.rayTraceImageHandle);
+		vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+		if (raytracingSupported)
+		{
+			tracer::rt::recordRaytracingCommandBuffer(
+			    commandBuffer, swapChainExtent, raytracingInfo);
+		}
+		vkCmdEndRenderPass(commandBuffer);
 	}
-
-	addImageMemoryBarrier(commandBuffer,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_TRANSFER_WRITE_BIT,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_NONE,
-	                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	                      VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-	                      subresourceRange,
-	                      swapChainImages[imageIndex]);
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
-	auto swapChainExtent = window.getSwapChainExtent();
-	// TODO: don't clear image
 
 	VkRenderPassBeginInfo renderPassInfo{};
 	renderPassInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -805,6 +930,17 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	renderPassInfo.pClearValues = NULL;
 
 	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// addImageMemoryBarrier(commandBuffer,
+	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	//                       VK_ACCESS_TRANSFER_WRITE_BIT,
+	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	//                       VK_ACCESS_NONE,
+	//                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	//                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+	//                       subresourceRange,
+	//                       swapChainImages[imageIndex]);
+	//////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	VkViewport viewport{};
 	viewport.width = static_cast<float>(swapChainExtent.width);

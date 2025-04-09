@@ -72,9 +72,9 @@ void Application::run()
 	window.setWindowUserPointer(customUserData.get());
 	initInputHandlers();
 
+	setupScene();
 	if (raytracingSupported)
 	{
-		setupScene();
 		tracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
 	}
 
@@ -147,12 +147,15 @@ void Application::setupScene()
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
-	raytracingScene.recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
+	if (raytracingSupported)
+	{
+		raytracingScene.recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
 
-	// =========================================================================
-	// Update Descriptor Set
-	tracer::rt::updateAccelerationStructureDescriptorSet(
-	    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
+		// =========================================================================
+		// Update Descriptor Set
+		tracer::rt::updateAccelerationStructureDescriptorSet(
+		    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
+	}
 
 	// TODO: move this to a more appropriate place
 	if (renderer->getRaytracingScene().getWorldObjectTetrahedrons().size() > 0)
@@ -531,7 +534,8 @@ void Application::resizeFramebuffer(VkPhysicalDevice physicalDevice,
                                     tracer::Renderer& renderer,
                                     tracer::Window& window,
                                     tracer::Camera& camera,
-                                    tracer::SwapChainSupportDetails& swapChainSupportDetails)
+                                    tracer::SwapChainSupportDetails& swapChainSupportDetails,
+                                    const bool raytracingSupported)
 {
 	VkExtent2D extent = window.chooseSwapExtent(swapChainSupportDetails.capabilities);
 	if (extent.height > 0 && extent.width > 0)
@@ -543,7 +547,18 @@ void Application::resizeFramebuffer(VkPhysicalDevice physicalDevice,
 		renderer.createFramebuffers();
 
 		renderer.recreateRaytracingImageAndImageView();
+		renderer.createRaytracingRenderpassAndFramebuffer();
+
 		camera.updateScreenSize(extent.width, extent.height);
+
+		if (raytracingSupported)
+		{
+			tracer::rt::updateAccelerationStructureDescriptorSet(
+			    logicalDevice, renderer.getRaytracingScene(), renderer.getRaytracingInfo());
+		}
+
+		// reset frame count so the window gets refreshed properly
+		resetFrameCount(renderer.getRaytracingInfo());
 	}
 }
 
@@ -563,7 +578,8 @@ void Application::framebufferResizeCallback(GLFWwindow* window,
 	                  userData.renderer,
 	                  userData.window,
 	                  userData.camera,
-	                  userData.swapChainSupportDetails);
+	                  userData.swapChainSupportDetails,
+	                  userData.uiData.raytracingSupported);
 }
 
 tracer::SwapChainSupportDetails Application::querySwapChainSupport(VkPhysicalDevice physicalDevice,
@@ -743,8 +759,20 @@ void Application::mainLoop()
 				renderer->createFramebuffers();
 
 				renderer->recreateRaytracingImageAndImageView();
+				renderer->createRaytracingRenderpassAndFramebuffer();
+
+				if (raytracingSupported)
+				{
+					tracer::rt::updateAccelerationStructureDescriptorSet(
+					    logicalDevice,
+					    renderer->getRaytracingScene(),
+					    renderer->getRaytracingInfo());
+				}
 
 				camera.updateScreenSize(extent.width, extent.height);
+
+				// reset frame count so the window gets refreshed properly
+				resetFrameCount(renderer->getRaytracingInfo());
 			}
 		}
 		renderer->swapChainOutdated = false;

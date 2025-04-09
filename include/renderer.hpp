@@ -67,18 +67,19 @@ class Renderer
 
 	inline void cleanupRenderer()
 	{
-		if (raytracingSupported)
+		// if (raytracingSupported)
 		{
 			raytracingScene->cleanup(raytracingInfo.graphicsQueueHandle);
 
-			tracer::rt::freeRaytraceImageAndImageView(
-			    logicalDevice,
-			    raytracingInfo.rayTraceImageHandle,
-			    raytracingInfo.rayTraceImageViewHandle,
-			    raytracingInfo.rayTraceImageDeviceMemoryHandle);
+			tracer::freeRaytraceImageAndImageView(logicalDevice,
+			                                      raytracingInfo.rayTraceImageHandle,
+			                                      raytracingInfo.rayTraceImageViewHandle,
+			                                      raytracingInfo.rayTraceImageDeviceMemoryHandle);
 		}
 
 		cleanupFramebufferAndImageViews();
+
+		vkDestroyFramebuffer(logicalDevice, raytracingFramebuffer, nullptr);
 	}
 
 	/// Initializes the renderer and creates the necessary Vulkan objects
@@ -86,11 +87,8 @@ class Renderer
 	{
 		if (raytracingSupported)
 		{
-			tracer::rt::recreateRaytracingImageBuffer(physicalDevice,
-			                                          logicalDevice,
-			                                          window.getSwapChainExtent(),
-			                                          *raytracingScene,
-			                                          raytracingInfo);
+			tracer::recreateRaytracingImageBuffer(
+			    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
 		}
 	}
 
@@ -117,6 +115,8 @@ class Renderer
 	void createImageViews();
 
 	void createFramebuffers();
+
+	void createRaytracingRenderpassAndFramebuffer();
 
 	inline void renderImguiFrame(const VkCommandBuffer commandBuffer, tracer::ui::UIData& uiData)
 	{
@@ -257,9 +257,15 @@ class Renderer
 	// VkCommandPool commandPoolTransfer = VK_NULL_HANDLE;
 	// VkDescriptorPool descriptorPool;
 
-	VkRenderPass renderPass;
-	VkPipelineLayout pipelineLayout;
-	VkPipeline graphicsPipeline;
+	VkRenderPass renderPass = VK_NULL_HANDLE;
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
+	VkPipeline graphicsPipeline = VK_NULL_HANDLE;
+
+	VkRenderPass raytracingRenderPass = VK_NULL_HANDLE;
+	VkFramebuffer raytracingFramebuffer = VK_NULL_HANDLE;
+
+	// format used for raytracing image
+	VkFormat raytracingImageColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 	// std::shared_ptr<std::vector<tracer::WorldObject>> worldObjects;
 };

@@ -377,7 +377,7 @@ void renderRaytracingProperties(const tracer::ui::UIData& uiData)
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
 	ImGui::Text("Estimated frame time: %.4fms", uiData.frameTimeMilliseconds);
 
-	if (uiData.raytracingSupported)
+	// if (uiData.raytracingSupported)
 	{
 		ImGui::Text("BLAS Instances Count: %ld", uiData.blasInstancesCount);
 	}
@@ -409,7 +409,7 @@ void renderSlicingPlaneSliders(UIData& uiData)
 {
 	if (ImGui::CollapsingHeader("Raytracing - Slicing Planes"))
 	{
-		if (uiData.raytracingSupported)
+		// if (uiData.raytracingSupported)
 		{
 			{
 				bool valueChanged = false;

@@ -38,14 +38,83 @@ namespace rt
 // to get better error messages
 
 /**
- * @brief resets the frameCount forcing the ray tracing to start anew
+ * @brief Updates the buffers used in the ray tracing shaders, e.g. acceleration structure handle,
+ * image handle, etc.
  *
- * @param raytracingInfo The raytracing info object that should be reset
+ * @param logicalDevice
+ * @param raytracingInfo
+ * @param meshObjects list of mesh objects that are used in the ray tracing shaders, if not using
+ * AABBs with intersection shader
  */
-inline void resetFrameCount(RaytracingInfo& raytracingInfo)
-{
-	raytracingInfo.uniformStructure.frameCount = 0;
-}
+void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
+                                              const rt::RaytracingScene& raytracingScene,
+                                              RaytracingInfo& raytracingInfo);
+
+/**
+ * @brief Retrieves the raytracing properties from the physical device and stores them in the
+ * physicalDeviceRayTracingPipelineProperties reference
+ *
+ * @param physicalDevice
+ * @param physicalDeviceRayTracingPipelineProperties the properties object to be filled
+ */
+void requestRaytracingProperties(
+    VkPhysicalDevice physicalDevice,
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties);
+
+/**
+ * @brief Creates the command buffer for the top and bottom level acceleration structure creation
+ * and stores it inside the raytracingInfo object
+ * (raytracingInfo.commandBufferBuildTopAndBottomLevel)
+ *
+ * @param logicalDevice
+ * @param deletionQueue the command buffer is added to the deletion queue
+ * @param raytracingInfo
+ * @param commandBufferPoolHandle
+ * @return VkCommandPool The command pool handle
+ */
+void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
+                                               DeletionQueue& deletionQueue,
+                                               RaytracingInfo& raytracingInfo,
+                                               VkCommandPool& commandBufferPoolHandle);
+
+/**
+ * @brief Creates the ray tracing pipeline
+ *
+ * @param logicalDevice
+ * @param deletionQueue the pipeline is added to the deletion queue
+ * @param raytracingInfo the pipeline handle is stored in the raytracingInfo object
+ */
+void createRaytracingPipeline(VkDevice logicalDevice,
+                              DeletionQueue& deletionQueue,
+                              RaytracingInfo& raytracingInfo);
+
+/**
+ * @brief Initializes the ray tracing pipeline, including the command buffers, command pool, etc.
+ *
+ * @param physicalDevice
+ * @param logicalDevice
+ * @param deletionQueue the objects are added to the deletion queue
+ * @param raytracingInfo the ray tracing info object that holds all the handles and data
+ */
+void initRayTracing(VkPhysicalDevice physicalDevice,
+                    VkDevice logicalDevice,
+                    DeletionQueue& deletionQueue,
+                    RaytracingInfo& raytracingInfo,
+                    RaytracingScene& raytracingScene);
+
+/**
+ * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,
+ * copying to the image, etc.
+ *
+ * @param currentExtent the current extent of the window
+ * @param commandBuffer the command buffer to record to
+ * @param raytracingInfo
+ */
+void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
+                                   VkExtent2D currentExtent,
+                                   RaytracingInfo& raytracingInfo);
+
+} // namespace rt
 
 /**
  * @brief create a buffer for a vector of objects, used to create buffers for the spheres,
@@ -77,31 +146,14 @@ VkCommandPool createCommandPool(VkDevice logicalDevice,
                                 RaytracingInfo& raytracingInfo);
 
 /**
- * @brief Retrieves the raytracing properties from the physical device and stores them in the
- * physicalDeviceRayTracingPipelineProperties reference
+ * @brief resets the frameCount forcing the ray tracing to start anew
  *
- * @param physicalDevice
- * @param physicalDeviceRayTracingPipelineProperties the properties object to be filled
+ * @param raytracingInfo The raytracing info object that should be reset
  */
-void requestRaytracingProperties(
-    VkPhysicalDevice physicalDevice,
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties);
-
-/**
- * @brief Creates the command buffer for the top and bottom level acceleration structure creation
- * and stores it inside the raytracingInfo object
- * (raytracingInfo.commandBufferBuildTopAndBottomLevel)
- *
- * @param logicalDevice
- * @param deletionQueue the command buffer is added to the deletion queue
- * @param raytracingInfo
- * @param commandBufferPoolHandle
- * @return VkCommandPool The command pool handle
- */
-void createCommandBufferBuildTopAndBottomLevel(VkDevice logicalDevice,
-                                               DeletionQueue& deletionQueue,
-                                               RaytracingInfo& raytracingInfo,
-                                               VkCommandPool& commandBufferPoolHandle);
+inline void resetFrameCount(RaytracingInfo& raytracingInfo)
+{
+	raytracingInfo.uniformStructure.frameCount = 0;
+}
 
 /**
  * @brief Creates the descriptor pool used for the raytracing, containing the various buffers used
@@ -177,30 +229,6 @@ void loadShaderModules(VkDevice logicalDevice,
                        RaytracingInfo& raytracingInfo);
 
 /**
- * @brief Creates the ray tracing pipeline
- *
- * @param logicalDevice
- * @param deletionQueue the pipeline is added to the deletion queue
- * @param raytracingInfo the pipeline handle is stored in the raytracingInfo object
- */
-void createRaytracingPipeline(VkDevice logicalDevice,
-                              DeletionQueue& deletionQueue,
-                              RaytracingInfo& raytracingInfo);
-
-/**
- * @brief Updates the buffers used in the ray tracing shaders, e.g. acceleration structure handle,
- * image handle, etc.
- *
- * @param logicalDevice
- * @param raytracingInfo
- * @param meshObjects list of mesh objects that are used in the ray tracing shaders, if not using
- * AABBs with intersection shader
- */
-void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
-                                              const RaytracingScene& raytracingScene,
-                                              RaytracingInfo& raytracingInfo);
-
-/**
  * @brief creates the vertex and index buffer for the model and copies the data from the meshObject
  * into it
  *
@@ -214,32 +242,6 @@ void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
                                                VkPhysicalDevice physicalDevice,
                                                DeletionQueue& deletionQueue,
                                                MeshObject& meshObject);
-
-/**
- * @brief Initializes the ray tracing pipeline, including the command buffers, command pool, etc.
- *
- * @param physicalDevice
- * @param logicalDevice
- * @param deletionQueue the objects are added to the deletion queue
- * @param raytracingInfo the ray tracing info object that holds all the handles and data
- */
-void initRayTracing(VkPhysicalDevice physicalDevice,
-                    VkDevice logicalDevice,
-                    DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo,
-                    RaytracingScene& raytracingScene);
-
-/**
- * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,
- * copying to the image, etc.
- *
- * @param currentExtent the current extent of the window
- * @param commandBuffer the command buffer to record to
- * @param raytracingInfo
- */
-void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
-                                   VkExtent2D currentExtent,
-                                   RaytracingInfo& raytracingInfo);
 
 /**
  * @brief updates the ray tracing buffer: updates the uniform structure (holding camera transform
@@ -305,8 +307,6 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& ray
 void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
                                    VkExtent2D windowExtent,
-                                   RaytracingScene& raytracingScene,
                                    RaytracingInfo& raytracingInfo);
 
-} // namespace rt
 } // namespace tracer
