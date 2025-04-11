@@ -195,8 +195,8 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 
 	if (hit)
 	{
-		// TODO: why not c+1 ?
-		const int idx = c + 1;
+		// TODO: why not c+1 ? -> because f_value is calculated for u[c] and not u[c+1]
+		const int idx = c;
 		if (u[idx].x < 0 || u[idx].y < 0 || (u[idx].x + u[idx].y) > 1)
 		{
 			hit = false;
