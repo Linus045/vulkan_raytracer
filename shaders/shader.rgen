@@ -117,14 +117,17 @@ void main()
 	// our case also the environment light
 	vec4 color = vec4(payload.directColor + payload.indirectColor, 1.0);
 
-	if (ubo.frameCount > 0)
-	{
-		vec4 previousColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
-		previousColor *= ubo.frameCount;
-
-		color += previousColor;
-		color /= (ubo.frameCount + 1);
-	}
+	/// We don't need averaging for the ray color here because the color value is always the same
+	/// for a given pixel since we don't use any random values in the ray tracing process
+	/// i.e. no soft shadows, reflections or global illumination is used which would introduce
+	/// randomness
+	// if (ubo.frameCount > 0)
+	// {
+	// 	vec4 previousColor = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
+	// 	previousColor *= ubo.frameCount;
+	// 	color += previousColor;
+	// 	color /= (ubo.frameCount + 1);
+	// }
 
 	imageStore(image, ivec2(gl_LaunchIDEXT.xy), color);
 }
