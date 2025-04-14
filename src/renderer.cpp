@@ -102,7 +102,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	raytracingInfo.raytracingConstants = {
 	    .newtonErrorXTolerance = 1e-8f,
-	    .newtonErrorFTolerance = 1e-3f,
+	    .newtonErrorFTolerance = 1e-4f,
 
 	    .newtonErrorFIgnoreIncrease = 1.0f,
 	    .newtonErrorFHitBelowTolerance = 1.0f,
