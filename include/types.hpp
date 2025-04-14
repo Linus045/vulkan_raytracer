@@ -113,8 +113,7 @@ struct RaytracingInfo
 {
 	VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayoutHandle = VK_NULL_HANDLE;
-	std::vector<VkDescriptorSet> descriptorSetHandleList
-	    = std::vector<VkDescriptorSet>(2, VK_NULL_HANDLE);
+	std::vector<VkDescriptorSet> descriptorSetHandleList{};
 
 	VkStridedDeviceAddressRegionKHR rchitShaderBindingTable = {};
 	VkStridedDeviceAddressRegionKHR rgenShaderBindingTable = {};
@@ -174,6 +173,8 @@ struct RaytracingInfo
 
 	// cache sicne it wont change during the lifetime of the program (only if a new device is used)
 	VkQueue graphicsQueueHandle = VK_NULL_HANDLE;
+
+	VkSampler raytraceImageSampler;
 };
 
 } // namespace tracer

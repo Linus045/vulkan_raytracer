@@ -186,20 +186,12 @@ VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 VkDescriptorSetLayout createMaterialDescriptorSetLayout(VkDevice logicalDevice,
                                                         DeletionQueue& deletionQueue);
 
-/**
- * @brief Allocates the descriptor sets from the pool
- *
- * @param logicalDevice
- * @param descriptorPoolHandle the pool to allocate the descriptor sets from
- * @param raytracingInfo the descriptor set handles are stored in the raytracingInfo object
- * (raytracingInfo.descriptorSetHandleList)
- * @param descriptorSetLayoutHandleList the list of descriptor set layouts to allocate
- */
-void allocateDescriptorSetLayouts(
-    VkDevice logicalDevice,
-    VkDescriptorPool& descriptorPoolHandle,
-    RaytracingInfo& raytracingInfo,
-    std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList);
+VkDescriptorSetLayout createRaytracingImageDescriptorSetLayout(VkDevice logicalDevice,
+                                                               DeletionQueue& deletionQueue);
+std::vector<VkDescriptorSet>
+allocateDescriptorSetLayouts(VkDevice logicalDevice,
+                             VkDescriptorPool& descriptorPoolHandle,
+                             std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList);
 
 /**
  * @brief creates the pipeline layout for the ray tracing pipeline
@@ -207,8 +199,8 @@ void allocateDescriptorSetLayouts(
  * @param logicalDevice
  * @param deletionQueue the pipeline layout is added to the deletion queue
  * @param raytracingInfo the pipeline layout handle is stored in the raytracingInfo object
- * @param descriptorSetLayoutHandleList the list of descriptor set layouts to use in the pipeline,
- * see allocateDescriptorSetLayouts, createMaterialDescriptorSetLayout and
+ * @param descriptorSetLayoutHandleList the list of descriptor set layouts to use in the
+ * pipeline, see allocateDescriptorSetLayouts, createMaterialDescriptorSetLayout and
  * createDescriptorSetLayout
  */
 void createPipelineLayout(VkDevice logicalDevice,
@@ -308,5 +300,7 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
                                    VkExtent2D windowExtent,
                                    RaytracingInfo& raytracingInfo);
+
+void prepareRaytracingImageLayout(VkDevice logicalDevice, const RaytracingInfo& raytracingInfo);
 
 } // namespace tracer

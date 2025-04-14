@@ -641,20 +641,6 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	// };
 
 	// =========================================================================
-	// Submission Queue
-	if (raytracingInfo.queueFamilyIndices.graphicsFamily.has_value())
-	{
-		vkGetDeviceQueue(logicalDevice,
-		                 raytracingInfo.queueFamilyIndices.graphicsFamily.value(),
-		                 0,
-		                 &raytracingInfo.graphicsQueueHandle);
-	}
-	else
-	{
-		throw std::runtime_error("initRayTracing - vkGetDeviceQueue");
-	}
-
-	// =========================================================================
 	// Device Pointer Functions
 	tracer::procedures::grabDeviceProcAddr(logicalDevice);
 
@@ -700,14 +686,13 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 
 	// =========================================================================
 	// Allocate Descriptor Sets
+	std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList = {
+	    descriptorSetLayoutHandle,
+	    materialDescriptorSetLayoutHandle,
+	};
 
-	// TODO: currently we hardcoded that we use 2 descriptor set layouts, make this more dynamic or
-	// at least dont hardcode it
-	std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList
-	    = {descriptorSetLayoutHandle, materialDescriptorSetLayoutHandle};
-
-	allocateDescriptorSetLayouts(
-	    logicalDevice, descriptorPoolHandle, raytracingInfo, descriptorSetLayoutHandleList);
+	raytracingInfo.descriptorSetHandleList = allocateDescriptorSetLayouts(
+	    logicalDevice, descriptorPoolHandle, descriptorSetLayoutHandleList);
 
 	// =========================================================================
 	// Pipeline Layout
@@ -1097,24 +1082,22 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
                                    VkExtent2D currentExtent,
                                    RaytracingInfo& raytracingInfo)
 {
-	auto subResourceRange = VkImageSubresourceRange{
-	    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	    .baseMipLevel = 0,
-	    .levelCount = 1,
-	    .baseArrayLayer = 0,
-	    .layerCount = 1,
-	};
-
-	// TODO: do this conversion once on creation
-	addImageMemoryBarrier(commandBuffer,
-	                      VK_PIPELINE_STAGE_2_NONE,
-	                      VK_ACCESS_2_NONE,
-	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-	                      VK_ACCESS_2_SHADER_WRITE_BIT,
-	                      VK_IMAGE_LAYOUT_UNDEFINED,
-	                      VK_IMAGE_LAYOUT_GENERAL,
-	                      subResourceRange,
-	                      raytracingInfo.rayTraceImageHandle);
+	// auto subResourceRange = VkImageSubresourceRange{
+	//     .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	//     .baseMipLevel = 0,
+	//     .levelCount = 1,
+	//     .baseArrayLayer = 0,
+	//     .layerCount = 1,
+	// };
+	// addImageMemoryBarrier(commandBuffer,
+	//                       VK_PIPELINE_STAGE_2_NONE,
+	//                       VK_ACCESS_2_SHADER_WRITE_BIT,
+	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	//                       VK_ACCESS_2_SHADER_READ_BIT,
+	//                       VK_IMAGE_LAYOUT_GENERAL,
+	//                       VK_IMAGE_LAYOUT_GENERAL,
+	//                       subResourceRange,
+	//                       raytracingInfo.rayTraceImageHandle);
 
 	// =========================================================================
 	// Record Render Pass Command Buffers
@@ -1149,15 +1132,15 @@ void recordRaytracingCommandBuffer(VkCommandBuffer commandBuffer,
 	                                       currentExtent.height,
 	                                       1);
 
-	addImageMemoryBarrier(commandBuffer,
-	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
-	                      VK_ACCESS_2_SHADER_WRITE_BIT,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_2_TRANSFER_READ_BIT,
-	                      VK_IMAGE_LAYOUT_GENERAL,
-	                      VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-	                      subResourceRange,
-	                      raytracingInfo.rayTraceImageHandle);
+	// addImageMemoryBarrier(commandBuffer,
+	//                       VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+	//                       VK_ACCESS_2_SHADER_WRITE_BIT,
+	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
+	//                       VK_ACCESS_2_SHADER_READ_BIT,
+	//                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	//                       VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+	//                       subResourceRange,
+	//                       raytracingInfo.rayTraceImageHandle);
 }
 
 } // namespace rt
@@ -1196,6 +1179,7 @@ VkDescriptorPool createDescriptorPool(VkDevice logicalDevice, DeletionQueue& del
 	    {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1},
 	    {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 10},
 	    {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = 1},
+	    {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1},
 	};
 
 	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
@@ -1221,10 +1205,10 @@ VkDescriptorPool createDescriptorPool(VkDevice logicalDevice, DeletionQueue& del
 	return descriptorPoolHandle;
 }
 
-void allocateDescriptorSetLayouts(VkDevice logicalDevice,
-                                  VkDescriptorPool& descriptorPoolHandle,
-                                  RaytracingInfo& raytracingInfo,
-                                  std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList)
+std::vector<VkDescriptorSet>
+allocateDescriptorSetLayouts(VkDevice logicalDevice,
+                             VkDescriptorPool& descriptorPoolHandle,
+                             std::vector<VkDescriptorSetLayout>& descriptorSetLayoutHandleList)
 {
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
@@ -1234,13 +1218,17 @@ void allocateDescriptorSetLayouts(VkDevice logicalDevice,
 	    .pSetLayouts = descriptorSetLayoutHandleList.data(),
 	};
 
-	VkResult result = vkAllocateDescriptorSets(
-	    logicalDevice, &descriptorSetAllocateInfo, raytracingInfo.descriptorSetHandleList.data());
+	std::vector<VkDescriptorSet> sets(descriptorSetLayoutHandleList.size(), VK_NULL_HANDLE);
+
+	VkResult result
+	    = vkAllocateDescriptorSets(logicalDevice, &descriptorSetAllocateInfo, sets.data());
 
 	if (result != VK_SUCCESS)
 	{
 		throw std::runtime_error("initRayTracing - vkAllocateDescriptorSets");
 	}
+
+	return sets;
 }
 
 void createPipelineLayout(VkDevice logicalDevice,
@@ -1447,6 +1435,43 @@ VkDescriptorSetLayout createMaterialDescriptorSetLayout(VkDevice logicalDevice,
 	return materialDescriptorSetLayoutHandle;
 }
 
+VkDescriptorSetLayout createRaytracingImageDescriptorSetLayout(VkDevice logicalDevice,
+                                                               DeletionQueue& deletionQueue)
+{
+	VkDescriptorSetLayout descriptorSet = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSetLayoutBinding> descriptorSetLayoutBindings = {
+	    {
+	        .binding = 0,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	        .descriptorCount = 1,
+	        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+	        .pImmutableSamplers = NULL,
+	    },
+	};
+
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {
+	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+	    .pNext = NULL,
+	    .flags = 0,
+	    .bindingCount = (uint32_t)descriptorSetLayoutBindings.size(),
+	    .pBindings = descriptorSetLayoutBindings.data(),
+	};
+
+	VkResult result = vkCreateDescriptorSetLayout(
+	    logicalDevice, &descriptorSetLayoutCreateInfo, NULL, &descriptorSet);
+
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error(
+		    "createRaytracingImageDescriptorSetLayout - vkCreateDescriptorSetLayout");
+	}
+
+	deletionQueue.push_function(
+	    [=]() { vkDestroyDescriptorSetLayout(logicalDevice, descriptorSet, NULL); });
+
+	return descriptorSet;
+}
+
 void updateRaytraceBuffer(VkDevice logicalDevice,
                           RaytracingInfo& raytracingInfo,
                           const bool resetFrameCountRequested)
@@ -1546,7 +1571,7 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
         .arrayLayers = 1,
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 0,
         .pQueueFamilyIndices = nullptr,
@@ -1607,6 +1632,99 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
 	{
 		throw std::runtime_error("initRayTraci - vkBindImageMemory");
 	}
+
+	// transition image layout
+	prepareRaytracingImageLayout(logicalDevice, raytracingInfo);
+}
+
+void prepareRaytracingImageLayout(VkDevice logicalDevice, const RaytracingInfo& raytracingInfo)
+{
+
+	VkCommandPool tmpCommandPool = VK_NULL_HANDLE;
+	{
+		VkCommandPoolCreateInfo poolInfo{};
+		poolInfo.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+		poolInfo.flags = 0;
+		poolInfo.queueFamilyIndex = raytracingInfo.queueFamilyIndices.graphicsFamily.value();
+
+		if (vkCreateCommandPool(logicalDevice, &poolInfo, nullptr, &tmpCommandPool) != VK_SUCCESS)
+		{
+			throw std::runtime_error(
+			    "prepareRaytracingImageLayout - failed to create command pool!");
+		}
+	}
+
+	VkCommandBuffer tmpCommandBuffer = VK_NULL_HANDLE;
+	{
+		VkCommandBufferAllocateInfo allocInfo{};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandPool = tmpCommandPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		allocInfo.commandBufferCount = 1;
+
+		if (vkAllocateCommandBuffers(logicalDevice, &allocInfo, &tmpCommandBuffer) != VK_SUCCESS)
+		{
+			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+			                         "to allocate command buffers!");
+		}
+	}
+
+	auto subresourceRange = VkImageSubresourceRange{
+	    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	    .baseMipLevel = 0,
+	    .levelCount = 1,
+	    .baseArrayLayer = 0,
+	    .layerCount = 1,
+	};
+
+	VkCommandBufferBeginInfo beginInfo = {};
+	beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	beginInfo.flags = 0;
+	beginInfo.pInheritanceInfo = 0;
+
+	VkResult result = vkBeginCommandBuffer(tmpCommandBuffer, &beginInfo);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+		                         "to begin command buffer");
+	}
+
+	addImageMemoryBarrier(tmpCommandBuffer,
+	                      VK_PIPELINE_STAGE_2_NONE,
+	                      VK_ACCESS_2_NONE,
+	                      VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR,
+	                      VK_ACCESS_2_SHADER_WRITE_BIT,
+	                      VK_IMAGE_LAYOUT_UNDEFINED,
+	                      VK_IMAGE_LAYOUT_GENERAL,
+	                      subresourceRange,
+	                      raytracingInfo.rayTraceImageHandle);
+
+	result = vkEndCommandBuffer(tmpCommandBuffer);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
+		                         "to end command buffer");
+	}
+
+	VkSubmitInfo submit{};
+	submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submit.commandBufferCount = 1;
+	submit.pCommandBuffers = &tmpCommandBuffer;
+
+	result = vkQueueSubmit(raytracingInfo.graphicsQueueHandle, 1, &submit, nullptr);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("prepareRaytracingImageLayout - failed to submit queue");
+	}
+	result = vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("prepareRaytracingImageLayout - failed "
+		                         "to wait for queue idle");
+	}
+
+	vkFreeCommandBuffers(logicalDevice, tmpCommandPool, 1, &tmpCommandBuffer);
+	vkDestroyCommandPool(logicalDevice, tmpCommandPool, nullptr);
 }
 
 VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& rayTraceImageHandle)

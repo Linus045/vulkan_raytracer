@@ -13,7 +13,10 @@
 // layout(location = 1) in vec3 inColor;
 // layout(location = 2) in vec3 inNormal;
 
-// layout(location = 0) out vec3 fragColor;
+// fullscreen quad rendering
+// see:
+// https://www.saschawillems.de/blog/2016/08/13/vulkan-tutorial-on-rendering-a-fullscreen-quad-without-buffers/
+layout(location = 0) out vec2 outUV;
 
 void main()
 {
@@ -23,4 +26,7 @@ void main()
 	//	float cosTheta = dot(inNormal, l);
 
 	//	fragColor = vec3(0,1,0); //cosTheta * inColor;
+
+	outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);
+	gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);
 }

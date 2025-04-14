@@ -188,6 +188,8 @@ class Renderer
 		return *raytracingScene;
 	}
 
+	void updateRaytracingDescriptorSet();
+
   private:
 	void createSyncObjects();
 
@@ -203,6 +205,8 @@ class Renderer
 
 	void
 	recordCommandBuffer(VkCommandBuffer commandBuffer, uint32_t imageIndex, ui::UIData& uiData);
+
+	VkDescriptorPool createDescriptorPool();
 
 	inline void updateSharedInfoBuffer()
 	{
@@ -255,7 +259,6 @@ class Renderer
 	std::vector<VkCommandBuffer> commandBuffers;
 
 	// VkCommandPool commandPoolTransfer = VK_NULL_HANDLE;
-	// VkDescriptorPool descriptorPool;
 
 	VkRenderPass renderPass = VK_NULL_HANDLE;
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -268,6 +271,12 @@ class Renderer
 	VkFormat raytracingImageColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 
 	// std::shared_ptr<std::vector<tracer::WorldObject>> worldObjects;
+
+	VkDescriptorPool descriptorPool = VK_NULL_HANDLE;
+	VkSampler raytraceImageSampler = VK_NULL_HANDLE;
+
+	VkDescriptorSetLayout raytracingImageDescriptorSetLayoutHandle = VK_NULL_HANDLE;
+	std::vector<VkDescriptorSet> descriptorSetHandleList{};
 };
 
 } // namespace tracer

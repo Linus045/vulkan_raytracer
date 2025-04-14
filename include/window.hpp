@@ -214,8 +214,8 @@ class Window
 		createInfo.imageColorSpace = surfaceFormat.colorSpace;
 		createInfo.imageExtent = swapExtent;
 		createInfo.imageArrayLayers = 1;
-		createInfo.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT
-		                        | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+		createInfo.imageUsage
+		    = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 		createInfo.minImageCount = imageCount;
 
 		tracer::QueueFamilyIndices indices = findQueueFamilies(physicalDevice, vulkanSurface);

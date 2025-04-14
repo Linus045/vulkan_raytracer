@@ -97,6 +97,7 @@ include_directories(SYSTEM 3rdparty/imgui)
 ## compile shaders ############################################################
 ###############################################################################
 set(frag_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/frag.spv)
+set(blit_frag_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/frag_blit.spv)
 set(vert_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/vert.spv)
 set(raytracing_shader_output ${CMAKE_BINARY_DIR}/bin/shaders/raytracing.spv)
 
@@ -121,13 +122,24 @@ add_custom_command(
   OUTPUT ${frag_shader_output} ${vert_shader_output}  ${raytracing_shader_rgen_output} ${raytracing_shader_rchit_output} ${raytracing_shader_rmiss_output} ${raytracing_shader_shadow_rmiss_output}
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.frag" -o "${frag_shader_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.vert" -o "${vert_shader_output}"
+  COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_blit.frag" -o "${blit_frag_shader_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/raytracing.rgen" -o "${raytracing_shader_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rgen" -o "${raytracing_shader_rgen_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rchit" -o "${raytracing_shader_rchit_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader.rmiss" -o "${raytracing_shader_rmiss_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_shadow.rmiss" -o "${raytracing_shader_shadow_rmiss_output}"
   COMMAND ${glslang_executable_path} --target-env vulkan1.3 -V "shaders/shader_aabb.rint" -o "${raytracing_aabb_intersection_output}"
-  DEPENDS glslang shaders/shader.frag shaders/shader.vert shaders/raytracing.rgen shaders/shader.rgen shaders/shader.rchit shaders/shader.rmiss shaders/shader_shadow.rmiss shaders/shader_aabb.rint
+  DEPENDS
+	glslang
+	shaders/shader_blit.frag
+	shaders/shader.frag
+	shaders/shader.vert
+	shaders/raytracing.rgen
+	shaders/shader.rgen
+	shaders/shader.rchit
+	shaders/shader.rmiss
+	shaders/shader_shadow.rmiss
+	shaders/shader_aabb.rint
   WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
   COMMENT "Compiling shader files"
 )

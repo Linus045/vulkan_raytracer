@@ -143,7 +143,7 @@ void Application::setupScene()
 {
 	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
 
-	tracer::rt::RaytracingScene::loadScene(*renderer, raytracingScene, 1);
+	tracer::rt::RaytracingScene::loadScene(*renderer, raytracingScene, 2);
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
@@ -548,6 +548,7 @@ void Application::resizeFramebuffer(VkPhysicalDevice physicalDevice,
 
 		renderer.recreateRaytracingImageAndImageView();
 		renderer.createRaytracingRenderpassAndFramebuffer();
+		renderer.updateRaytracingDescriptorSet();
 
 		camera.updateScreenSize(extent.width, extent.height);
 
@@ -760,6 +761,8 @@ void Application::mainLoop()
 
 				renderer->recreateRaytracingImageAndImageView();
 				renderer->createRaytracingRenderpassAndFramebuffer();
+
+				renderer->updateRaytracingDescriptorSet();
 
 				if (raytracingSupported)
 				{

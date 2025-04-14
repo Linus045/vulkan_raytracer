@@ -18,6 +18,18 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    = tracer::findQueueFamilies(physicalDevice, window.getVkSurface());
 	raytracingInfo.queueFamilyIndices = queueFamilyIndices;
 
+	descriptorPool = createDescriptorPool();
+
+	raytracingImageDescriptorSetLayoutHandle
+	    = createRaytracingImageDescriptorSetLayout(logicalDevice, deletionQueue);
+
+	std::vector<VkDescriptorSetLayout> descriptorSetLayoutHandleList = {
+	    raytracingImageDescriptorSetLayoutHandle,
+	};
+
+	descriptorSetHandleList = allocateDescriptorSetLayouts(
+	    logicalDevice, descriptorPool, descriptorSetLayoutHandleList);
+
 	createImageViews();
 
 	createRenderPass();
@@ -27,8 +39,23 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	createFramebuffers();
 	createCommandPools();
 
+	// create sampler
+	VkSamplerCreateInfo createInfo{};
+	createInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	createInfo.minFilter = VK_FILTER_LINEAR;
+	createInfo.magFilter = VK_FILTER_LINEAR;
+	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	createInfo.maxLod = VK_LOD_CLAMP_NONE;
+
+	VkResult result = vkCreateSampler(logicalDevice, &createInfo, nullptr, &raytraceImageSampler);
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("Renderer::initRenderer - failed to create sampler");
+	}
+	raytracingInfo.raytraceImageSampler = raytraceImageSampler;
+
 	// createUniformBuffers();
-	// createDescriptorPool();
+
 	// createDescriptorSetsGlobal();
 	// createDescriptorSetsModels();
 	createCommandBuffers();
@@ -47,6 +74,19 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	                      graphicsQueue,
 	                      deletionQueue);
 
+	// grab Graphics Queue
+	if (raytracingInfo.queueFamilyIndices.graphicsFamily.has_value())
+	{
+		vkGetDeviceQueue(logicalDevice,
+		                 raytracingInfo.queueFamilyIndices.graphicsFamily.value(),
+		                 0,
+		                 &raytracingInfo.graphicsQueueHandle);
+	}
+	else
+	{
+		throw std::runtime_error("initRenderer - no valid graphicsFamily index");
+	}
+
 	tracer::createRaytracingImage(
 	    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
 
@@ -54,6 +94,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    = tracer::createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
 
 	createRaytracingRenderpassAndFramebuffer();
+	updateRaytracingDescriptorSet();
 
 	raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
 
@@ -100,6 +141,35 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	// tracer::updateUniformStructure(
 	//     cameraTransform.position, cameraTransform.getRight(),
 	//     cameraTransform.getUp(), cameraTransform.getForward());
+}
+
+void Renderer::updateRaytracingDescriptorSet()
+{
+	VkDescriptorImageInfo blitRayTraceImageDescriptorInfo = {
+	    .sampler = raytracingInfo.raytraceImageSampler,
+	    .imageView = raytracingInfo.rayTraceImageViewHandle,
+	    .imageLayout = VK_IMAGE_LAYOUT_GENERAL,
+	};
+	std::vector<VkWriteDescriptorSet> writeDescriptorSetList{
+	    {
+	        .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+	        .pNext = NULL,
+	        .dstSet = descriptorSetHandleList[0],
+	        .dstBinding = 0,
+	        .dstArrayElement = 0,
+	        .descriptorCount = 1,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+	        .pImageInfo = &blitRayTraceImageDescriptorInfo,
+	        .pBufferInfo = NULL,
+	        .pTexelBufferView = NULL,
+	    },
+	};
+
+	vkUpdateDescriptorSets(logicalDevice,
+	                       static_cast<uint32_t>(writeDescriptorSetList.size()),
+	                       writeDescriptorSetList.data(),
+	                       0,
+	                       NULL);
 }
 
 void Renderer::createImageViews()
@@ -167,7 +237,39 @@ void Renderer::createFramebuffers()
 	}
 }
 
-void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIData& uiData)
+VkDescriptorPool Renderer::createDescriptorPool()
+{
+	VkDescriptorPool descriptorPoolHandle = VK_NULL_HANDLE;
+	std::vector<VkDescriptorPoolSize> descriptorPoolSizeList = {
+	    {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1},
+	};
+
+	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo = {
+	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+	    .pNext = NULL,
+	    .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+	    .maxSets = 1,
+	    .poolSizeCount = static_cast<uint32_t>(descriptorPoolSizeList.size()),
+	    .pPoolSizes = descriptorPoolSizeList.data(),
+	};
+
+	VkResult result = vkCreateDescriptorPool(
+	    logicalDevice, &descriptorPoolCreateInfo, NULL, &descriptorPoolHandle);
+
+	if (result != VK_SUCCESS)
+	{
+		throw std::runtime_error("initRayTracing - vkCreateDescriptorPool");
+	}
+
+	deletionQueue.push_function(
+	    [=, this]() { vkDestroyDescriptorPool(logicalDevice, descriptorPoolHandle, NULL); });
+
+	return descriptorPoolHandle;
+}
+
+void Renderer::drawFrame(Camera& camera,
+                         [[maybe_unused]] double delta,
+                         [[maybe_unused]] ui::UIData& uiData)
 {
 	VkResult result
 	    = vkWaitForFences(logicalDevice, 1, &inFlightFences[currentFrame], VK_TRUE, UINTMAX_MAX);
@@ -261,7 +363,7 @@ void Renderer::drawFrame(Camera& camera, [[maybe_unused]] double delta, ui::UIDa
 
 	VkSemaphore waitSemaphores[] = {imageAvailableSemaphores[currentFrame]};
 	VkPipelineStageFlags waitStages[] = {
-	    VK_PIPELINE_STAGE_TRANSFER_BIT,
+	    VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
 	};
 	submitInfo.waitSemaphoreCount = 1;
 	submitInfo.pWaitSemaphores = waitSemaphores;
@@ -431,10 +533,12 @@ VkShaderModule Renderer::createShaderModule(const std::vector<char>& code)
 void Renderer::createGraphicsPipeline()
 {
 	auto vertShaderCode = readFile("shaders/vert.spv");
-	auto fragShaderCode = readFile("shaders/frag.spv");
+	// auto fragShaderCode = readFile("shaders/frag.spv");
+	auto blitfragShaderCode = readFile("shaders/frag_blit.spv");
 
 	VkShaderModule vertShaderModule = createShaderModule(vertShaderCode);
-	VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+	// VkShaderModule fragShaderModule = createShaderModule(fragShaderCode);
+	VkShaderModule blitfragShaderModule = createShaderModule(blitfragShaderCode);
 
 	VkPipelineShaderStageCreateInfo vertShaderStageCreateInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -446,35 +550,43 @@ void Renderer::createGraphicsPipeline()
 	    .pSpecializationInfo = NULL,
 	};
 
-	VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo{
+	// VkPipelineShaderStageCreateInfo fragShaderStageCreateInfo{
+	//     .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+	//     .pNext = NULL,
+	//     .flags = 0,
+	//     .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+	//     .module = fragShaderModule,
+	//     .pName = "main",
+	//     .pSpecializationInfo = NULL,
+	// };
+
+	VkPipelineShaderStageCreateInfo blitfragShaderStageCreateInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
 	    .pNext = NULL,
 	    .flags = 0,
 	    .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-	    .module = fragShaderModule,
+	    .module = blitfragShaderModule,
 	    .pName = "main",
 	    .pSpecializationInfo = NULL,
 	};
 
-	VkPipelineShaderStageCreateInfo shaderStages[] = {
+	std::vector<VkPipelineShaderStageCreateInfo> shaderStages{
 	    vertShaderStageCreateInfo,
-	    fragShaderStageCreateInfo,
+	    // fragShaderStageCreateInfo,
+	    blitfragShaderStageCreateInfo,
 	};
 
-	auto bindingDescription = tracer::Vertex::getBindingDescription();
+	// auto bindingDescription = tracer::Vertex::getBindingDescription();
 	// auto attributeDescriptions = tracer::Vertex::getAttributeDescriptions();
 
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-	    .pNext = NULL,
-	    .flags = 0,
-	    .vertexBindingDescriptionCount = 1,
-	    .pVertexBindingDescriptions = &bindingDescription,
-	    // TODO: figure out if this is neeeded? probably not for ray tracing
-	    .vertexAttributeDescriptionCount
-	    = 0, // static_cast<uint32_t>(attributeDescriptions.size()),
-	    .pVertexAttributeDescriptions = VK_NULL_HANDLE, // attributeDescriptions.data(),
-	};
+	VkPipelineVertexInputStateCreateInfo vertexInputInfo{};
+	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+	vertexInputInfo.pNext = NULL;
+	vertexInputInfo.flags = 0;
+	vertexInputInfo.vertexBindingDescriptionCount = 0;
+	vertexInputInfo.pVertexBindingDescriptions = nullptr;
+	vertexInputInfo.vertexAttributeDescriptionCount = 0;
+	vertexInputInfo.pVertexAttributeDescriptions = VK_NULL_HANDLE;
 
 	VkPipelineInputAssemblyStateCreateInfo inputAssembly{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -516,8 +628,8 @@ void Renderer::createGraphicsPipeline()
 	    .depthClampEnable = VK_FALSE,
 	    .rasterizerDiscardEnable = VK_FALSE,
 	    .polygonMode = VK_POLYGON_MODE_FILL,
-	    .cullMode = VK_CULL_MODE_BACK_BIT,
-	    .frontFace = VK_FRONT_FACE_CLOCKWISE,
+	    .cullMode = VK_CULL_MODE_FRONT_BIT,
+	    .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
 	    .depthBiasEnable = VK_FALSE,
 	    .depthBiasConstantFactor = 0.0f,
 	    .depthBiasClamp = 0.0f,
@@ -560,17 +672,16 @@ void Renderer::createGraphicsPipeline()
 	    .blendConstants = {0.0f, 0.0f, 0.0f, 0.0f},
 	};
 
-	// std::vector<VkDescriptorSetLayout> layouts = {descriptorSetLayoutGlobal,
-	//                                               descriptorSetLayoutPerModel};
+	std::vector<VkDescriptorSetLayout> layouts = {
+	    raytracingImageDescriptorSetLayoutHandle,
+	};
 
 	VkPipelineLayoutCreateInfo pipelineLayoutInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
 	    .pNext = NULL,
 	    .flags = 0,
-	    // .setLayoutCount = 2,
-	    // .pSetLayouts = layouts.data(),
-	    .setLayoutCount = 0,
-	    .pSetLayouts = VK_NULL_HANDLE,
+	    .setLayoutCount = static_cast<uint32_t>(layouts.size()),
+	    .pSetLayouts = layouts.data(),
 	    .pushConstantRangeCount = 0,
 	    .pPushConstantRanges = nullptr,
 	};
@@ -584,27 +695,26 @@ void Renderer::createGraphicsPipeline()
 	deletionQueue.push_function(
 	    [=, this]() { vkDestroyPipelineLayout(logicalDevice, pipelineLayout, nullptr); });
 
-	VkGraphicsPipelineCreateInfo pipelineInfo{
-	    .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-	    .pNext = NULL,
-	    .flags = 0,
-	    .stageCount = 2,
-	    .pStages = shaderStages,
-	    .pVertexInputState = &vertexInputInfo,
-	    .pInputAssemblyState = &inputAssembly,
-	    .pTessellationState = NULL,
-	    .pViewportState = &viewportState,
-	    .pRasterizationState = &rasterizer,
-	    .pMultisampleState = &multisampling,
-	    .pDepthStencilState = nullptr,
-	    .pColorBlendState = &colorBlending,
-	    .pDynamicState = &dynamicState,
-	    .layout = pipelineLayout,
-	    .renderPass = renderPass,
-	    .subpass = 0,
-	    .basePipelineHandle = VK_NULL_HANDLE,
-	    .basePipelineIndex = -1,
-	};
+	VkGraphicsPipelineCreateInfo pipelineInfo{};
+	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+	pipelineInfo.pNext = NULL;
+	pipelineInfo.flags = 0;
+	pipelineInfo.stageCount = static_cast<uint32_t>(shaderStages.size());
+	pipelineInfo.pStages = shaderStages.data();
+	pipelineInfo.pVertexInputState = &vertexInputInfo;
+	pipelineInfo.pInputAssemblyState = &inputAssembly;
+	pipelineInfo.pTessellationState = NULL;
+	pipelineInfo.pViewportState = &viewportState;
+	pipelineInfo.pRasterizationState = &rasterizer;
+	pipelineInfo.pMultisampleState = &multisampling;
+	pipelineInfo.pDepthStencilState = nullptr;
+	pipelineInfo.pColorBlendState = &colorBlending;
+	pipelineInfo.pDynamicState = &dynamicState;
+	pipelineInfo.layout = pipelineLayout;
+	pipelineInfo.renderPass = renderPass;
+	// pipelineInfo.subpass = 0;
+	// pipelineInfo.basePipelineHandle = VK_NULL_HANDLE;
+	// pipelineInfo.basePipelineIndex = -1;
 
 	if (vkCreateGraphicsPipelines(
 	        logicalDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &graphicsPipeline)
@@ -616,8 +726,9 @@ void Renderer::createGraphicsPipeline()
 	deletionQueue.push_function([=, this]()
 	                            { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); });
 
-	vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
-	vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
+	// vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
+	// vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, blitfragShaderModule, nullptr);
 }
 
 void Renderer::createRenderPass()
@@ -744,7 +855,7 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 		};
 		addImageMemoryBarrier(commandBuffer1,
 		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-		                      VK_ACCESS_NONE,
+		                      VK_ACCESS_2_NONE,
 		                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
 		                      VK_ACCESS_2_TRANSFER_WRITE_BIT,
 		                      VK_IMAGE_LAYOUT_UNDEFINED,
@@ -858,7 +969,7 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
                                    uint32_t imageIndex,
-                                   ui::UIData& uiData)
+                                   [[maybe_unused]] ui::UIData& uiData)
 {
 	auto swapChainExtent = window.getSwapChainExtent();
 
@@ -882,18 +993,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	    .layerCount = 1,
 	};
 
-	// Ensure the output image is in the right layout for clearing (transfer source layout)
-	addImageMemoryBarrier(commandBuffer,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_NONE,
-	                      VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	                      VK_ACCESS_2_TRANSFER_WRITE_BIT,
-	                      VK_IMAGE_LAYOUT_UNDEFINED,
-	                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	                      subresourceRange,
-	                      swapChainImages[imageIndex]);
-
-	VkClearColorValue clearColor = {{0.6f, 0.1f, 0.1f, 1.0f}};
+	VkClearColorValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}};
 	VkClearValue clearValue{};
 	clearValue.color = clearColor;
 
@@ -911,24 +1011,24 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	renderPassInfo.clearValueCount = 1;
 	renderPassInfo.pClearValues = &clearValue;
 
-	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
+	// Ensure the image is using the correct layout
+	addImageMemoryBarrier(commandBuffer,
+	                      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	                      0,
+	                      VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+	                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+	                      VK_IMAGE_LAYOUT_UNDEFINED,
+	                      VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
+	                      subresourceRange,
+	                      swapChainImages[imageIndex]);
 
-	// addImageMemoryBarrier(commandBuffer,
-	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	//                       VK_ACCESS_TRANSFER_WRITE_BIT,
-	//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
-	//                       VK_ACCESS_NONE,
-	//                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	//                       VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-	//                       subresourceRange,
-	//                       swapChainImages[imageIndex]);
-	//////////////////////////////////////////////////////////////////////////////////////////////////////
+	vkCmdBeginRenderPass(commandBuffer, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE);
 
 	VkViewport viewport{};
 	viewport.width = static_cast<float>(swapChainExtent.width);
-	viewport.height = -static_cast<float>(swapChainExtent.height);
+	viewport.height = static_cast<float>(swapChainExtent.height);
 	viewport.x = 0.0f;
-	viewport.y = static_cast<float>(swapChainExtent.height);
+	viewport.y = 1;
 	viewport.minDepth = 0.0f;
 	viewport.maxDepth = 1.0f;
 	vkCmdSetViewport(commandBuffer, 0, 1, &viewport);
@@ -937,6 +1037,20 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	scissor.offset = {0, 0};
 	scissor.extent = swapChainExtent;
 	vkCmdSetScissor(commandBuffer, 0, 1, &scissor);
+
+	// write raytracing image to swapchain image
+	vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+
+	vkCmdBindDescriptorSets(commandBuffer,
+	                        VK_PIPELINE_BIND_POINT_GRAPHICS,
+	                        pipelineLayout,
+	                        0,
+	                        static_cast<uint32_t>(descriptorSetHandleList.size()),
+	                        descriptorSetHandleList.data(),
+	                        0,
+	                        NULL);
+
+	vkCmdDraw(commandBuffer, 3, 1, 0, 0);
 
 	renderImguiFrame(commandBuffer, uiData);
 
