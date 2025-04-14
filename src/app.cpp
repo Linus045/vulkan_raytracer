@@ -740,10 +740,16 @@ void Application::mainLoop()
 		                           .count();
 		uiData->frameTimeMilliseconds = frameTimeDelta;
 
-		if (uiData->configurationChanged || camera.isCameraMoved())
+		if (uiData->configurationChanged)
 		{
-			camera.resetCameraMoved();
 			renderer->requestResetFrameCount();
+			uiData->configurationChanged = false;
+		}
+
+		if (camera.isCameraMoved())
+		{
+			renderer->requestResetFrameCount();
+			camera.resetCameraMoved();
 		}
 
 		if (renderer->swapChainOutdated)
