@@ -47,11 +47,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	createInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
 	createInfo.maxLod = VK_LOD_CLAMP_NONE;
 
-	VkResult result = vkCreateSampler(logicalDevice, &createInfo, nullptr, &raytraceImageSampler);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Renderer::initRenderer - failed to create sampler");
-	}
+	VK_CHECK_RESULT(vkCreateSampler(logicalDevice, &createInfo, nullptr, &raytraceImageSampler));
 	raytracingInfo.raytraceImageSampler = raytraceImageSampler;
 
 	// createUniformBuffers();
@@ -253,13 +249,8 @@ VkDescriptorPool Renderer::createDescriptorPool()
 	    .pPoolSizes = descriptorPoolSizeList.data(),
 	};
 
-	VkResult result = vkCreateDescriptorPool(
-	    logicalDevice, &descriptorPoolCreateInfo, NULL, &descriptorPoolHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("initRayTracing - vkCreateDescriptorPool");
-	}
+	VK_CHECK_RESULT(vkCreateDescriptorPool(
+	    logicalDevice, &descriptorPoolCreateInfo, NULL, &descriptorPoolHandle));
 
 	deletionQueue.push_function(
 	    [=, this]() { vkDestroyDescriptorPool(logicalDevice, descriptorPoolHandle, NULL); });
@@ -297,11 +288,7 @@ void Renderer::drawFrame(Camera& camera,
 		throw std::runtime_error("failed to acquire swap chain image");
 	}
 
-	result = vkResetCommandBuffer(commandBuffers[currentFrame], 0);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Renderer::drawFrame - failed to reset command buffer");
-	}
+	VK_CHECK_RESULT(vkResetCommandBuffer(commandBuffers[currentFrame], 0));
 
 	if (raytracingSupported)
 	{
@@ -376,11 +363,7 @@ void Renderer::drawFrame(Camera& camera,
 	submitInfo.signalSemaphoreCount = 1;
 	submitInfo.pSignalSemaphores = signalSemaphores;
 
-	result = vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Renderer::drawFrame - failed to submit draw command buffer!");
-	}
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submitInfo, inFlightFences[currentFrame]));
 
 	VkPresentInfoKHR presentInfo{};
 	presentInfo.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
@@ -829,12 +812,7 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 		beginInfo.flags = 0;
 		beginInfo.pInheritanceInfo = 0;
 
-		VkResult result = vkBeginCommandBuffer(commandBuffer1, &beginInfo);
-		if (result != VK_SUCCESS)
-		{
-			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
-			                         "to begin command buffer");
-		}
+		VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer1, &beginInfo));
 
 		// addImageMemoryBarrier(commandBuffer,
 		//                       VK_PIPELINE_STAGE_2_TRANSFER_BIT,
@@ -863,31 +841,16 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 		                      subresourceRange,
 		                      raytracingInfo.rayTraceImageHandle);
 
-		result = vkEndCommandBuffer(commandBuffer1);
-		if (result != VK_SUCCESS)
-		{
-			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
-			                         "to end command buffer");
-		}
+		VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer1));
 
 		VkSubmitInfo submit{};
 		submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 		submit.commandBufferCount = 1;
 		submit.pCommandBuffers = &commandBuffer1;
 
-		result = vkQueueSubmit(graphicsQueue, 1, &submit, nullptr);
-		if (result != VK_SUCCESS)
-		{
-			throw std::runtime_error(
-			    "Renderer::createRaytracingRenderpassAndFramebuffer - failed to submit queue");
-		}
+		VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue, 1, &submit, nullptr));
 
-		result = vkQueueWaitIdle(graphicsQueue);
-		if (result != VK_SUCCESS)
-		{
-			throw std::runtime_error("Renderer::createRaytracingRenderpassAndFramebuffer - failed "
-			                         "to wait for queue idle");
-		}
+		VK_CHECK_RESULT(vkQueueWaitIdle(graphicsQueue));
 
 		vkFreeCommandBuffers(logicalDevice, commandPool1, 1, &commandBuffer1);
 		vkDestroyCommandPool(logicalDevice, commandPool1, nullptr);
@@ -933,13 +896,8 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 		renderPassCreateInfo.dependencyCount = 1;
 		renderPassCreateInfo.pDependencies = &dependency;
 
-		VkResult result = vkCreateRenderPass(
-		    logicalDevice, &renderPassCreateInfo, nullptr, &raytracingRenderPass);
-		if (result != VK_SUCCESS)
-		{
-			throw std::runtime_error(
-			    "createRaytracingRenderpassAndFramebuffer - failed to create render pass");
-		}
+		VK_CHECK_RESULT(vkCreateRenderPass(
+		    logicalDevice, &renderPassCreateInfo, nullptr, &raytracingRenderPass));
 	}
 
 	// Creating the frame buffer for offscreen
@@ -958,13 +916,8 @@ void Renderer::createRaytracingRenderpassAndFramebuffer()
 	createInfo.width = extent.width;
 	createInfo.height = extent.height;
 	createInfo.layers = 1;
-	VkResult result
-	    = vkCreateFramebuffer(logicalDevice, &createInfo, nullptr, &raytracingFramebuffer);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error(
-		    "createRaytracingRenderpassAndFramebuffer - failed to create framebuffer");
-	}
+	VK_CHECK_RESULT(
+	    vkCreateFramebuffer(logicalDevice, &createInfo, nullptr, &raytracingFramebuffer));
 }
 
 void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
@@ -978,12 +931,7 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 	beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 	beginInfo.pInheritanceInfo = nullptr;
 
-	VkResult result = vkBeginCommandBuffer(commandBuffer, &beginInfo);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error(
-		    "Renderer::recordCommandBuffer - failed to begin recording command buffer");
-	}
+	VK_CHECK_RESULT(vkBeginCommandBuffer(commandBuffer, &beginInfo));
 
 	auto subresourceRange = VkImageSubresourceRange{
 	    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -1056,10 +1004,6 @@ void Renderer::recordCommandBuffer(VkCommandBuffer commandBuffer,
 
 	vkCmdEndRenderPass(commandBuffer);
 
-	result = vkEndCommandBuffer(commandBuffer);
-	if (result != VK_SUCCESS)
-	{
-		throw std::runtime_error("Renderer::recordCommandBuffer - failed to record command buffer");
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
 }
 }; // namespace tracer

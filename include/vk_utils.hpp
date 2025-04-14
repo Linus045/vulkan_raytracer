@@ -8,9 +8,61 @@
 
 #include "deletion_queue.hpp"
 #include "types.hpp"
+#include "vk_utils.hpp"
 
 namespace tracer
 {
+
+// see https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanTools.cpp
+inline std::string errorString(VkResult errorCode)
+{
+#define STR(r)                                                                                     \
+	case VK_##r:                                                                                   \
+		return #r
+
+	switch (errorCode)
+	{
+		STR(NOT_READY);
+		STR(TIMEOUT);
+		STR(EVENT_SET);
+		STR(EVENT_RESET);
+		STR(INCOMPLETE);
+		STR(ERROR_OUT_OF_HOST_MEMORY);
+		STR(ERROR_OUT_OF_DEVICE_MEMORY);
+		STR(ERROR_INITIALIZATION_FAILED);
+		STR(ERROR_DEVICE_LOST);
+		STR(ERROR_MEMORY_MAP_FAILED);
+		STR(ERROR_LAYER_NOT_PRESENT);
+		STR(ERROR_EXTENSION_NOT_PRESENT);
+		STR(ERROR_FEATURE_NOT_PRESENT);
+		STR(ERROR_INCOMPATIBLE_DRIVER);
+		STR(ERROR_TOO_MANY_OBJECTS);
+		STR(ERROR_FORMAT_NOT_SUPPORTED);
+		STR(ERROR_SURFACE_LOST_KHR);
+		STR(ERROR_NATIVE_WINDOW_IN_USE_KHR);
+		STR(SUBOPTIMAL_KHR);
+		STR(ERROR_OUT_OF_DATE_KHR);
+		STR(ERROR_INCOMPATIBLE_DISPLAY_KHR);
+		STR(ERROR_VALIDATION_FAILED_EXT);
+		STR(ERROR_INVALID_SHADER_NV);
+		STR(ERROR_INCOMPATIBLE_SHADER_BINARY_EXT);
+	default:
+		return "UNKNOWN_ERROR";
+	}
+#undef STR
+}
+
+// see https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanTools.cpp
+#define VK_CHECK_RESULT(f)                                                                         \
+	{                                                                                              \
+		VkResult res = (f);                                                                        \
+		if (res != VK_SUCCESS)                                                                     \
+		{                                                                                          \
+			std::cout << "Fatal : VkResult is \"" << ::tracer::errorString(res) << "\" in "        \
+			          << __FILE__ << " at line " << __LINE__ << "\n";                              \
+			assert(res == VK_SUCCESS);                                                             \
+		}                                                                                          \
+	}
 
 constexpr VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
@@ -153,15 +205,9 @@ inline void copyDataToBuffer(VkDevice logicalDevice,
                              VkDeviceSize size)
 {
 	void* memoryBuffer;
-	VkResult result = vkMapMemory(logicalDevice, bufferMemory, 0, size, 0, &memoryBuffer);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("createBLASBuildDataForScene - vkMapMemory");
-	}
+	VK_CHECK_RESULT(vkMapMemory(logicalDevice, bufferMemory, 0, size, 0, &memoryBuffer));
 
 	memcpy(memoryBuffer, data, size);
-
 	vkUnmapMemory(logicalDevice, bufferMemory);
 }
 

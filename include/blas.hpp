@@ -188,16 +188,11 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .deviceAddress = 0,
 	};
 
-	VkResult result = tracer::procedures::pvkCreateAccelerationStructureKHR(
+	VK_CHECK_RESULT(tracer::procedures::pvkCreateAccelerationStructureKHR(
 	    logicalDevice,
 	    &bottomLevelAccelerationStructureCreateInfo,
 	    NULL,
-	    &bottomLevelAccelerationStructureHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("buildBLASInstance - vkCreateAccelerationStructureKHR");
-	}
+	    &bottomLevelAccelerationStructureHandle));
 
 	deletionQueue.push_function(
 	    [=]()
@@ -246,12 +241,8 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .pInheritanceInfo = NULL,
 	};
 
-	result = vkBeginCommandBuffer(bottomLevelCommandBuffer, &bottomLevelCommandBufferBeginInfo);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
-	}
+	VK_CHECK_RESULT(
+	    vkBeginCommandBuffer(bottomLevelCommandBuffer, &bottomLevelCommandBufferBeginInfo));
 
 	// TODO: this doesn't seem to be strictly necessary? Keeping it here just to be sure
 	VkMemoryBarrier2 waitForAccelerationStructureBarrier = {};
@@ -280,12 +271,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    &bottomLevelAccelerationStructureBuildGeometryInfo,
 	    &bottomLevelAccelerationStructureBuildRangeInfos);
 
-	result = vkEndCommandBuffer(bottomLevelCommandBuffer);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkEndCommandBuffer");
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(bottomLevelCommandBuffer));
 
 	VkSubmitInfo bottomLevelAccelerationStructureBuildSubmitInfo = {
 	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -299,28 +285,15 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .pSignalSemaphores = NULL,
 	};
 
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateFence");
-	}
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueue,
+	                              1,
+	                              &bottomLevelAccelerationStructureBuildSubmitInfo,
+	                              accelerationStructureBuildFence));
 
-	result = vkQueueSubmit(graphicsQueue,
-	                       1,
-	                       &bottomLevelAccelerationStructureBuildSubmitInfo,
-	                       accelerationStructureBuildFence);
+	VK_CHECK_RESULT(
+	    vkWaitForFences(logicalDevice, 1, &accelerationStructureBuildFence, true, UINT32_MAX));
 
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkQueueSubmit");
-	}
-
-	result = vkWaitForFences(logicalDevice, 1, &accelerationStructureBuildFence, true, UINT32_MAX);
-
-	if (result != VK_SUCCESS && result != VK_TIMEOUT)
-	{
-		throw new std::runtime_error("buildBottomLevelAccelerationStructure - vkWaitForFences");
-	}
-	vkResetFences(logicalDevice, 1, &accelerationStructureBuildFence);
+	VK_CHECK_RESULT(vkResetFences(logicalDevice, 1, &accelerationStructureBuildFence));
 
 	return bottomLevelAccelerationStructureHandle;
 }

@@ -6,6 +6,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "deletion_queue.hpp"
+#include "vk_utils.hpp"
 
 namespace tracer
 {
@@ -34,13 +35,8 @@ inline void createShaderModule(const std::filesystem::path& filePath,
 	    .pCode = shaderSource.data(),
 	};
 
-	VkResult result = vkCreateShaderModule(
-	    logicalDevice, &rayClosestHitShaderModuleCreateInfo, NULL, &shaderModuleHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateShaderModule");
-	}
+	VK_CHECK_RESULT(vkCreateShaderModule(
+	    logicalDevice, &rayClosestHitShaderModuleCreateInfo, NULL, &shaderModuleHandle));
 
 	deletionQueue.push_function(
 	    [=]() { vkDestroyShaderModule(logicalDevice, shaderModuleHandle, NULL); });

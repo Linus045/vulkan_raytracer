@@ -50,8 +50,6 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	// }
 	// std::cout << "blasGeometryInstances.size(): " << blasGeometryInstances.size() << "\n";
 
-	VkResult result;
-
 	//=================================================================================================
 	// copy acceleration structure geometry instances from array to a buffer
 	if (onlyUpdate)
@@ -184,16 +182,11 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		    .deviceAddress = 0,
 		};
 
-		result = tracer::procedures::pvkCreateAccelerationStructureKHR(
+		VK_CHECK_RESULT(tracer::procedures::pvkCreateAccelerationStructureKHR(
 		    logicalDevice,
 		    &topLevelAccelerationStructureCreateInfo,
 		    NULL,
-		    &topLevelAccelerationStructureHandle);
-
-		if (result != VK_SUCCESS)
-		{
-			throw new std::runtime_error("initRayTracing - vkCreateAccelerationStructureKHR");
-		}
+		    &topLevelAccelerationStructureHandle));
 
 		deletionQueue.push_function(
 		    [=]()
@@ -267,13 +260,8 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	    .pInheritanceInfo = NULL,
 	};
 
-	result = vkBeginCommandBuffer(commandBufferBuildTopAndBottomLevel,
-	                              &topLevelCommandBufferBeginInfo);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkBeginCommandBuffer");
-	}
+	VK_CHECK_RESULT(
+	    vkBeginCommandBuffer(commandBufferBuildTopAndBottomLevel, &topLevelCommandBufferBeginInfo));
 
 	tracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
 	    commandBufferBuildTopAndBottomLevel,
@@ -281,12 +269,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	    &topLevelAccelerationStructureBuildGeometryInfo,
 	    &topLevelAccelerationStructureBuildRangeInfos);
 
-	result = vkEndCommandBuffer(commandBufferBuildTopAndBottomLevel);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkEndCommandBuffer");
-	}
+	VK_CHECK_RESULT(vkEndCommandBuffer(commandBufferBuildTopAndBottomLevel));
 
 	VkSubmitInfo topLevelAccelerationStructureBuildSubmitInfo = {
 	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -307,33 +290,17 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	};
 
 	VkFence topLevelAccelerationStructureBuildFenceHandle = VK_NULL_HANDLE;
-	result = vkCreateFence(logicalDevice,
-	                       &topLevelAccelerationStructureBuildFenceCreateInfo,
-	                       NULL,
-	                       &topLevelAccelerationStructureBuildFenceHandle);
+	VK_CHECK_RESULT(vkCreateFence(logicalDevice,
+	                              &topLevelAccelerationStructureBuildFenceCreateInfo,
+	                              NULL,
+	                              &topLevelAccelerationStructureBuildFenceHandle));
 
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkCreateFence");
-	}
-
-	result = vkQueueSubmit(graphicsQueueHandle,
-	                       1,
-	                       &topLevelAccelerationStructureBuildSubmitInfo,
-	                       topLevelAccelerationStructureBuildFenceHandle);
-
-	if (result != VK_SUCCESS)
-	{
-		throw new std::runtime_error("initRayTracing - vkQueueSubmit");
-	}
-
-	result = vkWaitForFences(
-	    logicalDevice, 1, &topLevelAccelerationStructureBuildFenceHandle, true, UINT32_MAX);
-
-	if (result != VK_SUCCESS && result != VK_TIMEOUT)
-	{
-		throw new std::runtime_error("initRayTracing - vkWaitForFences");
-	}
+	VK_CHECK_RESULT(vkQueueSubmit(graphicsQueueHandle,
+	                              1,
+	                              &topLevelAccelerationStructureBuildSubmitInfo,
+	                              topLevelAccelerationStructureBuildFenceHandle));
+	VK_CHECK_RESULT(vkWaitForFences(
+	    logicalDevice, 1, &topLevelAccelerationStructureBuildFenceHandle, true, UINT32_MAX));
 
 	vkDestroyFence(logicalDevice, topLevelAccelerationStructureBuildFenceHandle, NULL);
 }
