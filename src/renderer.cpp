@@ -130,6 +130,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .debugSlicingPlanes = 0.0f,
 	    .enableSlicingPlanes = 0.0f,
 	    .debugShowSubdivisions = 0.0f,
+	    .debugFastRenderMode = 1.0f,
 	    .cameraDir = glm::vec3(0),
 	};
 

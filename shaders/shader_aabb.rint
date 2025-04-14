@@ -24,6 +24,9 @@ struct HitData
 bool isCrosshairRay = false;
 hitAttributeEXT HitData hitData;
 
+layout(set = 0, binding = 1) uniform UBO{// see common_types.h
+                                         UNIFORM_MEMBERS} ubo;
+
 layout(set = 0, binding = 5, scalar) buffer Tetrahedrons
 {
 	Tetrahedron2[] tetrahedrons;
@@ -153,6 +156,10 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 	vec2 u[max_iterations];
 
 	float toleranceF = raytracingDataConstants.newtonErrorFTolerance;
+	if (raytracingDataConstants.debugFastRenderMode > 0.0 && ubo.frameCount < 10)
+	{
+		toleranceF = 100000;
+	}
 
 	u[0] = initialGuess;
 	for (int c = 1; c < max_iterations; c++)

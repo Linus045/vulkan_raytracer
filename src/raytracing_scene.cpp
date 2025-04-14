@@ -275,6 +275,38 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 		}
 	}
+	else if (sceneNr == 9)
+	{
+		for (float x = 0; x < 10; x++)
+		{
+			for (float z = 0; z < 10; z++)
+			{
+				float scalar = 1.0f;
+				glm::vec3 offset = glm::vec3(3.0 * x, 0, 3.0f * z);
+				[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
+				    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 0),
+				    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 2),
+				    glm::vec3(2.0f, 2.0f, 2.0f) * scalar + offset + getRandomOffset(-0, 2),
+				    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset + getRandomOffset(-0, 2),
+
+				    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 0),
+				    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 0),
+				    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset + getRandomOffset(-0, 0),
+
+				    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset + getRandomOffset(-0, 0),
+				    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset + getRandomOffset(-0, 0),
+				    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset + getRandomOffset(-0, 0),
+				}));
+
+				raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+				// Visualize control points
+				// for (auto& point : tetrahedron2.controlPoints)
+				// {
+				// 	raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_pink);
+				// }
+			}
+		}
+	}
 	else
 	{
 		std::printf("Scene %d not implemented\n", sceneNr);

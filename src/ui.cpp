@@ -192,6 +192,15 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugShowSubdivisions
 			    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
 
+			bool debugFastRenderMode = uiData.raytracingDataConstants.debugFastRenderMode > 0;
+			valueChanged
+			    = ImGui::Checkbox(
+			          "Debug: Enable fast render mode (decreases tolerace for frames < 10)",
+			          &debugFastRenderMode)
+			      || valueChanged;
+			uiData.raytracingDataConstants.debugFastRenderMode
+			    = static_cast<float>(debugFastRenderMode ? 1 : 0);
+
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
 			                                  1e-8f,
