@@ -30,7 +30,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 	raytracingScene.getWorldObjectSpheres().clear();
 	raytracingScene.getWorldObjectTetrahedrons().clear();
-	raytracingScene.getWorldObjectBezierTriangles().clear();
+	raytracingScene.getWorldObjectBezierTriangles2().clear();
 	raytracingScene.getWorldObjectRectangularBezierSurfaces2x2().clear();
 	raytracingScene.getSlicingPlanes().clear();
 
@@ -190,7 +190,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	}
 	else if (sceneNr == 6)
 	{
-		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron3(std::to_array({
+		[[maybe_unused]] auto tetrahedron3 = tracer::createTetrahedron3(std::to_array({
 		    glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 2), glm::vec3(0, 0, 3),
 		    glm::vec3(0, 1, 0), glm::vec3(0, 1, 1), glm::vec3(0, 1, 2), glm::vec3(0, 2, 0),
 		    glm::vec3(0, 2, 1), glm::vec3(0, 3, 0), glm::vec3(1, 0, 0), glm::vec3(1, 0, 1),
@@ -198,7 +198,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(2, 0, 0), glm::vec3(2, 0, 1), glm::vec3(2, 1, 0), glm::vec3(3, 0, 0),
 		}));
 
-		for (auto& point : tetrahedron2.controlPoints)
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron3);
+		for (auto& point : tetrahedron3.controlPoints)
 		{
 			if (glm::abs(point.x - 1) < 1e-8 && glm::abs(point.y - 1) < 1e-8
 			    && glm::abs(point.z - 1) < 1e-8)

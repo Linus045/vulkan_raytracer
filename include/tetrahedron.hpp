@@ -117,38 +117,54 @@ inline BezierTriangle3 extractBezierTriangleFromTetrahedron(const Tetrahedron3& 
 	if (side == 1)
 	{
 		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
 		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[9];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[3];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
 		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
+		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[7];
+		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[9];
 	}
 	else if (side == 2)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[4];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[10];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[16];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[19];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[1];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[11];
+		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[17];
+		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[2];
+		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[12];
+		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[3];
 	}
 	else if (side == 3)
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[5];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[7];
+		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[4];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[7];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[9];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[10];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[13];
+		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[15];
+		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[16];
+		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[18];
+		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[19];
 	}
 	else if (side == 4)
 	{
 		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[9];
+		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[12];
+		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[17];
+		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[19];
+		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
+		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[14];
+		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[18];
+		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[8];
+		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[15];
+		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[9];
 	}
 	else
 	{

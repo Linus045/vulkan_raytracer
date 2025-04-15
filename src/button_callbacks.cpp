@@ -51,7 +51,7 @@ static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiDat
 		        intersectionPoint,
 		        initialGuess,
 		        ray.origin,
-		        std::to_array(raytracingScene.getWorldObjectBezierTriangles()[side]
+		        std::to_array(raytracingScene.getWorldObjectBezierTriangles2()[side]
 		                          .getGeometry()
 		                          .getData()
 		                          .controlPoints),

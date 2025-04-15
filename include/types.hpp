@@ -64,6 +64,12 @@ struct RaytracingObjectBuffers
 	std::vector<VkDeviceMemory> bezierTriangles2AABBDeviceMemoryHandles
 	    = std::vector<VkDeviceMemory>(0);
 
+	VkBuffer bezierTriangles3BufferHandle = VkBuffer(0);
+	VkDeviceMemory bezierTriangles3DeviceMemoryHandles = VkDeviceMemory(0);
+	std::vector<VkBuffer> bezierTriangles3AABBBufferHandles = std::vector<VkBuffer>(0);
+	std::vector<VkDeviceMemory> bezierTriangles3AABBDeviceMemoryHandles
+	    = std::vector<VkDeviceMemory>(0);
+
 	VkBuffer spheresBufferHandle = VkBuffer(0);
 	VkDeviceMemory spheresDeviceMemoryHandles = VkDeviceMemory(0);
 	std::vector<VkBuffer> spheresAABBBufferHandles = std::vector<VkBuffer>(0);
@@ -105,6 +111,9 @@ struct RaytracingObjectBuffers
 
 		bezierTriangles2BufferHandle = VK_NULL_HANDLE;
 		bezierTriangles2DeviceMemoryHandles = VK_NULL_HANDLE;
+
+		bezierTriangles3BufferHandle = VK_NULL_HANDLE;
+		bezierTriangles3DeviceMemoryHandles = VK_NULL_HANDLE;
 	}
 };
 

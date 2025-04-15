@@ -165,6 +165,28 @@ class AABB
 		};
 	}
 
+	static AABB fromBezierTriangle3(const BezierTriangle3& bezierTriangle3)
+	{
+		glm::vec3 min = bezierTriangle3.controlPoints[0];
+		glm::vec3 max = bezierTriangle3.controlPoints[0];
+
+		for (const glm::vec3& point : bezierTriangle3.controlPoints)
+		{
+			min.x = glm::min(min.x, point.x);
+			min.y = glm::min(min.y, point.y);
+			min.z = glm::min(min.z, point.z);
+
+			max.x = glm::max(max.x, point.x);
+			max.y = glm::max(max.y, point.y);
+			max.z = glm::max(max.z, point.z);
+		}
+
+		return AABB{
+		    .min = min,
+		    .max = max,
+		};
+	}
+
 	static AABB fromSphere(const Sphere& sphere)
 	{
 		return AABB

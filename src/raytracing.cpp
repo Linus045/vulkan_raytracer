@@ -135,6 +135,12 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 	    .range = VK_WHOLE_SIZE,
 	};
 
+	VkDescriptorBufferInfo bezierTriangles3DescriptorInfo = {
+	    .buffer = raytracingScene.getObjectBuffers().bezierTriangles3BufferHandle,
+	    .offset = 0,
+	    .range = VK_WHOLE_SIZE,
+	};
+
 	std::vector<VkWriteDescriptorSet> writeDescriptorSetList;
 
 	// TODO: replace meshObjects[0] with the correct mesh object and dynamically select
@@ -328,6 +334,22 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
 		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 		    .pImageInfo = NULL,
 		    .pBufferInfo = &bezierTriangles2DescriptorInfo,
+		    .pTexelBufferView = NULL,
+		});
+	}
+
+	if (raytracingScene.getObjectBuffers().bezierTriangles3BufferHandle != VK_NULL_HANDLE)
+	{
+		writeDescriptorSetList.push_back({
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = NULL,
+		    .dstSet = raytracingInfo.descriptorSetHandleList[0],
+		    .dstBinding = 11,
+		    .dstArrayElement = 0,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+		    .pImageInfo = NULL,
+		    .pBufferInfo = &bezierTriangles3DescriptorInfo,
 		    .pTexelBufferView = NULL,
 		});
 	}
@@ -1151,7 +1173,7 @@ VkDescriptorPool createDescriptorPool(VkDevice logicalDevice, DeletionQueue& del
 	std::vector<VkDescriptorPoolSize> descriptorPoolSizeList = {
 	    {.type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, .descriptorCount = 1},
 	    {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .descriptorCount = 1},
-	    {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 10},
+	    {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .descriptorCount = 11},
 	    {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .descriptorCount = 1},
 	    {.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, .descriptorCount = 1},
 	};
@@ -1319,6 +1341,14 @@ VkDescriptorSetLayout createDescriptorSetLayout(VkDevice logicalDevice,
 	    },
 	    {
 	        .binding = 10,
+	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+	        .descriptorCount = 1,
+	        .stageFlags
+	        = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR,
+	        .pImmutableSamplers = NULL,
+	    },
+	    {
+	        .binding = 11,
 	        .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
 	        .descriptorCount = 1,
 	        .stageFlags
