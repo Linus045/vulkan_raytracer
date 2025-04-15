@@ -117,7 +117,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .globalLightIntensity = 0.14f,
 	    // .environmentColor = vec3(0.58, 0.81, 0.92),
 	    //.environmentColor = vec3(0.10, 0.10, 0.20),
-	    .environmentColor = vec3(1.0, 1.0, 1.0),
+	    .environmentColor = vec3(0.2, 0.2, 0.2),
 	    .environmentLightIntensity = 0.7f,
 	    .debugShowAABBs = 0.0f,
 	    .renderSideTriangle = 1.0f,
@@ -129,7 +129,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .debugPrintCrosshairRay = 1.0f,
 	    .debugSlicingPlanes = 0.0f,
 	    .enableSlicingPlanes = 0.0f,
-	    .debugShowSubdivisions = 0.0f,
+	    .debugShowSubdivisions = 1.0f,
 	    .debugFastRenderMode = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
