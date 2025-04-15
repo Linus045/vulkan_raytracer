@@ -31,6 +31,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	raytracingScene.getWorldObjectSpheres().clear();
 	raytracingScene.getWorldObjectTetrahedrons().clear();
 	raytracingScene.getWorldObjectBezierTriangles2().clear();
+	raytracingScene.getWorldObjectBezierTriangles3().clear();
 	raytracingScene.getWorldObjectRectangularBezierSurfaces2x2().clear();
 	raytracingScene.getSlicingPlanes().clear();
 
