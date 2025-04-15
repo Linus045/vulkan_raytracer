@@ -33,6 +33,21 @@ namespace rt
 class RaytracingScene
 {
   public:
+	static const int SCENE_COUNT = 9;
+	static const int INITIAL_SCENE = 1;
+
+	inline static const std::vector<std::string> sceneNames = {
+	    "Tetrahedron degree 2 deformed slightly",
+	    "Tetrahedron degree 2 moved with control points",
+	    "Tetrahedron degree 2 deformed strongly",
+	    "Two Tetrahedrons degree 2 stuck together",
+	    "Two Tetrahedrons degree 2 stuck together",
+	    "Tetrahedron degree 2 control poitns only",
+	    "Tetrahedron degree 2 random control points",
+	    "Two Tetrahedrons degree 2 slightly moved apart",
+	    "A bunch of random tetrahedrons",
+	};
+
 	RaytracingScene(const VkPhysicalDevice& physicalDevice, const VkDevice logicalDevice)
 	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice) {};
 
@@ -866,19 +881,6 @@ class RaytracingScene
 
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;
-
-	static const int SCENE_COUNT = 9;
-	inline static const std::vector<std::string> sceneNames = {
-	    "Tetrahedron degree 2 deformed slightly",
-	    "Tetrahedron degree 2 moved with control points",
-	    "Tetrahedron degree 2 deformed strongly",
-	    "Two Tetrahedrons degree 2 stuck together",
-	    "Two Tetrahedrons degree 2 stuck together",
-	    "Tetrahedron degree 2 control poitns only",
-	    "Tetrahedron degree 2 random control points",
-	    "Two Tetrahedrons degree 2 slightly moved apart",
-	    "A bunch of random tetrahedrons",
-	};
 };
 
 } // namespace rt

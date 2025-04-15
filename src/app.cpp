@@ -143,7 +143,8 @@ void Application::setupScene()
 {
 	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
 
-	tracer::rt::RaytracingScene::loadScene(*renderer, raytracingScene, 2);
+	tracer::rt::RaytracingScene::loadScene(
+	    *renderer, raytracingScene, tracer::rt::RaytracingScene::INITIAL_SCENE);
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
