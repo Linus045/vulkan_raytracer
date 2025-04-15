@@ -1,11 +1,52 @@
 #ifndef COMMON_SHADER_FUNCTIONS
 #define COMMON_SHADER_FUNCTIONS
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////// Basic Math functions //////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 const float M_PI = 3.1415926535897932384626433832795;
 
 float random(vec2 uv, float seed)
 {
 	return fract(sin(mod(dot(uv, vec2(12.9898, 78.233)) + 1113.1 * seed, M_PI)) * 43758.5453);
+}
+
+// not sure if the custom pow function is needed
+// but at least for i == 0 it's needed because pow() returns NaN
+// instead of 1 (at runtime)
+// it returns 1 though when then exponent of 0 is
+// known at compile time
+// see: http://hacksoflife.blogspot.com/2009/01/pow00-nan-sometimes.html
+float customPow(float x, int i)
+{
+	if (i == 0)
+	{
+		return 1;
+	}
+	else if (i == 1)
+	{
+		return x;
+	}
+	else if (i == 2)
+	{
+		return x * x;
+	}
+	else if (i == 3)
+	{
+		return x * x * x;
+	}
+	else if (i == 4)
+	{
+		return x * x * x * x;
+	}
+	else if (i == 5)
+	{
+		return x * x * x * x * x;
+	}
+	else if (i == 6)
+	{
+		return x * x * x * x * x * x;
+	}
 }
 
 float nChooseK(int N, int K)
@@ -36,6 +77,9 @@ int iter_factorial(int n)
 	return ret;
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////// Helper functions //////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 float PointInOrOn(vec3 P1, vec3 P2, vec3 A, vec3 B)
 {
 	vec3 CP1 = cross(B - A, P1 - A);
@@ -66,26 +110,14 @@ int getControlPointIndicesTetrahedron2(int i, int j, int k)
 	return 0;
 }
 
+// unused
 float BernsteinPolynomial(int i, int n, float x)
 {
-	// pow(0,0) is undefined at runtime! (but 0 when then arguments are known at compile time)
-	// http://hacksoflife.blogspot.com/2009/01/pow00-nan-sometimes.html
-	float xpowi = pow(x, i);
-	if (i == 0)
-	{
-		xpowi = 1;
-	}
-	float powOther = pow(1.0 - x, n - i);
-	if (abs(n - 1) <= 0.0001)
-	{
-		powOther = 1;
-	}
-
-	float result = nChooseK(n, i) * xpowi * powOther;
-
+	float result = nChooseK(n, i) * customPow(x, i) * customPow(1.0 - x, n - i);
 	return result;
 }
 
+// unused
 float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float v, float w)
 {
 	int d = n;
@@ -122,41 +154,6 @@ float BernsteinPolynomialTetrahedral(int n, int i, int j, int k, float u, float 
 	return fraction * powi * powj * powk * powz;
 }
 
-// not sure if the custom pow function is needed
-// but at least for i == 0 it's needed because pow() returns NaN
-// instead of 1 (at runtime)
-float customPow(float x, int i)
-{
-	if (i == 0)
-	{
-		return 1;
-	}
-	else if (i == 1)
-	{
-		return x;
-	}
-	else if (i == 2)
-	{
-		return x * x;
-	}
-	else if (i == 3)
-	{
-		return x * x * x;
-	}
-	else if (i == 4)
-	{
-		return x * x * x * x;
-	}
-	else if (i == 5)
-	{
-		return x * x * x * x * x;
-	}
-	else if (i == 6)
-	{
-		return x * x * x * x * x * x;
-	}
-}
-
 float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v, float w)
 {
 	if (i < 0 || j < 0 || k < 0)
@@ -174,6 +171,7 @@ float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v,
 	return fraction * powi * powj * powk;
 }
 
+// unused
 vec3 partialHu(
     const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
@@ -196,6 +194,7 @@ vec3 partialHu(
 	return n * sum;
 }
 
+// unused
 vec3 partialHv(
     const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
@@ -218,6 +217,7 @@ vec3 partialHv(
 	return n * sum;
 }
 
+// unused
 vec3 partialHw(
     const vec3 controlPoints[10], const int n, const float u, const float v, const float w)
 {
@@ -244,6 +244,7 @@ vec3 partialHw(
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////// Bezier Triangle functions /////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
+// returns the control point index for the bezier triangle of degree 2
 int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 {
 	if (i == 0 && j == 0 && k == 2) return 0;
@@ -256,6 +257,7 @@ int getControlPointIndicesBezierTriangle2(int i, int j, int k)
 	return 0;
 }
 
+// returns the control point index for the bezier triangle of degree 3
 int getControlPointIndicesBezierTriangle3(int i, int j, int k)
 {
 	if (i == 0 && j == 0 && k == 3) return 0;
@@ -272,31 +274,7 @@ int getControlPointIndicesBezierTriangle3(int i, int j, int k)
 	return 0;
 }
 
-vec3 casteljauAlgorithmIntermediatePoint(
-    vec3 controlPoints[6], int r, vec3 direction, int i, int j, int k)
-{
-	vec3 sum = vec3(0);
-	int n = 2;
-	for (int jk = 0; jk <= n; jk++)
-	{
-		for (int jj = 0; jj <= n - jk; jj++)
-		{
-			for (int ji = 0; ji <= n - jk - jj; ji++)
-			{
-				if (ji + jj + jk == r)
-				{
-					int idx = getControlPointIndicesBezierTriangle2(i + ji, j + jj, k + jk);
-					sum += controlPoints[idx]
-					       * BernsteinPolynomialBivariate(
-					           r, ji, jj, jk, direction.x, direction.y, direction.z);
-				}
-			}
-		}
-	}
-
-	return sum;
-}
-
+// returns the partial directional derivative for bezier triangles of degree 2
 vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, float u, float v)
 {
 	int n = 2;
@@ -326,6 +304,7 @@ vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, fl
 	return n * sum;
 }
 
+// returns the partial directional derivative for bezier triangles of degree 3
 vec3 partialBezierTriangle3Directional(vec3 controlPoints[10], vec3 direction, float u, float v)
 {
 	int n = 3;
@@ -359,6 +338,8 @@ vec3 partialBezierTriangle3Directional(vec3 controlPoints[10], vec3 direction, f
 ////////////////////// Intersection functions
 ///////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+// Returns if the ray intersects with the plane and stores the distance in t
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/minimal-ray-tracer-rendering-simple-shapes/ray-plane-and-ray-disk-intersection.html
 bool intersectWithPlane(const vec3 planeNormal,
                         const vec3 planeOrigin,
@@ -376,6 +357,7 @@ bool intersectWithPlane(const vec3 planeNormal,
 	return false;
 }
 
+// returns the intersection point of the ray and the plane (plane is defined by 3 points)
 vec3 IntersectPlane(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2)
 {
 	vec3 D = direction;
@@ -385,6 +367,7 @@ vec3 IntersectPlane(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2)
 	return X;
 }
 
+// returns the intersection point of the ray and a triangle
 bool IntersectTriangle(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2, out float t)
 {
 	vec3 X = IntersectPlane(origin, direction, p0, p1, p2);
@@ -401,7 +384,7 @@ bool IntersectTriangle(vec3 origin, vec3 direction, vec3 p0, vec3 p1, vec3 p2, o
 }
 
 // Ray-Sphere intersection
-// http://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection/
+// https://viclw17.github.io/2018/07/16/raytracing-ray-sphere-intersection
 float hitSphere(const Sphere s, const Ray r)
 {
 	vec3 oc = r.origin - s.center;
@@ -420,6 +403,7 @@ float hitSphere(const Sphere s, const Ray r)
 }
 
 // Ray-AABB intersection
+// returns the distance t to the intersection point
 float hitAabb(const Aabb aabb, const Ray r)
 {
 	vec3 invDir = 1.0 / r.direction;
@@ -433,10 +417,7 @@ float hitAabb(const Aabb aabb, const Ray r)
 }
 
 // whether the hitPos is in front of the plane or not
-// TODO: figure out if this makes sense
-// takes in the ray origin because we don't wanna report being in front of the slicing
-// plane if the camera is behind the plane anyway
-bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos, Ray ray)
+bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos)
 {
 	vec3 planeToHitPos = hitPos - plane.planeOrigin;
 	// hit point is in front of the plane

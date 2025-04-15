@@ -482,7 +482,7 @@ void main()
 						for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
 						{
 							SlicingPlane plane = slicingPlanes[idx];
-							if (hitPosInFrontOfPlane(plane, hitPoint, ray))
+							if (hitPosInFrontOfPlane(plane, hitPoint))
 							{
 								// ignore hit
 								hitValid = false;
@@ -568,7 +568,7 @@ void main()
 						for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
 						{
 							SlicingPlane plane = slicingPlanes[idx];
-							if (hitPosInFrontOfPlane(plane, hitPoint, ray))
+							if (hitPosInFrontOfPlane(plane, hitPoint))
 							{
 								// ignore hit
 								hitValid = false;
@@ -605,11 +605,11 @@ void main()
 
 		if (isCrosshairRay)
 		{
-			debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
-			               instance.bufferIndex,
-			               sphere.radius,
-			               sphere.center,
-			               sphere.colorIdx);
+			// debugPrintfEXT("sphere buffer index: %d sphere: radius: %f pos: %.2v3f color: %d ",
+			//                instance.bufferIndex,
+			//                sphere.radius,
+			//                sphere.center,
+			//                sphere.colorIdx);
 		}
 
 		bool isShadowRay = ((gl_IncomingRayFlagsEXT & gl_RayFlagsSkipClosestHitShaderEXT) > 0);

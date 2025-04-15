@@ -226,10 +226,10 @@ void main()
 		if (isCrosshairRay)
 		{
 			// debugprint the hit pos, normal
-			debugPrintfEXT("HitPos: (%.2v3f), normal: (%.2v3f), isShadow: %d",
-			               actualHitpoint,
-			               actualNormal,
-			               isShadow);
+			// debugPrintfEXT("HitPos: (%.2v3f), normal: (%.2v3f), isShadow: %d",
+			//                actualHitpoint,
+			//                actualNormal,
+			//                isShadow);
 		}
 
 		// we hit the outside of the object, calculate color using surface normal
@@ -352,10 +352,10 @@ void main()
 		if (isCrosshairRay)
 		{
 			// debugprint the hit pos, normal
-			debugPrintfEXT("HitPos: (%.2v3f), normal: (%.2v3f), isShadow: %d",
-			               actualHitpoint,
-			               actualNormal,
-			               isShadow);
+			// debugPrintfEXT("HitPos: (%.2v3f), normal: (%.2v3f), isShadow: %d",
+			//                actualHitpoint,
+			//                actualNormal,
+			// isShadow);
 		}
 
 		// we hit the outside of the object, calculate color using surface normal
