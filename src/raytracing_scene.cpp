@@ -56,17 +56,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	{
 		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f),
-		    glm::vec3(2.0f, 0.0f, 0.0f),
-		    glm::vec3(2.0f, 2.0f, 2.0f),
-		    glm::vec3(0.0f, 0.0f, 2.0f),
-
-		    glm::vec3(1.0f, 0.0f, 0.0f),
-		    glm::vec3(0.0f, 1.0f, 0.0f),
 		    glm::vec3(0.0f, 0.0f, 1.0f),
-
-		    glm::vec3(1.0f, 1.0f, 0.0f),
-		    glm::vec3(1.0f, 0.0f, 1.0f),
+		    glm::vec3(0.0f, 0.0f, 2.0f),
+		    glm::vec3(0.0f, 1.0f, 0.0f),
 		    glm::vec3(0.0f, 1.0f, 1.0f),
+		    glm::vec3(2.0f, 2.0f, 2.0f),
+		    glm::vec3(1.0f, 0.0f, 0.0f),
+		    glm::vec3(1.0f, 0.0f, 1.0f),
+		    glm::vec3(1.0f, 1.0f, 0.0f),
+		    glm::vec3(2.0f, 0.0f, 0.0f),
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
@@ -74,20 +72,18 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	else if (sceneNr == 2)
 	{
 		float scalar = 1.0f;
-		glm::vec3 offset = glm::vec3(8.0f, 0, 10.0f);
+		glm::vec3 offset = glm::vec3(0.0f, 0, 0.0f);
 		[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 		    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
-
-		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
-		    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset,
 		    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset,
-
-		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
-		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
+		    glm::vec3(0.0f, 0.0f, 2.0f) * scalar + offset,
+		    glm::vec3(0.0f, 1.0f, 0.0f) * scalar + offset,
 		    glm::vec3(0.0f, 1.0f, 1.0f) * scalar + offset,
+		    glm::vec3(0.0f, 2.0f, 0.0f) * scalar + offset,
+		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
+		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
+		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
+		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);

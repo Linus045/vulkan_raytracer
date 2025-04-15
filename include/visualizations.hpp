@@ -21,15 +21,15 @@ namespace rt
 inline size_t getControlPointIndices(int i, int j, int k)
 {
 	if (i == 0 && j == 0 && k == 0) return 0;
-	if (i == 2 && j == 0 && k == 0) return 1;
-	if (i == 0 && j == 2 && k == 0) return 2;
-	if (i == 0 && j == 0 && k == 2) return 3;
-	if (i == 1 && j == 0 && k == 0) return 4;
-	if (i == 0 && j == 1 && k == 0) return 5;
-	if (i == 0 && j == 0 && k == 1) return 6;
-	if (i == 1 && j == 1 && k == 0) return 7;
-	if (i == 1 && j == 0 && k == 1) return 8;
-	if (i == 0 && j == 1 && k == 1) return 9;
+	if (i == 0 && j == 0 && k == 1) return 1;
+	if (i == 0 && j == 0 && k == 2) return 2;
+	if (i == 0 && j == 1 && k == 0) return 3;
+	if (i == 0 && j == 1 && k == 1) return 4;
+	if (i == 0 && j == 2 && k == 0) return 5;
+	if (i == 1 && j == 0 && k == 0) return 6;
+	if (i == 1 && j == 0 && k == 1) return 7;
+	if (i == 1 && j == 1 && k == 0) return 8;
+	if (i == 2 && j == 0 && k == 0) return 9;
 
 	throw std::runtime_error("Invalid index");
 }
@@ -71,7 +71,7 @@ bezierVolumePoint(const std::array<glm::vec3, C> controlPoints, int n, float u, 
 		{
 			for (int i = 0; i <= n - k - j; i++)
 			{
-				if (i + j + k <= n)
+				if (i + j + k == n)
 				{
 					size_t idx = getControlPointIndices(i, j, k);
 					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
