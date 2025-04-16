@@ -33,18 +33,15 @@ namespace rt
 class RaytracingScene
 {
   public:
-	static const int SCENE_COUNT = 9;
+	static const int SCENE_COUNT = 6;
 	static const int INITIAL_SCENE = 1;
 
 	inline static const std::vector<std::string> sceneNames = {
 	    "Tetrahedron degree 2 deformed slightly",
-	    "Tetrahedron degree 2 moved with control points",
 	    "Tetrahedron degree 2 deformed strongly",
 	    "Two Tetrahedrons degree 2 stuck together",
-	    "Two Tetrahedrons degree 2 stuck together",
-	    "Tetrahedron degree 2 control poitns only",
+	    "Tetrahedron degree 3 deformed slightly",
 	    "Tetrahedron degree 2 random control points",
-	    "Two Tetrahedrons degree 2 slightly moved apart",
 	    "A bunch of random tetrahedrons",
 	};
 
