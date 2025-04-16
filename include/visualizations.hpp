@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include <cstdlib>
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_float2x2.hpp>
@@ -18,20 +19,59 @@ namespace tracer
 namespace rt
 {
 
-inline size_t getControlPointIndices(int i, int j, int k)
+template <unsigned int N>
+inline size_t getControlPointIndicesTetrahedron(int i, int j, int k, int l)
 {
-	if (i == 0 && j == 0 && k == 0) return 0;
-	if (i == 0 && j == 0 && k == 1) return 1;
-	if (i == 0 && j == 0 && k == 2) return 2;
-	if (i == 0 && j == 1 && k == 0) return 3;
-	if (i == 0 && j == 1 && k == 1) return 4;
-	if (i == 0 && j == 2 && k == 0) return 5;
-	if (i == 1 && j == 0 && k == 0) return 6;
-	if (i == 1 && j == 0 && k == 1) return 7;
-	if (i == 1 && j == 1 && k == 0) return 8;
-	if (i == 2 && j == 0 && k == 0) return 9;
+	if (N == 1)
+	{
+		if (i == 0 && j == 0 && k == 0 && l == 1) return 0;
+		if (i == 0 && j == 0 && k == 1 && l == 0) return 1;
+		if (i == 0 && j == 1 && k == 0 && l == 0) return 2;
+		if (i == 1 && j == 0 && k == 0 && l == 0) return 3;
+	}
+	else if (N == 2)
+	{
+		if (i == 0 && j == 0 && k == 0 && l == 2) return 0;
+		if (i == 0 && j == 0 && k == 1 && l == 1) return 1;
+		if (i == 0 && j == 0 && k == 2 && l == 0) return 2;
+		if (i == 0 && j == 1 && k == 0 && l == 1) return 3;
+		if (i == 0 && j == 1 && k == 1 && l == 0) return 4;
+		if (i == 0 && j == 2 && k == 0 && l == 0) return 5;
+		if (i == 1 && j == 0 && k == 0 && l == 1) return 6;
+		if (i == 1 && j == 0 && k == 1 && l == 0) return 7;
+		if (i == 1 && j == 1 && k == 0 && l == 0) return 8;
+		if (i == 2 && j == 0 && k == 0 && l == 0) return 9;
+	}
+	else if (N == 3)
+	{
+		if (i == 0 && j == 0 && k == 0 && l == 3) return 0;
+		if (i == 0 && j == 0 && k == 1 && l == 2) return 1;
+		if (i == 0 && j == 0 && k == 2 && l == 1) return 2;
+		if (i == 0 && j == 0 && k == 3 && l == 0) return 3;
+		if (i == 0 && j == 1 && k == 0 && l == 2) return 4;
+		if (i == 0 && j == 1 && k == 1 && l == 1) return 5;
+		if (i == 0 && j == 1 && k == 2 && l == 0) return 6;
+		if (i == 0 && j == 2 && k == 0 && l == 1) return 7;
+		if (i == 0 && j == 2 && k == 1 && l == 0) return 8;
+		if (i == 0 && j == 3 && k == 0 && l == 0) return 9;
+		if (i == 1 && j == 0 && k == 0 && l == 2) return 10;
+		if (i == 1 && j == 0 && k == 1 && l == 1) return 11;
+		if (i == 1 && j == 0 && k == 2 && l == 0) return 12;
+		if (i == 1 && j == 1 && k == 0 && l == 1) return 13;
+		if (i == 1 && j == 1 && k == 1 && l == 0) return 14;
+		if (i == 1 && j == 2 && k == 0 && l == 0) return 15;
+		if (i == 2 && j == 0 && k == 0 && l == 1) return 16;
+		if (i == 2 && j == 0 && k == 1 && l == 0) return 17;
+		if (i == 2 && j == 1 && k == 0 && l == 0) return 18;
+		if (i == 3 && j == 0 && k == 0 && l == 0) return 19;
+	}
+	else
+	{
+		throw std::runtime_error("Degree N: " + std::to_string(N) + " not implemented");
+	}
 
-	throw std::runtime_error("Invalid index");
+	throw std::runtime_error("Invalid index: i:" + std::to_string(i) + " j:" + std::to_string(j)
+	                         + " k:" + std::to_string(k) + " l:" + std::to_string(l));
 }
 
 inline int iter_factorial(int n)
@@ -46,7 +86,8 @@ inline float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, f
 {
 	if (i < 0 || j < 0 || k < 0)
 	{
-		return 0;
+		throw std::runtime_error("Invalid index: i:" + std::to_string(i) + " j:" + std::to_string(j)
+		                         + " k:" + std::to_string(k));
 	}
 
 	float fraction
@@ -60,35 +101,57 @@ inline float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, f
 	return fraction * powi * powj * powk;
 }
 
-template <unsigned int C>
-inline glm::vec3
-bezierVolumePoint(const std::array<glm::vec3, C> controlPoints, int n, float u, float v, float w)
+template <int N>
+inline float
+BernsteinPolynomialTrivariate(int i, int j, int k, int l, float u, float v, float w, float s)
 {
-	auto sum = glm::vec3();
-	for (int k = 0; k <= n; k++)
+	if (i < 0 || j < 0 || k < 0 || s < 0 || i > N || j > N || k > N || l > N)
 	{
-		for (int j = 0; j <= n - k; j++)
+		return 0;
+	}
+
+	float fraction = static_cast<float>(iter_factorial(N))
+	                 / static_cast<float>((iter_factorial(i) * iter_factorial(j) * iter_factorial(k)
+	                                       * iter_factorial(l)));
+
+	float powi = static_cast<float>(glm::pow(u, i));
+	float powj = static_cast<float>(glm::pow(v, j));
+	float powk = static_cast<float>(glm::pow(w, k));
+	float powl = static_cast<float>(glm::pow(s, l));
+
+	return fraction * powi * powj * powk * powl;
+}
+
+template <typename T>
+inline glm::vec3
+bezierTetrahedronPointInVolume(const T& tetrahedron, float u, float v, float w, float s)
+{
+	constexpr const int N = degree<T>();
+	auto sum = glm::vec3();
+	for (int k = 0; k <= N; k++)
+	{
+		for (int j = 0; j <= N - k; j++)
 		{
-			for (int i = 0; i <= n - k - j; i++)
+			for (int i = 0; i <= N - k - j; i++)
 			{
-				if (i + j + k == n)
+				// NOTE: due to how the barycentric indices work, we need to add one dimension
+				auto l = N - i - j - k;
+				if (i + j + k + l <= N)
 				{
-					size_t idx = getControlPointIndices(i, j, k);
-					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
+					size_t idx = getControlPointIndicesTetrahedron<N>(i, j, k, l);
+					sum += tetrahedron.controlPoints[idx]
+					       * BernsteinPolynomialTrivariate<N>(i, j, k, l, u, v, w, s);
 				}
 			}
 		}
 	}
-	// std::cout << "---------------\n";
 	return sum;
 }
 
-inline glm::vec3 BezierTriangle2Point(const std::array<glm::vec3, 6> controlPoints,
-                                      const float u,
-                                      const float v,
-                                      const float w)
+template <typename T>
+inline glm::vec3 BezierTrianglePoint(const T& triangle, const float u, const float v, const float w)
 {
-	int n = 2;
+	constexpr const int N = degree<T>();
 	vec3 sum = vec3(0);
 	// check if values are in the right range and if sum is equal to 1
 	// if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
@@ -97,17 +160,18 @@ inline glm::vec3 BezierTriangle2Point(const std::array<glm::vec3, 6> controlPoin
 	// }
 
 	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
+	for (int k = 0; k <= N; k++)
 	{
-		for (int j = 0; j <= n - k; j++)
+		for (int j = 0; j <= N - k; j++)
 		{
-			for (int i = 0; i <= n - k - j; i++)
+			for (int i = 0; i <= N - k - j; i++)
 			{
-				if (i + j + k == n)
+				if (i + j + k == N)
 				{
 					size_t idx
 					    = static_cast<size_t>(getControlPointIndicesBezierTriangle2(i, j, k));
-					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
+					sum += triangle.controlPoints[idx]
+					       * BernsteinPolynomialBivariate(N, i, j, k, u, v, w);
 				}
 			}
 		}
@@ -115,23 +179,22 @@ inline glm::vec3 BezierTriangle2Point(const std::array<glm::vec3, 6> controlPoin
 	return sum;
 }
 
-inline glm::vec3 partialBezierTriangle2Directional(const std::array<glm::vec3, 6> controlPoints,
-                                                   vec3 direction,
-                                                   float u,
-                                                   float v)
+template <typename T>
+inline glm::vec3
+partialBezierTriangleDirectional(const T& triangle, vec3 direction, float u, float v)
 {
-	int n = 2;
+	constexpr const int N = degree<T>();
 	vec3 sum = vec3(0);
 	float w = 1.0f - u - v;
 
 	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
+	for (int k = 0; k <= N; k++)
 	{
-		for (int j = 0; j <= n - k; j++)
+		for (int j = 0; j <= N - k; j++)
 		{
-			for (int i = 0; i <= n - k - j; i++)
+			for (int i = 0; i <= N - k - j; i++)
 			{
-				if (i + j + k == n - 1)
+				if (i + j + k == N - 1)
 				{
 					size_t be1 = static_cast<size_t>(
 					    getControlPointIndicesBezierTriangle2(i + 1, j + 0, k + 0));
@@ -139,18 +202,19 @@ inline glm::vec3 partialBezierTriangle2Directional(const std::array<glm::vec3, 6
 					    getControlPointIndicesBezierTriangle2(i + 0, j + 1, k + 0));
 					size_t be3 = static_cast<size_t>(
 					    getControlPointIndicesBezierTriangle2(i + 0, j + 0, k + 1));
-					vec3 x = controlPoints[be1] * direction.x;
-					vec3 y = controlPoints[be2] * direction.y;
-					vec3 z = controlPoints[be3] * direction.z;
-					sum += (x + y + z) * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+					vec3 x = triangle.controlPoints[be1] * direction.x;
+					vec3 y = triangle.controlPoints[be2] * direction.y;
+					vec3 z = triangle.controlPoints[be3] * direction.z;
+					sum += (x + y + z) * BernsteinPolynomialBivariate(N - 1, i, j, k, u, v, w);
 				}
 			}
 		}
 	}
-	return static_cast<float>(n) * sum;
+	return static_cast<float>(N) * sum;
 }
 
-inline glm::vec2 fBezierTriangle(const std::array<glm::vec3, 6> controlPoints,
+template <typename T>
+inline glm::vec2 fBezierTriangle(const T& triangle,
                                  const vec3 origin,
                                  const vec3 n1,
                                  const vec3 n2,
@@ -158,7 +222,7 @@ inline glm::vec2 fBezierTriangle(const std::array<glm::vec3, 6> controlPoints,
                                  const float v,
                                  const float w)
 {
-	vec3 surfacePoint = BezierTriangle2Point(controlPoints, u, v, w);
+	vec3 surfacePoint = BezierTrianglePoint(triangle, u, v, w);
 
 	// project onto planes
 	float d1 = dot(-n1, origin);
@@ -166,16 +230,14 @@ inline glm::vec2 fBezierTriangle(const std::array<glm::vec3, 6> controlPoints,
 	return vec2(dot(n1, surfacePoint) + d1, dot(n2, surfacePoint) + d2);
 }
 
-inline glm::mat2x2 jacobianBezierTriangle2(const std::array<glm::vec3, 6> controlPoints,
-                                           const vec3 n1,
-                                           const vec3 n2,
-                                           const float u,
-                                           const float v)
+template <typename T>
+inline glm::mat2x2 jacobianBezierTriangle(
+    const T& triangle, const vec3 n1, const vec3 n2, const float u, const float v)
 {
 	vec3 dirU = vec3(1, 0, -1);
 	vec3 dirV = vec3(0, 1, -1);
-	vec3 partialDerivative1 = partialBezierTriangle2Directional(controlPoints, dirU, u, v);
-	vec3 partialDerivative2 = partialBezierTriangle2Directional(controlPoints, dirV, u, v);
+	vec3 partialDerivative1 = partialBezierTriangleDirectional(triangle, dirU, u, v);
+	vec3 partialDerivative2 = partialBezierTriangleDirectional(triangle, dirV, u, v);
 
 	return glm::mat2x2(dot(n1, partialDerivative1),
 	                   dot(n2, partialDerivative1),
@@ -196,12 +258,13 @@ inline glm::mat2x2 inverseJacobian(const glm::mat2x2 J)
 	return mat;
 }
 
+template <typename T>
 inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingScene,
                                    const RaytracingDataConstants& raytracingDataConstants,
                                    glm::vec3& intersectionPoint,
                                    const glm::vec2 initialGuess,
                                    const glm::vec3 origin,
-                                   const std::array<glm::vec3, 6> controlPoints,
+                                   const T& triangle,
                                    const glm::vec3 n1,
                                    const glm::vec3 n2)
 {
@@ -222,12 +285,9 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 	float previousErrorF = 100000.0;
 	float errorF = 100000.0;
 
-	[[maybe_unused]] float previousErrorX = 100000.0;
-	float errorX = 100000.0;
-
 	for (; c < raytracingDataConstants.newtonMaxIterations; c++)
 	{
-		glm::mat2x2 j = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y);
+		glm::mat2x2 j = jacobianBezierTriangle(triangle, n1, n2, u[c].x, u[c].y);
 		glm::mat2x2 inv_j = inverseJacobian(j);
 		if (inv_j == glm::mat2x2(0, 0, 0, 0))
 		{
@@ -235,8 +295,8 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 			break;
 		}
 
-		glm::vec2 f_value = fBezierTriangle(
-		    controlPoints, origin, n1, n2, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
+		glm::vec2 f_value
+		    = fBezierTriangle(triangle, origin, n1, n2, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
 
 		previousErrorF = errorF;
 		errorF = glm::abs(f_value.x) + glm::abs(f_value.y);
@@ -244,57 +304,17 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		vec2 differenceInUV = inv_j * f_value;
 		u[c + 1] = u[c] - differenceInUV;
 
-		// previousErrorX = errorX;
-		// errorX = abs(differenceInUV.x) + abs(differenceInUV.y);
-
-		vec3 surfacePoint
-		    = BezierTriangle2Point(controlPoints, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
+		vec3 surfacePoint = BezierTrianglePoint(triangle, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
 		raytracingScene.addObjectSphere(
 		    surfacePoint,
 		    0.1f
 		        * (static_cast<float>(raytracingDataConstants.newtonMaxIterations - c)
 		           / static_cast<float>(raytracingDataConstants.newtonMaxIterations)),
 		    ColorIdx::t_purple);
-		std::printf("c: %d, n1: (%.2f, %.2f, %.2f), n2: "
-		            "(%.2f, %.2f, %.2f), f: (%.2f, %.2f), differenceInUV:(%.2f, %.2f), u: "
-		            "(%.2f, %.2f), u+1: (%.2f, %.2f), "
-		            "errorX: (%.5f), errorF: (%.5f), j:(%.2f, %.2f, %.2f, %.2f),  inv_j:(%.2f, "
-		            "%.2f, %.2f, %.2f) surfacePoint (%.2f, %.2f, %.2f)\n\n",
-		            c,
-		            n1.x,
-		            n1.y,
-		            n1.z,
-		            n2.x,
-		            n2.y,
-		            n2.z,
-		            f_value.x,
-		            f_value.y,
-		            differenceInUV.x,
-		            differenceInUV.y,
-		            u[c].x,
-		            u[c].y,
-		            u[c + 1].x,
-		            u[c + 1].y,
-		            errorX,
-		            errorF,
-		            j[0][0],
-		            j[0][1],
-		            j[1][0],
-		            j[1][1],
-		            inv_j[0][0],
-		            inv_j[0][1],
-		            inv_j[1][0],
-		            inv_j[1][1],
-		            surfacePoint.x,
-		            surfacePoint.y,
-		            surfacePoint.z);
 
 		if ((glm::abs(raytracingDataConstants.newtonErrorFIgnoreIncrease) < 1e-8)
 		    && errorF > previousErrorF)
 		{
-			// debugPrintfEXT("abort: errorF increased: errorF: %.8f, previousErrorF: %.8f",
-			//                errorF,
-			//                previousErrorF);
 			hit = false;
 			break;
 		}
@@ -305,31 +325,7 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 			// debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
 			break;
 		}
-
-		// if (raytracingDataConstants.newtonErrorXIgnoreIncrease == 0.0 && errorX > previousErrorX)
-		// {
-		// 	if (isCrosshairRay)
-		// 	{
-		// 		debugPrintfEXT("abort: errorX increased: errorX: %.5f, previousErrorX: %.5f",
-		// 		               errorX,
-		// 		               previousErrorX);
-		// 	}
-		// 	hit = false;
-		// 	break;
-		// }
-
-		// // TODO: maybe we want different tolerances for errorX and errorF
-		// if (errorX <= toleranceX)
-		// {
-		// 	hit = raytracingDataConstants.newtonErrorXHitBelowTolerance > 0.0;
-		// 	if (isCrosshairRay)
-		// 	{
-		// 		debugPrintfEXT("hit: errorX <= toleranceX (%.5f)", errorX);
-		// 	}
-		// 	break;
-		// }
 	}
-	//	}
 
 	std::printf("loop ended: hit: %d\n", hit);
 
@@ -345,7 +341,7 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		}
 
 		intersectionPoint
-		    = BezierTriangle2Point(controlPoints, u[idx].x, u[idx].y, 1.0f - u[idx].x - u[idx].y);
+		    = BezierTrianglePoint(triangle, u[idx].x, u[idx].y, 1.0f - u[idx].x - u[idx].y);
 		// debugPrintfEXT("u: (%.2v2f), intersectionPoint: (%.2v3f)", u[idx],
 		// intersectionPoint);
 		glm::vec2 hitCoordinate = vec2(u[idx].x, u[idx].y);
@@ -502,17 +498,21 @@ inline void visualizeBezierSurface([[maybe_unused]] std::vector<Sphere>& spheres
 	// }
 }
 
-template <typename T, unsigned int C>
-inline void visualizeTetrahedron([[maybe_unused]] RaytracingScene& raytracingScene,
-                                 [[maybe_unused]] const T& tetrahedron)
+/// Visualizes control points
+template <typename T>
+inline void visualizeTetrahedronControlPoints(RaytracingScene& raytracingScene,
+                                              const T& tetrahedron)
 {
-	// Visualize control points
 	for (auto& point : tetrahedron.controlPoints)
-	{
-		raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_black);
-	}
+		raytracingScene.addObjectSphere(point, 0.06f, ColorIdx::t_orange);
+}
 
-	float stepSize = 0.1f;
+/// Visualize a tetrahedron by sampling points on the surface
+template <typename T>
+inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
+                                      const T& tetrahedron,
+                                      float stepSize = 0.1f)
+{
 	for (float u = 0; u <= 1; u += stepSize)
 	{
 		for (float v = 0; v <= 1; v += stepSize)
@@ -521,8 +521,7 @@ inline void visualizeTetrahedron([[maybe_unused]] RaytracingScene& raytracingSce
 			{
 				if (u + v + w <= 1)
 				{
-					auto p = bezierVolumePoint<C>(
-					    std::to_array(tetrahedron.controlPoints), 2, u, v, w);
+					auto p = bezierTetrahedronPointInVolume(tetrahedron, u, v, w, 1.0f - u - v - w);
 
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (isFace1)

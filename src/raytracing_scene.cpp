@@ -87,7 +87,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		tracer::rt::visualizeTetrahedron<Tetrahedron2, 10>(raytracingScene, tetrahedron2);
+		visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+		visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 	}
 	else if (sceneNr == 3)
 	{
@@ -108,6 +109,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
 		}));
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+		visualizeTetrahedronSides(raytracingScene, tetrahedron2);
 	}
 	else if (sceneNr == 4)
 	{
@@ -195,18 +197,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron3);
-		for (auto& point : tetrahedron3.controlPoints)
-		{
-			if (glm::abs(point.x - 1) < 1e-8 && glm::abs(point.y - 1) < 1e-8
-			    && glm::abs(point.z - 1) < 1e-8)
-			{
-				raytracingScene.addObjectSphere(point, 0.08f, ColorIdx::t_red);
-			}
-			else
-			{
-				raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_black);
-			}
-		}
+		visualizeTetrahedronSides(raytracingScene, tetrahedron3);
 	}
 	else if (sceneNr == 7)
 	{

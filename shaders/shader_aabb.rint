@@ -103,6 +103,8 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 		{
 			for (int i = 0; i <= n - k - j; i++)
 			{
+				// is it "== n" or "<= n" ????
+				// it is "== n", see Formula 1.10 in Farin "Triangular Bernstein-Bézier patches"
 				if (i + j + k == n)
 				{
 					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
@@ -131,6 +133,8 @@ vec3 BezierTriangle3Point(const vec3 controlPoints[10], const float u, const flo
 		{
 			for (int i = 0; i <= n - k - j; i++)
 			{
+				// is it "== n" or "<= n" ????
+				// it is "== n", see Formula 1.10 in Farin "Triangular Bernstein-Bézier patches"
 				if (i + j + k == n)
 				{
 					int idx = getControlPointIndicesBezierTriangle3(i, j, k);

@@ -194,6 +194,12 @@ struct Triangle
 	vec3 c;
 };
 
+// Formula for amount of control points is: (n+1)(n+2)/2
+struct BezierTriangle1
+{
+	vec3 controlPoints[3];
+};
+
 struct BezierTriangle2
 {
 	vec3 controlPoints[6];
@@ -202,6 +208,11 @@ struct BezierTriangle2
 struct BezierTriangle3
 {
 	vec3 controlPoints[10];
+};
+
+struct BezierTriangle4
+{
+	vec3 controlPoints[15];
 };
 
 struct SlicingPlane

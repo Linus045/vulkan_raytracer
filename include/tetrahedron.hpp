@@ -22,6 +22,39 @@ struct SubdividedTetrahedron2
 	BezierTriangle2 center;
 };
 
+/// workaround to get degree of a tetrahedron
+/// because Tetrahedron1/2... need to stay simple structs to be
+/// able to function within a shader
+template <typename T>
+constexpr int degree()
+{
+	if (!std::is_constant_evaluated())
+	{
+		throw std::runtime_error("degree() should only be run at compile time!");
+	}
+
+	if constexpr (std::is_same_v<T, Tetrahedron1> || std::is_same_v<T, BezierTriangle1>)
+	{
+		return 1;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron2> || std::is_same_v<T, BezierTriangle2>)
+	{
+		return 2;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron3> || std::is_same_v<T, BezierTriangle3>)
+	{
+		return 3;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron4> || std::is_same_v<T, BezierTriangle4>)
+	{
+		return 4;
+	}
+	else
+	{
+		static_assert(false, "Unsupported tetrahedron type");
+	}
+}
+
 inline Tetrahedron1 createTetrahedron1(const std::array<glm::vec3, 4>& points)
 {
 	auto tetrahedron = Tetrahedron1();
