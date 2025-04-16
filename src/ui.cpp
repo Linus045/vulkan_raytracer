@@ -190,11 +190,12 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugSlicingPlanes
 			    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
 
-			bool debugShowSubdivisions = uiData.raytracingDataConstants.debugShowSubdivisions > 0;
+			bool debugShowSubdivisions
+			    = uiData.raytracingDataConstants.debugHighlightObjectEdges > 0;
 			valueChanged
 			    = ImGui::Checkbox("Debug: Show Edges", &debugShowSubdivisions) || valueChanged;
 			TOOLTIP("Highlights the edges of the objects");
-			uiData.raytracingDataConstants.debugShowSubdivisions
+			uiData.raytracingDataConstants.debugHighlightObjectEdges
 			    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
 
 			bool debugFastRenderMode = uiData.raytracingDataConstants.debugFastRenderMode > 0;

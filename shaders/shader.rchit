@@ -249,7 +249,7 @@ void main()
 			payload.indirectColor = vec3(0.0, 0.0, 0.0);
 		}
 
-		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
+		if (!hitSlicingPlane && raytracingDataConstants.debugHighlightObjectEdges > 0.0)
 		{
 			float u = hitData.coords.x;
 			float v = hitData.coords.y;
@@ -375,7 +375,7 @@ void main()
 			payload.indirectColor = vec3(0.0, 0.0, 0.0);
 		}
 
-		if (raytracingDataConstants.debugShowSubdivisions > 0.0)
+		if (!hitSlicingPlane && raytracingDataConstants.debugHighlightObjectEdges > 0.0)
 		{
 			float u = hitData.coords.x;
 			float v = hitData.coords.y;

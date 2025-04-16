@@ -105,7 +105,7 @@ struct UniformStructure
 	ALIGNAS(4) float debugPrintCrosshairRay;                                                       \
 	ALIGNAS(4) float debugSlicingPlanes;                                                           \
 	ALIGNAS(4) float enableSlicingPlanes;                                                          \
-	ALIGNAS(4) float debugShowSubdivisions;                                                        \
+	ALIGNAS(4) float debugHighlightObjectEdges;                                                    \
 	ALIGNAS(4) float debugFastRenderMode;                                                          \
 	ALIGNAS(16) vec3 cameraDir;
 
