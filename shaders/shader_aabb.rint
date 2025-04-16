@@ -262,9 +262,16 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 		vec2 differenceInUV = inv_j * f_value;
 		u[c + 1] = u[c] - differenceInUV;
 
+		if (abs(raytracingDataConstants.newtonErrorFIgnoreIncrease) < 1e-8
+		    && errorF > previousErrorF)
+		{
+			hit = false;
+			break;
+		}
+
 		if (errorF <= toleranceF)
 		{
-			hit = true;
+			hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
 			break;
 		}
 	}
@@ -350,9 +357,16 @@ bool newtonsMethodTriangle3(out vec3 hitPoint,
 		vec2 differenceInUV = inv_j * f_value;
 		u[c + 1] = u[c] - differenceInUV;
 
+		if (abs(raytracingDataConstants.newtonErrorFIgnoreIncrease) < 1e-8
+		    && errorF > previousErrorF)
+		{
+			hit = false;
+			break;
+		}
+
 		if (errorF <= toleranceF)
 		{
-			hit = true;
+			hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
 			break;
 		}
 	}
@@ -461,7 +475,7 @@ void main()
 			vec2 hitCoords = vec2(0);
 			vec3 hitNormal = vec3(0);
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
 			{
 				const vec2 guess = guesses[i];
 				if (newtonsMethodTriangle2(hitPoint,
@@ -547,7 +561,7 @@ void main()
 			vec2 hitCoords = vec2(0);
 			vec3 hitNormal = vec3(0);
 
-			for (int i = 0; i < 6; i++)
+			for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
 			{
 				const vec2 guess = guesses[i];
 				if (newtonsMethodTriangle3(hitPoint,

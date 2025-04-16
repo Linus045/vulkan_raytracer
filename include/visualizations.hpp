@@ -272,7 +272,6 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 	const int max_iterations = 100 + 1;
 	vec2 u[max_iterations];
 
-	[[maybe_unused]] float toleranceX = raytracingDataConstants.newtonErrorXTolerance;
 	float toleranceF = raytracingDataConstants.newtonErrorFTolerance;
 
 	u[0] = initialGuess;
@@ -312,6 +311,8 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		           / static_cast<float>(raytracingDataConstants.newtonMaxIterations)),
 		    ColorIdx::t_purple);
 
+		// TODO: check if we really don't wanna allow increases in the error during the newton
+		// search abort if the error is increasing
 		if ((glm::abs(raytracingDataConstants.newtonErrorFIgnoreIncrease) < 1e-8)
 		    && errorF > previousErrorF)
 		{
@@ -322,7 +323,6 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		if (errorF <= toleranceF)
 		{
 			hit = raytracingDataConstants.newtonErrorFHitBelowTolerance > 0.0;
-			// debugPrintfEXT("hit: errorF <= toleranceF: (%.5f)", errorF);
 			break;
 		}
 	}

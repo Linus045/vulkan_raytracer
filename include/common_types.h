@@ -92,11 +92,8 @@ struct UniformStructure
 	ALIGNAS(4) float newtonErrorFTolerance;                                                        \
 	ALIGNAS(4) float newtonErrorFIgnoreIncrease;                                                   \
 	ALIGNAS(4) float newtonErrorFHitBelowTolerance;                                                \
-	ALIGNAS(4) float newtonErrorXIgnoreIncrease;                                                   \
-	ALIGNAS(4) float newtonErrorXHitBelowTolerance;                                                \
 	ALIGNAS(4) int newtonMaxIterations;                                                            \
-	ALIGNAS(4) float someFloatingScalar;                                                           \
-	ALIGNAS(4) int someScalar;                                                                     \
+	ALIGNAS(4) int newtonGuessesAmount;                                                            \
 	ALIGNAS(16) vec3 globalLightPosition;                                                          \
 	ALIGNAS(16) vec3 globalLightColor;                                                             \
 	ALIGNAS(4) float globalLightIntensity;                                                         \
@@ -104,10 +101,6 @@ struct UniformStructure
 	ALIGNAS(4) float environmentLightIntensity;                                                    \
 	ALIGNAS(4) float debugShowAABBs;                                                               \
 	ALIGNAS(4) float renderSideTriangle;                                                           \
-	ALIGNAS(4) float renderSide1;                                                                  \
-	ALIGNAS(4) float renderSide2;                                                                  \
-	ALIGNAS(4) float renderSide3;                                                                  \
-	ALIGNAS(4) float renderSide4;                                                                  \
 	ALIGNAS(4) int recursiveRaysPerPixel;                                                          \
 	ALIGNAS(4) float debugPrintCrosshairRay;                                                       \
 	ALIGNAS(4) float debugSlicingPlanes;                                                           \

@@ -103,15 +103,10 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	raytracingInfo.raytracingConstants = {
 	    .newtonErrorXTolerance = 1e-8f,
 	    .newtonErrorFTolerance = 1e-4f,
-
 	    .newtonErrorFIgnoreIncrease = 1.0f,
 	    .newtonErrorFHitBelowTolerance = 1.0f,
-	    .newtonErrorXIgnoreIncrease = 1.0f,
-	    .newtonErrorXHitBelowTolerance = 0.0f,
-
 	    .newtonMaxIterations = 10,
-	    .someFloatingScalar = 1.00f,
-	    .someScalar = -1,
+	    .newtonGuessesAmount = 6,
 	    .globalLightPosition = glm::vec3(2.0f, 0.7f, 3.5f),
 	    .globalLightColor = glm::vec3(1.0, 1.0, 1.0),
 	    .globalLightIntensity = 0.14f,
@@ -121,10 +116,6 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .environmentLightIntensity = 0.7f,
 	    .debugShowAABBs = 0.0f,
 	    .renderSideTriangle = 1.0f,
-	    .renderSide1 = 1.0f,
-	    .renderSide2 = 0.0f,
-	    .renderSide3 = 0.0f,
-	    .renderSide4 = 0.0f,
 	    .recursiveRaysPerPixel = 1,
 	    .debugPrintCrosshairRay = 1.0f,
 	    .debugSlicingPlanes = 0.0f,

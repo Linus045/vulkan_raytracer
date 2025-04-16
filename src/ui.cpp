@@ -201,14 +201,6 @@ void renderRaytracingOptions(UIData& uiData)
 			uiData.raytracingDataConstants.debugFastRenderMode
 			    = static_cast<float>(debugFastRenderMode ? 1 : 0);
 
-			valueChanged = ImGui::SliderFloat("Newton Method Tolerance X Value",
-			                                  &uiData.raytracingDataConstants.newtonErrorXTolerance,
-			                                  1e-8f,
-			                                  15.0f,
-			                                  "%.8f",
-			                                  ImGuiSliderFlags_AlwaysClamp)
-			               || valueChanged;
-
 			valueChanged = ImGui::SliderFloat("Newton Method Tolerance F Value",
 			                                  &uiData.raytracingDataConstants.newtonErrorFTolerance,
 			                                  1e-8f,
@@ -232,22 +224,13 @@ void renderRaytracingOptions(UIData& uiData)
 			               || valueChanged;
 			uiData.raytracingDataConstants.newtonErrorFHitBelowTolerance
 			    = static_cast<float>(newtonErrorFHitBelowTolerance ? 1 : 0);
-
-			bool newtonErrorXIgnoreIncrease
-			    = uiData.raytracingDataConstants.newtonErrorXIgnoreIncrease > 0;
-			valueChanged
-			    = ImGui::Checkbox("Newton ErrorX Ignore increases", &newtonErrorXIgnoreIncrease)
-			      || valueChanged;
-			uiData.raytracingDataConstants.newtonErrorXIgnoreIncrease
-			    = static_cast<float>(newtonErrorXIgnoreIncrease ? 1 : 0);
-
-			bool newtonErrorXHitBelowTolerance
-			    = uiData.raytracingDataConstants.newtonErrorXHitBelowTolerance > 0;
-			valueChanged = ImGui::Checkbox("Newton ErrorX Below Tolerance counts as hit ",
-			                               &newtonErrorXHitBelowTolerance)
+			valueChanged = ImGui::SliderInt("Max Guesses Newton-Method",
+			                                &uiData.raytracingDataConstants.newtonGuessesAmount,
+			                                0,
+			                                6,
+			                                "%d",
+			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
-			uiData.raytracingDataConstants.newtonErrorXHitBelowTolerance
-			    = static_cast<float>(newtonErrorXHitBelowTolerance ? 1 : 0);
 
 			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
 			                                &uiData.raytracingDataConstants.newtonMaxIterations,
@@ -257,43 +240,11 @@ void renderRaytracingOptions(UIData& uiData)
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
 
-			valueChanged = ImGui::SliderFloat("Some Floating Scalar Value",
-			                                  &uiData.raytracingDataConstants.someFloatingScalar,
-			                                  1e-8f,
-			                                  1.0f,
-			                                  "%.8f",
-			                                  ImGuiSliderFlags_AlwaysClamp)
-			               || valueChanged;
-
-			valueChanged = ImGui::SliderInt("Some Scalar Value",
-			                                &uiData.raytracingDataConstants.someScalar,
-			                                -1,
-			                                uiData.raytracingDataConstants.newtonMaxIterations,
-			                                "%d",
-			                                ImGuiSliderFlags_AlwaysClamp)
-			               || valueChanged;
-
 			bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
 			valueChanged
 			    = ImGui::Checkbox("Render Side Triangle", &renderSideTriangle) || valueChanged;
 			uiData.raytracingDataConstants.renderSideTriangle
 			    = static_cast<float>(renderSideTriangle ? 1 : 0);
-
-			bool renderSide1 = uiData.raytracingDataConstants.renderSide1 > 0;
-			valueChanged = ImGui::Checkbox("Render Side 1", &renderSide1) || valueChanged;
-			uiData.raytracingDataConstants.renderSide1 = static_cast<float>(renderSide1 ? 1 : 0);
-
-			bool renderSide2 = uiData.raytracingDataConstants.renderSide2 > 0;
-			valueChanged = ImGui::Checkbox("Render Side 2", &renderSide2) || valueChanged;
-			uiData.raytracingDataConstants.renderSide2 = static_cast<float>(renderSide2 ? 1 : 0);
-
-			bool renderSide3 = uiData.raytracingDataConstants.renderSide3 > 0;
-			valueChanged = ImGui::Checkbox("Render Side 3", &renderSide3) || valueChanged;
-			uiData.raytracingDataConstants.renderSide3 = static_cast<float>(renderSide3 ? 1 : 0);
-
-			bool renderSide4 = uiData.raytracingDataConstants.renderSide4 > 0;
-			valueChanged = ImGui::Checkbox("Render Side 4", &renderSide4) || valueChanged;
-			uiData.raytracingDataConstants.renderSide4 = static_cast<float>(renderSide4 ? 1 : 0);
 
 			valueChanged = ImGui::SliderInt("Recursive Rays per Pixel",
 			                                &uiData.raytracingDataConstants.recursiveRaysPerPixel,
