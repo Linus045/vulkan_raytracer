@@ -464,6 +464,9 @@ void renderMainPanel(UIData& uiData)
 	ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
+
+	// set collapsed state
+	ImGui::SetNextWindowCollapsed(uiData.mainPanelCollapsed, ImGuiCond_Always);
 	if (!ImGui::Begin("Status", nullptr, window_flags))
 	{
 		uiData.mainPanelCollapsed = true;

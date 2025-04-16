@@ -109,6 +109,14 @@ void registerButtonFunctions(Window& window,
                              const Camera& camera,
                              ui::UIData& uiData)
 {
+	auto openUI = [&]() { uiData.mainPanelCollapsed = !uiData.mainPanelCollapsed; };
+	uiData.buttonCallbacks.push_back(std::make_pair("[C] [C]ollapse/Uncollapse UI", openUI));
+	registerKeyListener(window,
+	                    GLFW_KEY_C,
+	                    tracer::KeyTriggerMode::KeyDown,
+	                    tracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
+	                    openUI);
+
 	uiData.buttonCallbacks.push_back(
 	    std::make_pair("[R] CPU Raytrace", [&]() { shootRay(renderer, camera, uiData); }));
 	registerKeyListener(window,
