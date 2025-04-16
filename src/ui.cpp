@@ -170,6 +170,7 @@ void renderRaytracingOptions(UIData& uiData)
 			                   "Debug: Show Axis-Aligned Bounding-Boxes (ignores slicing planes)",
 			                   &debugShowAABBs)
 			               || valueChanged;
+			TOOLTIP("Renders the AABB of each object instead of the actual object");
 			uiData.raytracingDataConstants.debugShowAABBs
 			    = static_cast<float>(debugShowAABBs ? 1 : 0);
 
@@ -177,18 +178,22 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::Checkbox("Debug: Print Crosshair Ray calculations",
 			                               &debugPrintCrosshairRay)
 			               || valueChanged;
+			TOOLTIP("Prints the ray calculations for the crosshair ray in the console. "
+			        "This is only used for debugging purposes.");
 			uiData.raytracingDataConstants.debugPrintCrosshairRay
 			    = static_cast<float>(debugPrintCrosshairRay ? 1 : 0);
 
 			bool debugSlicingPlanes = uiData.raytracingDataConstants.debugSlicingPlanes > 0;
 			valueChanged = ImGui::Checkbox("Debug: Show Slicing Planes", &debugSlicingPlanes)
 			               || valueChanged;
+			TOOLTIP("Highlights the slicing plane on the object in pink");
 			uiData.raytracingDataConstants.debugSlicingPlanes
 			    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
 
 			bool debugShowSubdivisions = uiData.raytracingDataConstants.debugShowSubdivisions > 0;
-			valueChanged = ImGui::Checkbox("Debug: Show Subdivisions", &debugShowSubdivisions)
-			               || valueChanged;
+			valueChanged
+			    = ImGui::Checkbox("Debug: Show Edges", &debugShowSubdivisions) || valueChanged;
+			TOOLTIP("Highlights the edges of the objects");
 			uiData.raytracingDataConstants.debugShowSubdivisions
 			    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
 
@@ -198,6 +203,9 @@ void renderRaytracingOptions(UIData& uiData)
 			          "Debug: Enable fast render mode (decreases tolerace for frames < 10)",
 			          &debugFastRenderMode)
 			      || valueChanged;
+			TOOLTIP("Decreases the tolerance for the first 10 frames. "
+			        "Allows quicker camera movements if the scene takes a long time to render (low "
+			        "FPS). This is only intended for debugging purposes.");
 			uiData.raytracingDataConstants.debugFastRenderMode
 			    = static_cast<float>(debugFastRenderMode ? 1 : 0);
 
@@ -208,12 +216,18 @@ void renderRaytracingOptions(UIData& uiData)
 			                                  "%.8f",
 			                                  ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+			TOOLTIP(
+			    "Tolerance for the Newton method. "
+			    "If the error is below this value, the ray is considered to have hit an object.");
 
 			bool newtonErrorFIgnoreIncrease
 			    = uiData.raytracingDataConstants.newtonErrorFIgnoreIncrease > 0;
 			valueChanged
 			    = ImGui::Checkbox("Newton ErrorF Ignore increases", &newtonErrorFIgnoreIncrease)
 			      || valueChanged;
+			TOOLTIP("If the error increases, the ray is considered to miss the object. This option "
+			        "disables this behavior, allowing the error to increase during the "
+			        "Newton-Method search.");
 			uiData.raytracingDataConstants.newtonErrorFIgnoreIncrease
 			    = static_cast<float>(newtonErrorFIgnoreIncrease ? 1 : 0);
 
@@ -222,15 +236,20 @@ void renderRaytracingOptions(UIData& uiData)
 			valueChanged = ImGui::Checkbox("Newton ErrorF Below Tolerance counts as hit ",
 			                               &newtonErrorFHitBelowTolerance)
 			               || valueChanged;
+			TOOLTIP(
+			    "If the error is below this value, the ray is considered to have hit an object.");
 			uiData.raytracingDataConstants.newtonErrorFHitBelowTolerance
 			    = static_cast<float>(newtonErrorFHitBelowTolerance ? 1 : 0);
-			valueChanged = ImGui::SliderInt("Max Guesses Newton-Method",
+			valueChanged = ImGui::SliderInt("Number of initial guesses for Newton-Method",
 			                                &uiData.raytracingDataConstants.newtonGuessesAmount,
 			                                0,
 			                                6,
 			                                "%d",
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+			TOOLTIP("Number of initial guesses for the Newton method to try."
+			        "The Newton-Method is fully executed for each guess and the best/closest "
+			        "intersection point is used");
 
 			valueChanged = ImGui::SliderInt("Max Newton-Iterations",
 			                                &uiData.raytracingDataConstants.newtonMaxIterations,
@@ -239,10 +258,12 @@ void renderRaytracingOptions(UIData& uiData)
 			                                "%d",
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+			TOOLTIP("Max iterations for the Newton method. If the method does not converge within "
+			        "this number of iterations, the ray is considered to miss the object.");
 
 			bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
-			valueChanged
-			    = ImGui::Checkbox("Render Side Triangle", &renderSideTriangle) || valueChanged;
+			valueChanged = ImGui::Checkbox("Render Triangles", &renderSideTriangle) || valueChanged;
+			TOOLTIP("Whether to render the sides of the bezier tetrahedrons or not.");
 			uiData.raytracingDataConstants.renderSideTriangle
 			    = static_cast<float>(renderSideTriangle ? 1 : 0);
 
@@ -253,6 +274,11 @@ void renderRaytracingOptions(UIData& uiData)
 			                                "%d",
 			                                ImGuiSliderFlags_AlwaysClamp)
 			               || valueChanged;
+			TOOLTIP(
+			    "WARNING: This options is useless in the "
+			    "current form because there is no randomness, leave it at 1."
+			    "Each ray is deterministic and there is no randomness in the ray tracing "
+			    "process e.g. global illumnination or reflection/refraction is not implemented.");
 		}
 
 		ImGui::SeparatorText("Environment");

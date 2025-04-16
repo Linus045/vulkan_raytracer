@@ -24,6 +24,12 @@ struct DeletionQueue;
 namespace ui
 {
 
+#define TOOLTIP(text)                                                                              \
+	if (ImGui::IsItemHovered())                                                                    \
+	{                                                                                              \
+		ImGui::SetTooltip("%s", text);                                                             \
+	}
+
 // TODO: consider storing the raw data values instead of pointers/references and
 // updating the struct regularly
 struct UIData
