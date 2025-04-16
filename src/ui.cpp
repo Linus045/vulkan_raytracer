@@ -341,9 +341,13 @@ void renderButtons(const tracer::ui::UIData& uiData)
 {
 	for (const auto& button : uiData.buttonCallbacks)
 	{
-		if (ImGui::Button(button.first.c_str()))
+		if (ImGui::Button(button.label.c_str()))
 		{
-			button.second();
+			button.callback();
+		}
+		if (!button.tooltip.empty())
+		{
+			TOOLTIP(button.tooltip.c_str());
 		}
 	}
 }

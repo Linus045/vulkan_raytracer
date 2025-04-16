@@ -30,6 +30,13 @@ namespace ui
 		ImGui::SetTooltip("%s", text);                                                             \
 	}
 
+struct ButtonData
+{
+	std::string label;
+	std::string tooltip;
+	std::function<void()> callback;
+};
+
 // TODO: consider storing the raw data values instead of pointers/references and
 // updating the struct regularly
 struct UIData
@@ -83,8 +90,7 @@ struct UIData
 
 	} recreateAccelerationStructures;
 
-	std::vector<std::pair<std::string, std::function<void()>>> buttonCallbacks
-	    = std::vector<std::pair<std::string, std::function<void()>>>();
+	std::vector<ButtonData> buttonCallbacks;
 
 	UIData(Camera& camera,
 	       const Window& window,

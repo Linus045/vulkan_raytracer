@@ -110,39 +110,57 @@ void registerButtonFunctions(Window& window,
                              ui::UIData& uiData)
 {
 	auto openUI = [&]() { uiData.mainPanelCollapsed = !uiData.mainPanelCollapsed; };
-	uiData.buttonCallbacks.push_back(std::make_pair("[C] [C]ollapse/Uncollapse UI", openUI));
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "[C] [C]ollapse/Uncollapse UI",
+	    .tooltip = "Collapes or uncollapses the main menu",
+	    .callback = openUI,
+	});
 	registerKeyListener(window,
 	                    GLFW_KEY_C,
 	                    tracer::KeyTriggerMode::KeyDown,
 	                    tracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
 	                    openUI);
 
-	uiData.buttonCallbacks.push_back(
-	    std::make_pair("[R] CPU Raytrace", [&]() { shootRay(renderer, camera, uiData); }));
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "[R] [Debug] CPU Raytrace",
+	    .tooltip = "Shoots a ray into the scene and prints the calculations to the console. Only "
+	               "used for debugging.",
+	    .callback = [&]() { shootRay(renderer, camera, uiData); },
+	});
 	registerKeyListener(window,
 	                    GLFW_KEY_R,
 	                    tracer::KeyTriggerMode::KeyDown,
 	                    tracer::KeyListeningMode::FLYING_CAMERA,
 	                    [&]() { shootRay(renderer, camera, uiData); });
 
-	uiData.buttonCallbacks.push_back(std::make_pair(
-	    "[T] Visualize Ray Planes", [&]() { visualizeRayPlanes(renderer, camera, uiData); }));
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "[T] Visualize Ray Planes",
+	    .tooltip
+	    = "Visualizes the crosshair ray as two planes, represented by spheres. For debugging only.",
+	    .callback = [&]() { visualizeRayPlanes(renderer, camera, uiData); },
+	});
 	registerKeyListener(window,
 	                    GLFW_KEY_T,
 	                    tracer::KeyTriggerMode::KeyDown,
 	                    tracer::KeyListeningMode::FLYING_CAMERA,
 	                    [&]() { visualizeRayPlanes(renderer, camera, uiData); });
 
-	uiData.buttonCallbacks.push_back(std::make_pair(
-	    "Visualize Slicing Planes", [&]() { visualizeSlicingPlanes(renderer, uiData); }));
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "Visualize Slicing Planes",
+	    .tooltip = "Visualizes the slicing plane with spheres. For debugging only.",
+	    .callback = [&]() { visualizeSlicingPlanes(renderer, uiData); },
+	});
 
 	auto sceneCount = RaytracingScene::getSceneCount();
 	for (int sceneNr = 1; sceneNr <= sceneCount; sceneNr++)
 	{
 		auto sceneName = RaytracingScene::getSceneName(sceneNr);
 		auto label = std::format("[{}] Load Scene: {}", sceneNr, sceneName);
-		uiData.buttonCallbacks.push_back(
-		    std::make_pair(label, [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); }));
+		uiData.buttonCallbacks.push_back(ui::ButtonData{
+		    .label = label,
+		    .tooltip = "",
+		    .callback = [&, sceneNr]() { loadScene(renderer, uiData, sceneNr); },
+		});
 		registerKeyListener(window,
 		                    GLFW_KEY_0 + sceneNr,
 		                    tracer::KeyTriggerMode::KeyDown,
