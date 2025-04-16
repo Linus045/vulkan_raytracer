@@ -159,6 +159,58 @@ void renderErrors(const UIData& uiData)
 void renderRaytracingOptions(UIData& uiData)
 {
 	bool valueChanged = false;
+
+	if (ImGui::CollapsingHeader("Raytracing - Environment & Light"))
+	{
+		ImGui::SeparatorText("Values");
+		{
+			bool lightPositionChanged
+			    = ImGui::SliderFloat3("Global Light Position",
+			                          &uiData.raytracingDataConstants.globalLightPosition.x,
+			                          -10.0f,
+			                          10.0f,
+			                          "%.1f",
+			                          0);
+			if (lightPositionChanged)
+			{
+				uiData.recreateAccelerationStructures.requestRecreate(false);
+			}
+
+			valueChanged = lightPositionChanged || valueChanged;
+
+			valueChanged = ImGui::SliderFloat("Global Light Intensity",
+			                                  &uiData.raytracingDataConstants.globalLightIntensity,
+			                                  0.0f,
+			                                  1.0f,
+			                                  "%.4f",
+			                                  0)
+			               || valueChanged;
+			valueChanged
+			    = ImGui::SliderFloat("Environment Light Intensity",
+			                         &uiData.raytracingDataConstants.environmentLightIntensity,
+			                         0.0f,
+			                         1.0f,
+			                         "%.2f",
+			                         0)
+			      || valueChanged;
+
+			ImGui::Spacing();
+		}
+
+		ImGui::SeparatorText("Colors");
+		{
+			valueChanged = ImGui::ColorEdit3("Global Light Color",
+			                                 &uiData.raytracingDataConstants.globalLightColor.x,
+			                                 0)
+			               || valueChanged;
+
+			valueChanged = ImGui::ColorEdit3("Environment Light Color",
+			                                 &uiData.raytracingDataConstants.environmentColor.x,
+			                                 0)
+			               || valueChanged;
+		}
+	}
+
 	if (ImGui::CollapsingHeader("Raytracing - Configuration"))
 	{
 		ImGui::SeparatorText("Debug");
@@ -280,55 +332,6 @@ void renderRaytracingOptions(UIData& uiData)
 			    "current form because there is no randomness, leave it at 1."
 			    "Each ray is deterministic and there is no randomness in the ray tracing "
 			    "process e.g. global illumnination or reflection/refraction is not implemented.");
-		}
-
-		ImGui::SeparatorText("Environment");
-		{
-			valueChanged
-			    = ImGui::SliderFloat("Environment Light Intensity",
-			                         &uiData.raytracingDataConstants.environmentLightIntensity,
-			                         0.0f,
-			                         1.0f,
-			                         "%.2f",
-			                         0)
-			      || valueChanged;
-
-			ImGui::Spacing();
-
-			valueChanged = ImGui::ColorPicker3("Environment Light Color",
-			                                   &uiData.raytracingDataConstants.environmentColor.x,
-			                                   0)
-			               || valueChanged;
-		}
-
-		ImGui::SeparatorText("Light");
-		{
-			bool lightPositionChanged
-			    = ImGui::SliderFloat3("Global Light Position",
-			                          &uiData.raytracingDataConstants.globalLightPosition.x,
-			                          -10.0f,
-			                          10.0f,
-			                          "%.1f",
-			                          0);
-			if (lightPositionChanged)
-			{
-				uiData.recreateAccelerationStructures.requestRecreate(false);
-			}
-
-			valueChanged = lightPositionChanged || valueChanged;
-
-			valueChanged = ImGui::SliderFloat("Global Light Intensity",
-			                                  &uiData.raytracingDataConstants.globalLightIntensity,
-			                                  0.0f,
-			                                  1.0f,
-			                                  "%.4f",
-			                                  0)
-			               || valueChanged;
-
-			valueChanged = ImGui::ColorPicker3("Global Light Color",
-			                                   &uiData.raytracingDataConstants.globalLightColor.x,
-			                                   0)
-			               || valueChanged;
 		}
 	}
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
@@ -457,7 +460,7 @@ void renderMainPanel(UIData& uiData)
 	const ImGuiViewport* main_viewport = ImGui::GetMainViewport();
 	ImGui::SetNextWindowPos(ImVec2(main_viewport->WorkPos.x + 100, main_viewport->WorkPos.y + 100),
 	                        ImGuiCond_FirstUseEver);
-	ImGui::SetNextWindowSize(ImVec2(700, 600), ImGuiCond_FirstUseEver);
+	ImGui::SetNextWindowSize(ImVec2(700, 800), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowCollapsed(true, ImGuiCond_FirstUseEver);
 
 	ImGuiWindowFlags window_flags = 0;
@@ -472,19 +475,20 @@ void renderMainPanel(UIData& uiData)
 
 	renderHelpInfo(uiData);
 
-	ImGui::SeparatorText("Buttons");
-	renderButtons(uiData);
-
 	ImGui::SeparatorText("Properties:");
+	renderRaytracingProperties(uiData);
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
-	renderRaytracingProperties(uiData);
 
-	renderPositionSliders(uiData);
-	renderSlicingPlaneSliders(uiData);
+	// TODO: display the control points in the ui and make them editable
+	// renderPositionSliders(uiData);
 
 	ImGui::SeparatorText("Configuration");
 	renderRaytracingOptions(uiData);
+	renderSlicingPlaneSliders(uiData);
+
+	ImGui::SeparatorText("Buttons");
+	renderButtons(uiData);
 
 	renderErrors(uiData);
 	ImGui::End();
