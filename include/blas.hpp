@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstring>
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 
 #include "deletion_queue.hpp"
@@ -122,6 +123,7 @@ createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
 inline VkAccelerationStructureKHR
 buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
                                       VkDevice logicalDevice,
+                                      VmaAllocator vmaAllocator,
                                       DeletionQueue& deletionQueue,
                                       const VkCommandBuffer bottomLevelCommandBuffer,
                                       const VkQueue graphicsQueue,
@@ -165,9 +167,10 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    &bottomLevelAccelerationStructureBuildSizesInfo);
 
 	VkBuffer bottomLevelAccelerationStructureBufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory bottomLevelAccelerationStructureMemoryHandle = VK_NULL_HANDLE;
+	VmaAllocation bottomLevelAccelerationStructureBufferAllocation = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
+	             vmaAllocator,
 	             deletionQueue,
 	             bottomLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
 	             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
@@ -175,7 +178,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureBufferHandle,
-	             bottomLevelAccelerationStructureMemoryHandle);
+	             bottomLevelAccelerationStructureBufferAllocation);
 
 	VkAccelerationStructureCreateInfoKHR bottomLevelAccelerationStructureCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -202,17 +205,18 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    });
 
 	// Build Bottom Level Acceleration Structure
-	VkDeviceMemory bottomLevelAccelerationStructureDeviceScratchMemoryHandle = VK_NULL_HANDLE;
 	VkBuffer bottomLevelAccelerationStructureScratchBufferHandle = VK_NULL_HANDLE;
+	VmaAllocation bottomLevelAccelerationStructureScratchBufferAllocation = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
+	             vmaAllocator,
 	             deletionQueue,
 	             bottomLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureScratchBufferHandle,
-	             bottomLevelAccelerationStructureDeviceScratchMemoryHandle);
+	             bottomLevelAccelerationStructureScratchBufferAllocation);
 
 	VkBufferDeviceAddressInfo bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -299,26 +303,28 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 }
 
 template <typename T>
-inline std::pair<VkBuffer, VkDeviceMemory> createObjectBuffer(VkPhysicalDevice physicalDevice,
-                                                              VkDevice logicalDevice,
-                                                              DeletionQueue& deletionQueue,
-                                                              const T& object)
+inline std::pair<VkBuffer, VmaAllocation> createObjectBuffer(VkPhysicalDevice physicalDevice,
+                                                             VkDevice logicalDevice,
+                                                             VmaAllocator vmaAllocator,
+                                                             DeletionQueue& deletionQueue,
+                                                             const T& object)
 {
 	VkBuffer bufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory deviceMemoryHandle = VK_NULL_HANDLE;
+	VmaAllocation allocation = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
+	             vmaAllocator,
 	             deletionQueue,
 	             sizeof(T),
 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             bufferHandle,
-	             deviceMemoryHandle);
+	             allocation);
 
-	copyDataToBuffer(logicalDevice, deviceMemoryHandle, &object, sizeof(T));
+	copyDataToBuffer(vmaAllocator, allocation, &object, sizeof(T));
 
-	return std::make_pair(bufferHandle, deviceMemoryHandle);
+	return std::make_pair(bufferHandle, allocation);
 }
 
 /**

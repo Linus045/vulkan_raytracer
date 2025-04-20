@@ -16,6 +16,8 @@
 #include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
+#include "vk_mem_alloc.h"
+
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #define GLM_FORCE_LEFT_HANDED
 #define GLM_FORCE_RADIANS
@@ -46,6 +48,8 @@ void Application::run()
 	createWindow();
 
 	initVulkan();
+
+	vmaAllocator = tracer::createVMAAllocator(physicalDevice, vulkanInstance, logicalDevice);
 
 	createRenderer();
 
@@ -102,7 +106,8 @@ void Application::createRenderer()
 	                                              graphicsQueue,
 	                                              presentQueue,
 	                                              transferQueue,
-	                                              raytracingSupported);
+	                                              raytracingSupported,
+	                                              vmaAllocator);
 
 	window.createSwapChain(
 	    physicalDevice,
@@ -801,6 +806,7 @@ void Application::cleanupApp()
 	window.cleanupSwapChain(logicalDevice);
 	mainDeletionQueue.flush();
 
+	vmaDestroyAllocator(vmaAllocator);
 	vkDestroyDevice(logicalDevice, nullptr);
 
 	if (enableValidationLayer)

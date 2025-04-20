@@ -87,10 +87,14 @@ file(GLOB_RECURSE data resources/*)
 add_subdirectory(3rdparty/glm)
 add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/tinyobjloader)
+add_subdirectory(3rdparty/vulkanMemoryAllocator)
 
+# mark includes as system includes
 include_directories(SYSTEM 3rdparty/tinyobjloader)
 include_directories(SYSTEM 3rdparty/glm)
+include_directories(SYSTEM 3rdparty/glfw/include)
 include_directories(SYSTEM 3rdparty/imgui)
+include_directories(SYSTEM 3rdparty/vulkanMemoryAllocator/include)
 
 
 ###############################################################################
@@ -213,7 +217,7 @@ add_executable(${target_name} ${sources}
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	# using Clang
 	message("Using Clang")
-	target_compile_options(${target_name} PRIVATE 
+	target_compile_options(${target_name} PRIVATE
 		-pedantic
 		-pedantic-errors
 		-Wall
@@ -267,10 +271,12 @@ find_package(Vulkan REQUIRED)
 include_directories(SYSTEM ${Vulkan_INCLUDE_DIR})
 target_include_directories(${target_name} SYSTEM PRIVATE Vulkan_INCLUDE_DIRS)
 
+
 target_link_libraries(${target_name} PRIVATE
     # here you can add any library dependencies
   "glfw"
   "tinyobjloader"
   ${Vulkan_LIBRARY}
   "imgui"
+  GPUOpen::VulkanMemoryAllocator
 )

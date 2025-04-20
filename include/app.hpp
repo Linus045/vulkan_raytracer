@@ -2,6 +2,8 @@
 
 #include <memory>
 
+#include "vk_mem_alloc.h"
+
 #include "custom_user_data.hpp"
 #include "deletion_queue.hpp"
 #include "ui.hpp"
@@ -98,6 +100,8 @@ class Application
 
 	// vulkan instance
 	VkInstance vulkanInstance;
+
+	VmaAllocator vmaAllocator;
 
 	// properties of the selected GPU (info is displayed via the UI)
 	VkPhysicalDeviceProperties physicalDeviceProperties;

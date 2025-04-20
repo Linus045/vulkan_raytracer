@@ -35,10 +35,12 @@ class Renderer
 	         VkQueue graphicsQueue,
 	         VkQueue presentQueue,
 	         VkQueue transferQueue,
-	         const bool raytracingSupported)
+	         const bool raytracingSupported,
+	         VmaAllocator vmaAllocator)
 	    : deletionQueue(deletionQueue), window(window), physicalDevice(physicalDevice),
 	      raytracingSupported(raytracingSupported), logicalDevice(logicalDevice),
-	      graphicsQueue(graphicsQueue), presentQueue(presentQueue), transferQueue(transferQueue) //
+	      graphicsQueue(graphicsQueue), presentQueue(presentQueue), transferQueue(transferQueue),
+	      vmaAllocator(vmaAllocator)
 	{
 	}
 
@@ -72,6 +74,7 @@ class Renderer
 			raytracingScene->cleanup(raytracingInfo.graphicsQueueHandle);
 
 			tracer::freeRaytraceImageAndImageView(logicalDevice,
+			                                      vmaAllocator,
 			                                      raytracingInfo.rayTraceImageHandle,
 			                                      raytracingInfo.rayTraceImageViewHandle,
 			                                      raytracingInfo.rayTraceImageDeviceMemoryHandle);
@@ -87,8 +90,11 @@ class Renderer
 	{
 		if (raytracingSupported)
 		{
-			tracer::recreateRaytracingImageBuffer(
-			    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
+			tracer::recreateRaytracingImageBuffer(physicalDevice,
+			                                      logicalDevice,
+			                                      vmaAllocator,
+			                                      window.getSwapChainExtent(),
+			                                      raytracingInfo);
 		}
 	}
 
@@ -277,6 +283,8 @@ class Renderer
 
 	VkDescriptorSetLayout raytracingImageDescriptorSetLayoutHandle = VK_NULL_HANDLE;
 	std::vector<VkDescriptorSet> descriptorSetHandleList{};
+
+	VmaAllocator vmaAllocator;
 };
 
 } // namespace tracer

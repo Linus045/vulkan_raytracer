@@ -6,9 +6,12 @@
 
 #include <vulkan/vulkan_core.h>
 
+#define VMA_STATIC_VULKAN_FUNCTIONS 0
+#define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
+#include "vk_mem_alloc.h"
+
 #include "deletion_queue.hpp"
 #include "types.hpp"
-#include "vk_utils.hpp"
 
 namespace tracer
 {
@@ -46,8 +49,12 @@ inline std::string errorString(VkResult errorCode)
 		STR(ERROR_VALIDATION_FAILED_EXT);
 		STR(ERROR_INVALID_SHADER_NV);
 		STR(ERROR_INCOMPATIBLE_SHADER_BINARY_EXT);
+		STR(SUCCESS);
 	default:
-		return "UNKNOWN_ERROR";
+		return ("Error code: " + std::to_string(errorCode)
+		        + " - Vulkan error code cannot be converted to string please add it to the "
+		          "errorString() function")
+		    .c_str();
 	}
 #undef STR
 }
@@ -156,15 +163,17 @@ inline tracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDev
 	return indices;
 }
 
-inline void createBuffer(VkPhysicalDevice physicalDevice,
-                         VkDevice logicalDevice,
-                         DeletionQueue& deletionQueue,
-                         VkDeviceSize size,
-                         VkBufferUsageFlags usage,
-                         VkMemoryPropertyFlags properties,
-                         const VkMemoryAllocateFlagsInfo& additionalMemoryAllocateFlagsInfo,
-                         VkBuffer& buffer,
-                         VkDeviceMemory& bufferMemory)
+inline void
+createBuffer([[maybe_unused]] VkPhysicalDevice physicalDevice,
+             [[maybe_unused]] VkDevice logicalDevice,
+             VmaAllocator allocator,
+             DeletionQueue& deletionQueue,
+             VkDeviceSize size,
+             VkBufferUsageFlags usage,
+             VkMemoryPropertyFlags properties,
+             [[maybe_unused]] const VkMemoryAllocateFlagsInfo& additionalMemoryAllocateFlagsInfo,
+             VkBuffer& buffer,
+             VmaAllocation& allocation)
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -174,41 +183,33 @@ inline void createBuffer(VkPhysicalDevice physicalDevice,
 	bufferInfo.queueFamilyIndexCount = 0;
 	bufferInfo.pQueueFamilyIndices = NULL;
 
-	if (vkCreateBuffer(logicalDevice, &bufferInfo, nullptr, &buffer) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create vertex buffer");
-	}
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.requiredFlags = properties;
 
-	deletionQueue.push_function([=]() { vkDestroyBuffer(logicalDevice, buffer, NULL); });
+	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+	allocInfo.memoryTypeBits = 0; // no restrictions
 
-	VkMemoryRequirements memoryRequirements;
-	vkGetBufferMemoryRequirements(logicalDevice, buffer, &memoryRequirements);
+	VK_CHECK_RESULT(
+	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr));
 
-	VkMemoryAllocateInfo allocInfo{};
-	allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-	allocInfo.allocationSize = memoryRequirements.size;
-	allocInfo.pNext = &additionalMemoryAllocateFlagsInfo,
-	allocInfo.memoryTypeIndex
-	    = findMemoryType(physicalDevice, memoryRequirements.memoryTypeBits, properties);
-	if (vkAllocateMemory(logicalDevice, &allocInfo, nullptr, &bufferMemory) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to allocate vertex buffer memory");
-	}
+	deletionQueue.push_function([=]() { vmaDestroyBuffer(allocator, buffer, allocation); });
 
-	deletionQueue.push_function([=]() { vkFreeMemory(logicalDevice, bufferMemory, NULL); });
-	vkBindBufferMemory(logicalDevice, buffer, bufferMemory, 0);
+	VmaAllocationInfo allocationInfo = {};
+	vmaGetAllocationInfo(allocator, allocation, &allocationInfo);
 }
 
-inline void copyDataToBuffer(VkDevice logicalDevice,
-                             VkDeviceMemory bufferMemory,
+inline void copyDataToBuffer(VmaAllocator vmaAllocator,
+                             VmaAllocation allocation,
                              const void* data,
                              VkDeviceSize size)
 {
 	void* memoryBuffer;
-	VK_CHECK_RESULT(vkMapMemory(logicalDevice, bufferMemory, 0, size, 0, &memoryBuffer));
+	vmaMapMemory(vmaAllocator, allocation, &memoryBuffer);
+	// VK_CHECK_RESULT(vkMapMemory(logicalDevice, bufferMemory, 0, size, 0, &memoryBuffer));
 
 	memcpy(memoryBuffer, data, size);
-	vkUnmapMemory(logicalDevice, bufferMemory);
+	vmaUnmapMemory(vmaAllocator, allocation);
 }
 
 inline std::vector<char> readFile(const std::string& filename)
@@ -262,4 +263,25 @@ inline void addImageMemoryBarrier(VkCommandBuffer commandBuffer,
 	vkCmdPipelineBarrier2(commandBuffer, &dependencyInfo);
 }
 
+inline VmaAllocator createVMAAllocator(VkPhysicalDevice _physicalDevice,
+                                       VkInstance _vulkanInstance,
+                                       VkDevice _logicalDevice)
+{
+
+	VmaVulkanFunctions vulkanFunctions = {};
+	vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+	vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+	VmaAllocatorCreateInfo allocatorInfo{};
+	allocatorInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+	allocatorInfo.physicalDevice = _physicalDevice;
+	allocatorInfo.instance = _vulkanInstance;
+	allocatorInfo.device = _logicalDevice;
+	allocatorInfo.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+	allocatorInfo.pVulkanFunctions = &vulkanFunctions;
+
+	VmaAllocator allocator;
+	VK_CHECK_RESULT(vmaCreateAllocator(&allocatorInfo, &allocator));
+	return allocator;
+}
 } // namespace tracer

@@ -28,16 +28,17 @@ inline void createAndBuildTopLevelAccelerationStructure(
     DeletionQueue& deletionQueue,
     VkDevice logicalDevice,
     VkPhysicalDevice physicalDevice,
+    VmaAllocator vmaAllocator,
     const bool onlyUpdate,
-    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
+    VmaAllocation& blasGeometryInstancesBufferAllocation,
     VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
     VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
     VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
     VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
     VkBuffer& topLevelAccelerationStructureBufferHandle,
-    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
+    VmaAllocation& topLevelAccelerationStructureDeviceMemoryHandle,
     VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
-    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
+    VmaAllocation& topLevelAccelerationStructureScratchBufferAllocation,
     VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
     VkCommandBuffer commandBufferBuildTopAndBottomLevel,
     VkQueue graphicsQueueHandle)
@@ -55,8 +56,8 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	if (onlyUpdate)
 	{
 		// Copy new instances to the buffer
-		copyDataToBuffer(logicalDevice,
-		                 blasGeometryInstancesDeviceMemoryHandle,
+		copyDataToBuffer(vmaAllocator,
+		                 blasGeometryInstancesBufferAllocation,
 		                 instances.data(),
 		                 sizeof(VkAccelerationStructureInstanceKHR) * instances.size());
 
@@ -72,8 +73,10 @@ inline void createAndBuildTopLevelAccelerationStructure(
 	{
 		VkBuffer blasGeometryInstancesBufferHandle = VK_NULL_HANDLE;
 		VkDeviceSize bufferSize = sizeof(VkAccelerationStructureInstanceKHR) * instances.size();
+
 		createBuffer(physicalDevice,
 		             logicalDevice,
+		             vmaAllocator,
 		             deletionQueue,
 		             bufferSize,
 		             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
@@ -81,10 +84,10 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             blasGeometryInstancesBufferHandle,
-		             blasGeometryInstancesDeviceMemoryHandle);
+		             blasGeometryInstancesBufferAllocation);
 
 		copyDataToBuffer(
-		    logicalDevice, blasGeometryInstancesDeviceMemoryHandle, instances.data(), bufferSize);
+		    vmaAllocator, blasGeometryInstancesBufferAllocation, instances.data(), bufferSize);
 
 		//=================================================================================================
 		// create top level acceleration structure geometry
@@ -160,6 +163,7 @@ inline void createAndBuildTopLevelAccelerationStructure(
 
 		createBuffer(physicalDevice,
 		             logicalDevice,
+		             vmaAllocator,
 		             deletionQueue,
 		             topLevelAccelerationStructureBuildSizesInfo.accelerationStructureSize,
 		             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR
@@ -211,13 +215,14 @@ inline void createAndBuildTopLevelAccelerationStructure(
 
 		createBuffer(physicalDevice,
 		             logicalDevice,
+		             vmaAllocator,
 		             deletionQueue,
 		             topLevelAccelerationStructureBuildSizesInfo.buildScratchSize,
 		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
 		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		             memoryAllocateFlagsInfo,
 		             topLevelAccelerationStructureScratchBufferHandle,
-		             topLevelAccelerationStructureDeviceScratchMemoryHandle);
+		             topLevelAccelerationStructureScratchBufferAllocation);
 
 		VkBufferDeviceAddressInfo topLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 		    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

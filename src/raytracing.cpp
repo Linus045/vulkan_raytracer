@@ -620,6 +620,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
  */
 void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
+                    VmaAllocator vmaAllocator,
                     DeletionQueue& deletionQueue,
                     RaytracingInfo& raytracingInfo,
                     RaytracingScene& raytracingScene)
@@ -1000,9 +1001,10 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	VkDeviceSize shaderBindingTableSize = progSize * raytracingInfo.shaderGroupCount;
 
 	VkBuffer shaderBindingTableBufferHandle = VK_NULL_HANDLE;
-	VkDeviceMemory shaderBindingTableDeviceMemoryHandle = VK_NULL_HANDLE;
+	VmaAllocation shaderBindingTableBufferAllocation = VK_NULL_HANDLE;
 	createBuffer(physicalDevice,
 	             logicalDevice,
+	             vmaAllocator,
 	             deletionQueue,
 	             shaderBindingTableSize,
 	             VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR
@@ -1010,7 +1012,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 	             memoryAllocateFlagsInfo,
 	             shaderBindingTableBufferHandle,
-	             shaderBindingTableDeviceMemoryHandle);
+	             shaderBindingTableBufferAllocation);
 
 	char* shaderHandleBuffer = new char[shaderBindingTableSize];
 	VK_CHECK_RESULT(tracer::procedures::pvkGetRayTracingShaderGroupHandlesKHR(
@@ -1023,12 +1025,8 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	    shaderHandleBuffer));
 
 	void* hostShaderBindingTableMemoryBuffer;
-	VK_CHECK_RESULT(vkMapMemory(logicalDevice,
-	                            shaderBindingTableDeviceMemoryHandle,
-	                            0,
-	                            shaderBindingTableSize,
-	                            0,
-	                            &hostShaderBindingTableMemoryBuffer));
+	VK_CHECK_RESULT(vmaMapMemory(
+	    vmaAllocator, shaderBindingTableBufferAllocation, &hostShaderBindingTableMemoryBuffer));
 
 	for (uint32_t x = 0; x < 4; x++)
 	{
@@ -1042,7 +1040,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 		      + physicalDeviceRayTracingPipelineProperties.shaderGroupBaseAlignment;
 	}
 
-	vkUnmapMemory(logicalDevice, shaderBindingTableDeviceMemoryHandle);
+	vmaUnmapMemory(vmaAllocator, shaderBindingTableBufferAllocation);
 
 	VkBufferDeviceAddressInfo shaderBindingTableBufferDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -1451,7 +1449,8 @@ VkDescriptorSetLayout createRaytracingImageDescriptorSetLayout(VkDevice logicalD
 	return descriptorSet;
 }
 
-void updateRaytraceBuffer(VkDevice logicalDevice,
+void updateRaytraceBuffer([[maybe_unused]] VkDevice logicalDevice,
+                          VmaAllocator vmaAllocator,
                           RaytracingInfo& raytracingInfo,
                           const bool resetFrameCountRequested)
 {
@@ -1465,19 +1464,15 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
 	}
 
 	// TODO: we need some synchronization here probably
-	if (raytracingInfo.uniformDeviceMemoryHandle != VK_NULL_HANDLE)
+	if (raytracingInfo.uniformBufferAllocation != VK_NULL_HANDLE)
 	{
 		void* hostUniformMemoryBuffer;
-		VK_CHECK_RESULT(vkMapMemory(logicalDevice,
-		                            raytracingInfo.uniformDeviceMemoryHandle,
-		                            0,
-		                            sizeof(UniformStructure),
-		                            0,
-		                            &hostUniformMemoryBuffer));
+		VK_CHECK_RESULT(vmaMapMemory(
+		    vmaAllocator, raytracingInfo.uniformBufferAllocation, &hostUniformMemoryBuffer));
 
 		memcpy(hostUniformMemoryBuffer, &raytracingInfo.uniformStructure, sizeof(UniformStructure));
 
-		vkUnmapMemory(logicalDevice, raytracingInfo.uniformDeviceMemoryHandle);
+		vmaUnmapMemory(vmaAllocator, raytracingInfo.uniformBufferAllocation);
 	}
 }
 
@@ -1524,8 +1519,9 @@ void loadShaderModules(VkDevice logicalDevice,
 	                                   raytracingInfo.rayAABBIntersectionModuleHandle);
 }
 
-void createRaytracingImage(VkPhysicalDevice physicalDevice,
+void createRaytracingImage([[maybe_unused]] VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
+                           VmaAllocator vmaAllocator,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo)
 {
@@ -1552,54 +1548,26 @@ void createRaytracingImage(VkPhysicalDevice physicalDevice,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
     };
 
-	// TODO: return this image instead of storing it in the raytracingInfo struct directly
-	VK_CHECK_RESULT(vkCreateImage(
-	    logicalDevice, &rayTraceImageCreateInfo, NULL, &raytracingInfo.rayTraceImageHandle));
+	VmaAllocationCreateInfo allocInfo = {};
+	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
+	allocInfo.memoryTypeBits = 0; // no restrictions
+	allocInfo.requiredFlags = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+	allocInfo.flags = 0;
 
-	VkMemoryRequirements rayTraceImageMemoryRequirements;
-	vkGetImageMemoryRequirements(
-	    logicalDevice, raytracingInfo.rayTraceImageHandle, &rayTraceImageMemoryRequirements);
+	VmaAllocationInfo allocationInfo = {};
+	VK_CHECK_RESULT(vmaCreateImage(vmaAllocator,
+	                               &rayTraceImageCreateInfo,
+	                               &allocInfo,
+	                               &raytracingInfo.rayTraceImageHandle,
+	                               &raytracingInfo.rayTraceImageDeviceMemoryHandle,
+	                               &allocationInfo));
 
-	VkPhysicalDeviceMemoryProperties physicalDeviceMemoryProperties;
-	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &physicalDeviceMemoryProperties);
-
-	uint32_t rayTraceImageMemoryTypeIndex = 0;
-	for (uint32_t x = 0; x < physicalDeviceMemoryProperties.memoryTypeCount; x++)
-	{
-		if ((rayTraceImageMemoryRequirements.memoryTypeBits & (1 << x))
-		    && (physicalDeviceMemoryProperties.memoryTypes[x].propertyFlags
-		        & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		           == VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
-		{
-
-			rayTraceImageMemoryTypeIndex = x;
-			break;
-		}
-	}
-
-	VkMemoryAllocateInfo rayTraceImageMemoryAllocateInfo
-	    = {.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-	       .pNext = &memoryAllocateFlagsInfo,
-	       .allocationSize = rayTraceImageMemoryRequirements.size,
-	       .memoryTypeIndex = rayTraceImageMemoryTypeIndex};
-
-	// TODO: is reallocating memory here necessary? just rebinding should be enough
-	VK_CHECK_RESULT(vkAllocateMemory(logicalDevice,
-	                                 &rayTraceImageMemoryAllocateInfo,
-	                                 NULL,
-	                                 &raytracingInfo.rayTraceImageDeviceMemoryHandle));
-
-	VK_CHECK_RESULT(vkBindImageMemory(logicalDevice,
-	                                  raytracingInfo.rayTraceImageHandle,
-	                                  raytracingInfo.rayTraceImageDeviceMemoryHandle,
-	                                  0));
 	// transition image layout
 	prepareRaytracingImageLayout(logicalDevice, raytracingInfo);
 }
 
 void prepareRaytracingImageLayout(VkDevice logicalDevice, const RaytracingInfo& raytracingInfo)
 {
-
 	VkCommandPool tmpCommandPool = VK_NULL_HANDLE;
 	{
 		VkCommandPoolCreateInfo poolInfo{};
@@ -1702,34 +1670,36 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& ray
 }
 
 void freeRaytraceImageAndImageView(VkDevice logicalDevice,
+                                   VmaAllocator vmaAllocator,
                                    VkImage& rayTraceImageHandle,
                                    VkImageView& rayTraceImageViewHandle,
-                                   VkDeviceMemory& rayTraceImageDeviceMemoryHandle)
+                                   VmaAllocation& rayTraceImageAllocation)
 {
 	assert(rayTraceImageHandle != VK_NULL_HANDLE
 	       && "This should only be called when recreating the image and imageview");
-	vkDestroyImage(logicalDevice, rayTraceImageHandle, NULL);
+	assert(rayTraceImageAllocation != VK_NULL_HANDLE
+	       && "This should only be called when recreating the image and imageview");
+	vmaDestroyImage(vmaAllocator, rayTraceImageHandle, rayTraceImageAllocation);
 
 	assert(rayTraceImageViewHandle != VK_NULL_HANDLE
 	       && "This should only be called when recreating the image and imageview");
 	vkDestroyImageView(logicalDevice, rayTraceImageViewHandle, nullptr);
-
-	assert(rayTraceImageDeviceMemoryHandle != VK_NULL_HANDLE
-	       && "This should only be called when recreating the image and imageview");
-	vkFreeMemory(logicalDevice, rayTraceImageDeviceMemoryHandle, nullptr);
 }
 
 void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
+                                   VmaAllocator vmaAllocator,
                                    VkExtent2D windowExtent,
                                    RaytracingInfo& raytracingInfo)
 {
 	freeRaytraceImageAndImageView(logicalDevice,
+	                              vmaAllocator,
 	                              raytracingInfo.rayTraceImageHandle,
 	                              raytracingInfo.rayTraceImageViewHandle,
 	                              raytracingInfo.rayTraceImageDeviceMemoryHandle);
 
-	createRaytracingImage(physicalDevice, logicalDevice, windowExtent, raytracingInfo);
+	createRaytracingImage(
+	    physicalDevice, logicalDevice, vmaAllocator, windowExtent, raytracingInfo);
 
 	raytracingInfo.rayTraceImageViewHandle
 	    = createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);

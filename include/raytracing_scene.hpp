@@ -45,8 +45,11 @@ class RaytracingScene
 	    "A bunch of random tetrahedrons",
 	};
 
-	RaytracingScene(const VkPhysicalDevice& physicalDevice, const VkDevice logicalDevice)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice) {};
+	RaytracingScene(const VkPhysicalDevice& physicalDevice,
+	                const VkDevice logicalDevice,
+	                const VmaAllocator vmaAllocator)
+	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
+	      vmaAllocator(vmaAllocator) {};
 
 	~RaytracingScene() = default;
 
@@ -292,13 +295,14 @@ class RaytracingScene
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             slicingPlanes.size() * sizeof(SlicingPlane),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.slicingPlanesBufferHandle,
-			             objectBuffers.slicingPlanesDeviceMemoryHandle);
+			             objectBuffers.slicingPlanesBufferAllocation);
 		}
 	}
 
@@ -308,65 +312,70 @@ class RaytracingScene
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             spheres.size() * sizeof(Sphere),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.spheresBufferHandle,
-			             objectBuffers.spheresDeviceMemoryHandles);
+			             objectBuffers.spheresBufferAllocation);
 		}
 
 		if (tetrahedrons2.size() > 0)
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             tetrahedrons2.size() * sizeof(Tetrahedron2),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.tetrahedronsBufferHandle,
-			             objectBuffers.tetrahedronsDeviceMemoryHandles);
+			             objectBuffers.tetrahedronsBufferAllocation);
 		}
 
 		if (bezierTriangles2.size() > 0)
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             bezierTriangles2.size() * sizeof(BezierTriangle2),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.bezierTriangles2BufferHandle,
-			             objectBuffers.bezierTriangles2DeviceMemoryHandles);
+			             objectBuffers.bezierTriangles2BufferAllocation);
 		}
 
 		if (bezierTriangles3.size() > 0)
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             bezierTriangles3.size() * sizeof(BezierTriangle3),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.bezierTriangles3BufferHandle,
-			             objectBuffers.bezierTriangles3DeviceMemoryHandles);
+			             objectBuffers.bezierTriangles3BuffersAllocation);
 		}
 
 		if (rectangularBezierSurfaces2x2.size() > 0)
 		{
 			createBuffer(physicalDevice,
 			             logicalDevice,
+			             vmaAllocator,
 			             deletionQueueForAccelerationStructure,
 			             rectangularBezierSurfaces2x2.size() * sizeof(RectangularBezierSurface2x2),
 			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			             memoryAllocateFlagsInfo,
 			             objectBuffers.rectangularBezierSurfaces2x2BufferHandle,
-			             objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles);
+			             objectBuffers.rectangularBezierSurfaces2x2BufferAllocation);
 		}
 
 		size_t size = spheres.size() + tetrahedrons2.size() + bezierTriangles2.size()
@@ -417,7 +426,7 @@ class RaytracingScene
 			           raytracingInfo.commandBufferBuildTopAndBottomLevel,
 			           raytracingInfo.graphicsQueueHandle,
 			           raytracingInfo.uniformBufferHandle,
-			           raytracingInfo.uniformDeviceMemoryHandle,
+			           raytracingInfo.uniformBufferAllocation,
 			           raytracingInfo.uniformStructure);
 		}
 		else
@@ -437,7 +446,7 @@ class RaytracingScene
 			           raytracingInfo.commandBufferBuildTopAndBottomLevel,
 			           raytracingInfo.graphicsQueueHandle,
 			           raytracingInfo.uniformBufferHandle,
-			           raytracingInfo.uniformDeviceMemoryHandle,
+			           raytracingInfo.uniformBufferAllocation,
 			           raytracingInfo.uniformStructure);
 		}
 	}
@@ -454,8 +463,8 @@ class RaytracingScene
 				auto& obj = spheres[i];
 				spheresList.push_back(obj.getGeometry().getData());
 			}
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.spheresDeviceMemoryHandles,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.spheresBufferAllocation,
 			                 spheresList.data(),
 			                 sizeof(Sphere) * spheresList.size());
 		}
@@ -468,8 +477,8 @@ class RaytracingScene
 				auto& obj = tetrahedrons2[i];
 				tetrahedrons2List.push_back(obj.getGeometry().getData());
 			}
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.tetrahedronsDeviceMemoryHandles,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.tetrahedronsBufferAllocation,
 			                 tetrahedrons2List.data(),
 			                 sizeof(Tetrahedron2) * tetrahedrons2List.size());
 		}
@@ -482,8 +491,8 @@ class RaytracingScene
 				auto& obj = bezierTriangles2[i];
 				bezierTriangles2List.push_back(obj.getGeometry().getData());
 			}
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.bezierTriangles2DeviceMemoryHandles,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.bezierTriangles2BufferAllocation,
 			                 bezierTriangles2List.data(),
 			                 sizeof(BezierTriangle2) * bezierTriangles2List.size());
 		}
@@ -496,8 +505,8 @@ class RaytracingScene
 				auto& obj = bezierTriangles3[i];
 				bezierTriangles3List.push_back(obj.getGeometry().getData());
 			}
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.bezierTriangles3DeviceMemoryHandles,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.bezierTriangles3BuffersAllocation,
 			                 bezierTriangles3List.data(),
 			                 sizeof(BezierTriangle3) * bezierTriangles3List.size());
 		}
@@ -510,8 +519,8 @@ class RaytracingScene
 				auto& obj = rectangularBezierSurfaces2x2[i];
 				rectangularSurfaces2x2List.push_back(obj.getGeometry().getData());
 			}
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.rectangularBezierSurfaces2x2DeviceMemoryHandles,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.rectangularBezierSurfaces2x2BufferAllocation,
 			                 rectangularSurfaces2x2List.data(),
 			                 sizeof(RectangularBezierSurface2x2)
 			                     * rectangularSurfaces2x2List.size());
@@ -519,8 +528,8 @@ class RaytracingScene
 
 		if (slicingPlanes.size() > 0)
 		{
-			copyDataToBuffer(logicalDevice,
-			                 objectBuffers.slicingPlanesDeviceMemoryHandle,
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.slicingPlanesBufferAllocation,
 			                 slicingPlanes.data(),
 			                 sizeof(SlicingPlane) * slicingPlanes.size());
 		}
@@ -555,14 +564,14 @@ class RaytracingScene
 	template <typename T>
 	std::vector<T> extractAndCopyAABBsToBuffer(const std::vector<RaytracingWorldObject<T>>& objects,
 	                                           std::vector<VkBuffer>& aabbBufferHandles,
-	                                           std::vector<VkDeviceMemory>& aabbDeviceMemoryHandles,
+	                                           std::vector<VmaAllocation>& aabbBufferAllocations,
 	                                           std::vector<AABB>& objectsAABBs)
 	{
 		std::vector<T> extractedObjects;
 		if (objects.size() > 0)
 		{
 			aabbBufferHandles.resize(objects.size());
-			aabbDeviceMemoryHandles.resize(objects.size());
+			aabbBufferAllocations.resize(objects.size());
 			for (size_t i = 0; i < objects.size(); i++)
 			{
 				auto& obj = objects[i];
@@ -571,6 +580,7 @@ class RaytracingScene
 
 				createBuffer(physicalDevice,
 				             logicalDevice,
+				             vmaAllocator,
 				             deletionQueueForAccelerationStructure,
 				             sizeof(VkAabbPositionsKHR),
 				             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR
@@ -578,13 +588,13 @@ class RaytracingScene
 				             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				             memoryAllocateFlagsInfo,
 				             aabbBufferHandles[i],
-				             aabbDeviceMemoryHandles[i]);
+				             aabbBufferAllocations[i]);
 
 				// Note: for now, all instances only contain one AABB, so we only need to copy
 				// one object into the buffer
 				const auto aabbPositions = obj.getGeometry().getAABB().getAabbPositions();
 				copyDataToBuffer(
-				    logicalDevice, aabbDeviceMemoryHandles[i], &aabbPositions, sizeof(AABB));
+				    vmaAllocator, aabbBufferAllocations[i], &aabbPositions, sizeof(AABB));
 			}
 		}
 		return extractedObjects;
@@ -604,32 +614,32 @@ class RaytracingScene
 		std::vector<Sphere> spheresList
 		    = extractAndCopyAABBsToBuffer(spheres,
 		                                  objectBuffers.spheresAABBBufferHandles,
-		                                  objectBuffers.spheresAABBDeviceMemoryHandles,
+		                                  objectBuffers.spheresAABBBufferAllocations,
 		                                  aabbsSpheres);
 
 		std::vector<Tetrahedron2> tetrahedrons2List
 		    = extractAndCopyAABBsToBuffer(tetrahedrons2,
 		                                  objectBuffers.tetrahedronsAABBBufferHandles,
-		                                  objectBuffers.tetrahedronsAABBDeviceMemoryHandles,
+		                                  objectBuffers.tetrahedronsAABBBufferAllocations,
 		                                  aabbsTetrahedrons);
 
 		std::vector<BezierTriangle2> bezierTriangles2List
 		    = extractAndCopyAABBsToBuffer(bezierTriangles2,
 		                                  objectBuffers.bezierTriangles2AABBBufferHandles,
-		                                  objectBuffers.bezierTriangles2AABBDeviceMemoryHandles,
+		                                  objectBuffers.bezierTriangles2AABBBufferAllocations,
 		                                  aabbsBezierTriangles2);
 
 		std::vector<BezierTriangle3> bezierTriangles3List
 		    = extractAndCopyAABBsToBuffer(bezierTriangles3,
 		                                  objectBuffers.bezierTriangles3AABBBufferHandles,
-		                                  objectBuffers.bezierTriangles3AABBDeviceMemoryHandles,
+		                                  objectBuffers.bezierTriangles3AABBBufferAllocations,
 		                                  aabbsBezierTriangles3);
 
 		std::vector<RectangularBezierSurface2x2> rectangularSurfaces2x2List
 		    = extractAndCopyAABBsToBuffer(
 		        rectangularBezierSurfaces2x2,
 		        objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles,
-		        objectBuffers.rectangularBezierSurfacesAABB2x2AABBDeviceMemoryHandles,
+		        objectBuffers.rectangularBezierSurfacesAABB2x2AABBBufferAllocations,
 		        aabbsRectangularSurfaces2x2);
 
 		VkDeviceSize instancesCount = spheresList.size() + tetrahedrons2List.size()
@@ -652,13 +662,14 @@ class RaytracingScene
 
 		createBuffer(physicalDevice,
 		             logicalDevice,
+		             vmaAllocator,
 		             deletionQueueForAccelerationStructure,
 		             sizeof(GPUInstance) * instancesCount,
 		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
 		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		             memoryAllocateFlagsInfo,
 		             objectBuffers.gpuObjectsBufferHandle,
-		             objectBuffers.gpuObjectsDeviceMemoryHandle);
+		             objectBuffers.gpuObjectsBufferAllocation);
 
 		std::vector<BLASBuildData> blasBuildDataList;
 
@@ -714,8 +725,8 @@ class RaytracingScene
 		// }
 
 		// update buffer data
-		copyDataToBuffer(logicalDevice,
-		                 objectBuffers.gpuObjectsDeviceMemoryHandle,
+		copyDataToBuffer(vmaAllocator,
+		                 objectBuffers.gpuObjectsBufferAllocation,
 		                 gpuObjects.data(),
 		                 sizeof(GPUInstance) * instancesCount);
 
@@ -760,6 +771,7 @@ class RaytracingScene
 			VkAccelerationStructureKHR bottomLevelAccelerationStructure
 			    = buildBottomLevelAccelerationStructure(physicalDevice,
 			                                            logicalDevice,
+			                                            vmaAllocator,
 			                                            deletionQueueForAccelerationStructure,
 			                                            bottomLevelCommandBuffer,
 			                                            graphicsQueue,
@@ -801,20 +813,20 @@ class RaytracingScene
 
 	void createTLAS(
 	    const bool onlyUpdate,
-	    VkDeviceMemory& blasGeometryInstancesDeviceMemoryHandle,
+	    VmaAllocation& blasGeometryInstancesDeviceMemoryHandle,
 	    VkAccelerationStructureGeometryKHR& topLevelAccelerationStructureGeometry,
 	    VkAccelerationStructureBuildGeometryInfoKHR& topLevelAccelerationStructureBuildGeometryInfo,
 	    VkAccelerationStructureKHR& topLevelAccelerationStructureHandle,
 	    VkAccelerationStructureBuildSizesInfoKHR& topLevelAccelerationStructureBuildSizesInfo,
 	    VkBuffer& topLevelAccelerationStructureBufferHandle,
-	    VkDeviceMemory& topLevelAccelerationStructureDeviceMemoryHandle,
+	    VmaAllocation& topLevelAccelerationStructureDeviceMemoryHandle,
 	    VkBuffer& topLevelAccelerationStructureScratchBufferHandle,
-	    VkDeviceMemory& topLevelAccelerationStructureDeviceScratchMemoryHandle,
+	    VmaAllocation& topLevelAccelerationStructureDeviceScratchMemoryHandle,
 	    VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
 	    VkCommandBuffer commandBufferBuildTopAndBottomLevel,
 	    VkQueue graphicsQueueHandle,
 	    VkBuffer& uniformBufferHandle,
-	    VkDeviceMemory& uniformDeviceMemoryHandle,
+	    VmaAllocation& uniformBufferAllocation,
 	    UniformStructure& uniformStructure)
 	{
 		if (blasInstances.size() > 0)
@@ -824,6 +836,7 @@ class RaytracingScene
 			    deletionQueueForAccelerationStructure,
 			    logicalDevice,
 			    physicalDevice,
+			    vmaAllocator,
 			    onlyUpdate,
 			    blasGeometryInstancesDeviceMemoryHandle,
 			    topLevelAccelerationStructureGeometry,
@@ -843,16 +856,17 @@ class RaytracingScene
 			{
 				createBuffer(physicalDevice,
 				             logicalDevice,
+				             vmaAllocator,
 				             deletionQueueForAccelerationStructure,
 				             sizeof(UniformStructure),
 				             VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
 				             VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 				             memoryAllocateFlagsInfo,
 				             uniformBufferHandle,
-				             uniformDeviceMemoryHandle);
+				             uniformBufferAllocation);
 
-				copyDataToBuffer(logicalDevice,
-				                 uniformDeviceMemoryHandle,
+				copyDataToBuffer(vmaAllocator,
+				                 uniformBufferAllocation,
 				                 &uniformStructure,
 				                 sizeof(UniformStructure));
 			}
@@ -874,6 +888,7 @@ class RaytracingScene
 
 	VkPhysicalDevice physicalDevice;
 	VkDevice logicalDevice;
+	VmaAllocator vmaAllocator;
 	DeletionQueue deletionQueueForAccelerationStructure;
 
 	// the objects that are rendered using ray tracing (with an intersection shader)

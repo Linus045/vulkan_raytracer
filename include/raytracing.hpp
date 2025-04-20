@@ -98,6 +98,7 @@ void createRaytracingPipeline(VkDevice logicalDevice,
  */
 void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
+                    VmaAllocator vmaAllocator,
                     DeletionQueue& deletionQueue,
                     RaytracingInfo& raytracingInfo,
                     RaytracingScene& raytracingScene);
@@ -246,6 +247,7 @@ void loadAndCreateVertexAndIndexBufferForModel(VkDevice logicalDevice,
  * scene (e.g. after moving the camera, resizing the window, changing light colors, etc.)
  */
 void updateRaytraceBuffer(VkDevice logicalDevice,
+                          VmaAllocator vmaAllocator,
                           RaytracingInfo& raytracingInfo,
                           const bool resetFrameCountRequested);
 
@@ -259,9 +261,10 @@ void updateRaytraceBuffer(VkDevice logicalDevice,
  * @param rayTraceImageDeviceMemoryHandle
  */
 void freeRaytraceImageAndImageView(VkDevice logicalDevice,
+                                   VmaAllocator vmaAllocator,
                                    VkImage& rayTraceImageHandle,
                                    VkImageView& rayTraceImageViewHandle,
-                                   VkDeviceMemory& rayTraceImageDeviceMemoryHandle);
+                                   VmaAllocation& rayTraceImageAllocation);
 
 /**
  * @brief Creates the image that is used for ray tracing
@@ -274,6 +277,7 @@ void freeRaytraceImageAndImageView(VkDevice logicalDevice,
  */
 void createRaytracingImage(VkPhysicalDevice physicalDevice,
                            VkDevice logicalDevice,
+                           VmaAllocator vmaAllocator,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo);
 
@@ -298,6 +302,7 @@ VkImageView createRaytracingImageView(VkDevice logicalDevice, const VkImage& ray
  */
 void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
                                    VkDevice logicalDevice,
+                                   VmaAllocator vmaAllocator,
                                    VkExtent2D windowExtent,
                                    RaytracingInfo& raytracingInfo);
 

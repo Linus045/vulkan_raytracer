@@ -84,7 +84,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	}
 
 	tracer::createRaytracingImage(
-	    physicalDevice, logicalDevice, window.getSwapChainExtent(), raytracingInfo);
+	    physicalDevice, logicalDevice, vmaAllocator, window.getSwapChainExtent(), raytracingInfo);
 
 	raytracingInfo.rayTraceImageViewHandle
 	    = tracer::createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
@@ -92,12 +92,17 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	createRaytracingRenderpassAndFramebuffer();
 	updateRaytracingDescriptorSet();
 
-	raytracingScene = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice);
+	raytracingScene
+	    = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice, vmaAllocator);
 
 	if (raytracingSupported)
 	{
-		tracer::rt::initRayTracing(
-		    physicalDevice, logicalDevice, deletionQueue, raytracingInfo, *raytracingScene);
+		tracer::rt::initRayTracing(physicalDevice,
+		                           logicalDevice,
+		                           vmaAllocator,
+		                           deletionQueue,
+		                           raytracingInfo,
+		                           *raytracingScene);
 	}
 
 	raytracingInfo.raytracingConstants = {
@@ -306,7 +311,8 @@ void Renderer::drawFrame(Camera& camera,
 			resetFrameCountRequested = true;
 		}
 
-		tracer::updateRaytraceBuffer(logicalDevice, raytracingInfo, resetFrameCountRequested);
+		tracer::updateRaytraceBuffer(
+		    logicalDevice, vmaAllocator, raytracingInfo, resetFrameCountRequested);
 		resetFrameCountRequested = false;
 	}
 
