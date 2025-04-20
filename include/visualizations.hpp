@@ -22,14 +22,14 @@ namespace rt
 template <unsigned int N>
 inline size_t getControlPointIndicesTetrahedron(int i, int j, int k, int l)
 {
-	if (N == 1)
+	if constexpr (N == 1)
 	{
 		if (i == 0 && j == 0 && k == 0 && l == 1) return 0;
 		if (i == 0 && j == 0 && k == 1 && l == 0) return 1;
 		if (i == 0 && j == 1 && k == 0 && l == 0) return 2;
 		if (i == 1 && j == 0 && k == 0 && l == 0) return 3;
 	}
-	else if (N == 2)
+	else if constexpr (N == 2)
 	{
 		if (i == 0 && j == 0 && k == 0 && l == 2) return 0;
 		if (i == 0 && j == 0 && k == 1 && l == 1) return 1;
@@ -42,7 +42,7 @@ inline size_t getControlPointIndicesTetrahedron(int i, int j, int k, int l)
 		if (i == 1 && j == 1 && k == 0 && l == 0) return 8;
 		if (i == 2 && j == 0 && k == 0 && l == 0) return 9;
 	}
-	else if (N == 3)
+	else if constexpr (N == 3)
 	{
 		if (i == 0 && j == 0 && k == 0 && l == 3) return 0;
 		if (i == 0 && j == 0 && k == 1 && l == 2) return 1;
