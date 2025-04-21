@@ -127,6 +127,8 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .enableSlicingPlanes = 0.0f,
 	    .debugHighlightObjectEdges = 0.0f,
 	    .debugFastRenderMode = 0.0f,
+	    .debugVisualizeControlPoints = 0.0f,
+	    .debugVisualizeSampledSurface = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
 

@@ -314,12 +314,6 @@ void renderRaytracingOptions(UIData& uiData)
 			TOOLTIP("Max iterations for the Newton method. If the method does not converge within "
 			        "this number of iterations, the ray is considered to miss the object.");
 
-			bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
-			valueChanged = ImGui::Checkbox("Render Triangles", &renderSideTriangle) || valueChanged;
-			TOOLTIP("Whether to render the sides of the bezier tetrahedrons or not.");
-			uiData.raytracingDataConstants.renderSideTriangle
-			    = static_cast<float>(renderSideTriangle ? 1 : 0);
-
 			valueChanged = ImGui::SliderInt("Recursive Rays per Pixel",
 			                                &uiData.raytracingDataConstants.recursiveRaysPerPixel,
 			                                0,
@@ -445,6 +439,47 @@ void renderSlicingPlaneSliders(UIData& uiData)
 	}
 }
 
+void renderSceneOptions(UIData& uiData)
+{
+	bool sceneReloadNeeded = false;
+	bool valueChanged = false;
+	if (ImGui::CollapsingHeader("Raytracing - Scene"))
+	{
+
+		bool debugVisualizeControlPoints
+		    = uiData.raytracingDataConstants.debugVisualizeControlPoints > 0;
+		sceneReloadNeeded
+		    = ImGui::Checkbox("Debug: Visualize Control Points", &debugVisualizeControlPoints)
+		      || sceneReloadNeeded;
+		TOOLTIP("Whether to render the bezier tetrahedron's control points or not");
+		uiData.raytracingDataConstants.debugVisualizeControlPoints
+		    = static_cast<float>(debugVisualizeControlPoints ? 1 : 0);
+
+		bool debugVisualizeSampledSurface
+		    = uiData.raytracingDataConstants.debugVisualizeSampledSurface > 0;
+		sceneReloadNeeded
+		    = ImGui::Checkbox("Debug: Visualize sampled surface", &debugVisualizeSampledSurface)
+		      || sceneReloadNeeded;
+		TOOLTIP(
+		    "Whether to render the sides of the bezier tetrahedrons with sampled points or not.");
+		uiData.raytracingDataConstants.debugVisualizeSampledSurface
+		    = static_cast<float>(debugVisualizeSampledSurface ? 1 : 0);
+
+		bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
+		valueChanged = ImGui::Checkbox("Render Triangles", &renderSideTriangle) || valueChanged;
+		TOOLTIP("Whether to render the sides of the bezier tetrahedrons or not.");
+		uiData.raytracingDataConstants.renderSideTriangle
+		    = static_cast<float>(renderSideTriangle ? 1 : 0);
+	}
+
+	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
+
+	if (sceneReloadNeeded)
+	{
+		uiData.sceneReloader.requestSceneReload();
+	}
+}
+
 void renderCrosshair(const UIData& uiData)
 {
 
@@ -493,6 +528,7 @@ void renderMainPanel(UIData& uiData)
 	ImGui::SeparatorText("Configuration");
 	renderRaytracingOptions(uiData);
 	renderSlicingPlaneSliders(uiData);
+	renderSceneOptions(uiData);
 
 	ImGui::SeparatorText("Buttons");
 	renderButtons(uiData);

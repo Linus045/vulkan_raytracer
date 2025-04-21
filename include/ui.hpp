@@ -90,6 +90,27 @@ struct UIData
 
 	} recreateAccelerationStructures;
 
+	struct SceneReloader
+	{
+		bool isReloadRequested() const
+		{
+			return sceneReloadRequested;
+		}
+
+		void requestSceneReload()
+		{
+			sceneReloadRequested = true;
+		}
+
+		void resetSceneReloadRequest()
+		{
+			sceneReloadRequested = false;
+		}
+
+	  private:
+		bool sceneReloadRequested = false;
+	} sceneReloader;
+
 	std::vector<ButtonData> buttonCallbacks;
 
 	UIData(Camera& camera,

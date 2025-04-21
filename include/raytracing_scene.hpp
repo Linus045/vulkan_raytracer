@@ -13,6 +13,7 @@
 #include "model.hpp"
 #include "raytracing_worldobject.hpp"
 #include "tlas.hpp"
+#include "ui.hpp"
 #include "vk_utils.hpp"
 
 // TODO: move functions into raytracing_scene.cpp file
@@ -22,14 +23,27 @@ namespace tracer
 // forward declaration
 class Renderer;
 
-namespace ui
+struct SceneConfig
 {
-struct UIData;
-}
+	bool visualizeControlPoints;
+	bool visualizeSampledSurface;
+
+	static const SceneConfig fromUIData(const ui::UIData& uiData)
+	{
+		return SceneConfig{
+		    .visualizeControlPoints
+		    = uiData.raytracingDataConstants.debugVisualizeControlPoints > 0.0f,
+		    .visualizeSampledSurface
+		    = uiData.raytracingDataConstants.debugVisualizeSampledSurface > 0.0f,
+		};
+	}
+};
 
 namespace rt
 {
 
+// TODO: give this a more fitting name, since its not really a singular scene but actually
+// controlling the current scene and its objects
 class RaytracingScene
 {
   public:
@@ -48,8 +62,15 @@ class RaytracingScene
 	RaytracingScene(const VkPhysicalDevice& physicalDevice,
 	                const VkDevice logicalDevice,
 	                const VmaAllocator vmaAllocator)
-	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice),
-	      vmaAllocator(vmaAllocator) {};
+	    : physicalDevice(physicalDevice), logicalDevice(logicalDevice), vmaAllocator(vmaAllocator)
+	{
+		// TODO: allow multiple slicing planes
+		// we always wanna create one slicing plane
+		addSlicingPlane(SlicingPlane{
+		    glm::vec3(0.7, 0, 0),
+		    glm::vec3(-1, 0, 0),
+		});
+	};
 
 	~RaytracingScene() = default;
 
@@ -59,12 +80,19 @@ class RaytracingScene
 	RaytracingScene(RaytracingScene&&) noexcept = delete;
 	RaytracingScene& operator=(RaytracingScene&&) noexcept = delete;
 
-	static void
-	loadScene(const Renderer& renderer, RaytracingScene& raytracingScene, const int index);
+	static void loadScene(const Renderer& renderer,
+	                      RaytracingScene& raytracingScene,
+	                      const SceneConfig sceneConfig,
+	                      const int index);
 
 	inline static int getSceneCount()
 	{
 		return SCENE_COUNT;
+	}
+
+	inline int getCurrentSceneNr() const
+	{
+		return currentSceneNr;
 	}
 
 	static std::string getSceneName(const int sceneNr)
@@ -893,6 +921,8 @@ class RaytracingScene
 
 	// the objects that are rendered using ray tracing (with an intersection shader)
 	RaytracingObjectBuffers objectBuffers;
+
+	int currentSceneNr = INITIAL_SCENE;
 };
 
 } // namespace rt

@@ -20,6 +20,7 @@ static glm::vec3 getRandomOffset(const int min, const int max)
 /// structure is still required
 void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
                                 RaytracingScene& raytracingScene,
+                                const SceneConfig sceneConfig,
                                 const int sceneNr)
 {
 	if (sceneNr <= 0 || sceneNr > SCENE_COUNT)
@@ -28,23 +29,21 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		return;
 	}
 
+	raytracingScene.currentSceneNr = sceneNr;
+
 	raytracingScene.getWorldObjectSpheres().clear();
 	raytracingScene.getWorldObjectTetrahedrons().clear();
 	raytracingScene.getWorldObjectBezierTriangles2().clear();
 	raytracingScene.getWorldObjectBezierTriangles3().clear();
 	raytracingScene.getWorldObjectRectangularBezierSurfaces2x2().clear();
-	raytracingScene.getSlicingPlanes().clear();
+
+	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it per
+	/// scene
+	// raytracingScene.getSlicingPlanes().clear();
 
 	// first sphere represents light
 	raytracingScene.addObjectSphere(
 	    renderer.getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
-
-	// we always wanna create one slicing plane
-	raytracingScene.addSlicingPlane(SlicingPlane{
-	    glm::vec3(0.7, 0, 0),
-	    glm::vec3(-1, 0, 0),
-
-	});
 
 	// TODO: support multiple slicing planes
 	// raytracingScene.addSlicingPlane(SlicingPlane{
@@ -66,10 +65,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(1.0f, 1.0f, 0.0f),
 		    glm::vec3(2.0f, 0.0f, 0.0f),
 		}));
-
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-		visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+		}
 	}
 	else if (sceneNr == 2)
 	{
@@ -89,8 +94,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
-		visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+		}
 	}
 	else if (sceneNr == 3)
 	{
@@ -115,6 +127,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			    point99,
 			}));
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+
+			if (sceneConfig.visualizeControlPoints)
+			{
+				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+			}
+			if (sceneConfig.visualizeSampledSurface)
+			{
+				visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+			}
 		}
 		{
 			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
@@ -130,6 +151,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			    point99,
 			}));
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+
+			if (sceneConfig.visualizeControlPoints)
+			{
+				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+			}
+			if (sceneConfig.visualizeSampledSurface)
+			{
+				visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+			}
 		}
 	}
 	else if (sceneNr == 4)
@@ -143,7 +173,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron3);
-		visualizeTetrahedronSides(raytracingScene, tetrahedron3);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron3);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron3);
+		}
 	}
 	else if (sceneNr == 5)
 	{
@@ -163,7 +201,15 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
-		visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+		}
 	}
 	else if (sceneNr == 6)
 	{
@@ -192,6 +238,14 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 				// {
 				// 	raytracingScene.addObjectSphere(point, 0.04f, ColorIdx::t_pink);
 				// }
+				if (sceneConfig.visualizeControlPoints)
+				{
+					visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
+				}
+				if (sceneConfig.visualizeSampledSurface)
+				{
+					visualizeTetrahedronSides(raytracingScene, tetrahedron2);
+				}
 			}
 		}
 	}

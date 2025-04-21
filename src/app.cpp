@@ -76,7 +76,8 @@ void Application::run()
 	window.setWindowUserPointer(customUserData.get());
 	initInputHandlers();
 
-	setupScene();
+	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
+	setupScene(raytracingScene);
 	if (raytracingSupported)
 	{
 		tracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
@@ -144,17 +145,18 @@ bool Application::checkValidationLayerSupport()
 	return true;
 }
 
-void Application::setupScene()
+void Application::setupScene(tracer::rt::RaytracingScene& raytracingScene)
 {
-	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
+	auto sceneConfig = tracer::SceneConfig::fromUIData(*uiData);
 
 	tracer::rt::RaytracingScene::loadScene(
-	    *renderer, raytracingScene, tracer::rt::RaytracingScene::INITIAL_SCENE);
+	    *renderer, raytracingScene, sceneConfig, raytracingScene.getCurrentSceneNr());
 
 	// =========================================================================
 	// Bottom and Top Level Acceleration Structure
 	if (raytracingSupported)
 	{
+		vkQueueWaitIdle(renderer->getRaytracingInfo().graphicsQueueHandle);
 		raytracingScene.recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
 
 		// =========================================================================
@@ -756,6 +758,15 @@ void Application::mainLoop()
 		{
 			renderer->requestResetFrameCount();
 			camera.resetCameraMoved();
+		}
+
+		if (uiData->sceneReloader.isReloadRequested())
+		{
+			tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
+			setupScene(raytracingScene);
+
+			renderer->requestResetFrameCount();
+			uiData->sceneReloader.resetSceneReloadRequest();
 		}
 
 		if (renderer->swapChainOutdated)

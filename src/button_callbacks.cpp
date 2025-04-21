@@ -97,9 +97,10 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneNr)
 {
 	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& sceneConfig = tracer::SceneConfig::fromUIData(uiData);
 
 	std::printf("Loading scene %d\n", sceneNr);
-	RaytracingScene::loadScene(renderer, raytracingScene, sceneNr);
+	RaytracingScene::loadScene(renderer, raytracingScene, sceneConfig, sceneNr);
 
 	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
