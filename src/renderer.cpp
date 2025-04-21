@@ -710,7 +710,7 @@ void Renderer::createGraphicsPipeline()
 	                            { vkDestroyPipeline(logicalDevice, graphicsPipeline, nullptr); });
 
 	// vkDestroyShaderModule(logicalDevice, fragShaderModule, nullptr);
-	// vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
+	vkDestroyShaderModule(logicalDevice, vertShaderModule, nullptr);
 	vkDestroyShaderModule(logicalDevice, blitfragShaderModule, nullptr);
 }
 
