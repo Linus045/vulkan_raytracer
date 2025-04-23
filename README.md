@@ -151,6 +151,7 @@ git submodule add https://github.com/icaven/glm.git 3rdparty/glm
 git submodule add https://github.com/KhronosGroup/glslang.git 3rdparty/glslang
 git submodule add https://github.com/tinyobjloader/tinyobjloader.git 3rdparty/tinyobjloader
 git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
+git submodule add https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git 3rdparty/vulkanMemoryAllocator
 ```
 
 </details>
