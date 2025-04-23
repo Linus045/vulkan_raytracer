@@ -47,7 +47,7 @@ namespace rt
 class RaytracingScene
 {
   public:
-	static const int SCENE_COUNT = 6;
+	static const int SCENE_COUNT = 8;
 	static const int INITIAL_SCENE = 1;
 
 	inline static const std::vector<std::string> sceneNames = {
@@ -57,6 +57,8 @@ class RaytracingScene
 	    "Tetrahedron degree 3 deformed slightly",
 	    "Tetrahedron degree 2 random control points",
 	    "A bunch of random tetrahedrons",
+	    "Tetrahedron degree 4",
+	    "Tetrahedron degree 4 - inside volume pulled out",
 	};
 
 	RaytracingScene(const VkPhysicalDevice& physicalDevice,
@@ -134,22 +136,35 @@ class RaytracingScene
 		return spheres.back();
 	}
 
-	RaytracingWorldObject<BezierTriangle2>&
-	addObjectBezierTriangle(const BezierTriangle2& bezierTriangle)
+	template <typename T>
+	std::vector<RaytracingWorldObject<T>>& getTriangleList();
+
+	template <>
+	std::vector<RaytracingWorldObject<BezierTriangle2>>& getTriangleList()
 	{
-		AABB aabb = AABB::fromBezierTriangle2(bezierTriangle);
-		bezierTriangles2.emplace_back(
-		    ObjectType::t_BezierTriangle2, aabb, bezierTriangle, glm::vec3(0));
-		return bezierTriangles2.back();
+		return bezierTriangles2;
 	}
 
-	RaytracingWorldObject<BezierTriangle3>&
-	addObjectBezierTriangle(const BezierTriangle3& bezierTriangle)
+	template <>
+	std::vector<RaytracingWorldObject<BezierTriangle3>>& getTriangleList()
 	{
-		AABB aabb = AABB::fromBezierTriangle3(bezierTriangle);
-		bezierTriangles3.emplace_back(
-		    ObjectType::t_BezierTriangle3, aabb, bezierTriangle, glm::vec3(0));
-		return bezierTriangles3.back();
+		return bezierTriangles3;
+	}
+
+	template <>
+	std::vector<RaytracingWorldObject<BezierTriangle4>>& getTriangleList()
+	{
+		return bezierTriangles4;
+	}
+
+	template <typename S>
+	RaytracingWorldObject<S>& addObjectBezierTriangle(const S& bezierTriangle)
+	{
+		AABB aabb = AABB::fromBezierTriangle(bezierTriangle);
+		constexpr auto objectType = getObjectType<S>();
+		auto& trianglesList = getTriangleList<S>();
+		trianglesList.emplace_back(objectType, aabb, bezierTriangle, glm::vec3(0));
+		return trianglesList.back();
 	}
 
 	RaytracingWorldObject<RectangularBezierSurface2x2>&
@@ -166,79 +181,24 @@ class RaytracingScene
 		slicingPlanes.push_back(slicingPlane);
 	}
 
-	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron2& tetrahedron2,
+	template <typename T>
+	void addSidesFromTetrahedronAsBezierTriangles(const T& tetrahedron,
 	                                              const std::array<bool, 4>& sides
 	                                              = {true, true, true, true},
 	                                              const int subdivisions = 0)
 	{
+		using S = typename BezierTriangleFromTetrahedron<T>::type;
+
 		for (int side = 1; side <= 4; side++)
 		{
 			if (!sides[static_cast<size_t>(side - 1)])
 			{
 				continue;
 			}
-
 			const auto& bezierTriangle
-			    = tracer::extractBezierTriangleFromTetrahedron(tetrahedron2, side);
+			    = tracer::extractBezierTriangleFromTetrahedron<T, S>(tetrahedron, side);
 
-			std::vector<BezierTriangle2> subTriangles;
-			subTriangles.reserve(
-			    static_cast<size_t>(std::pow(4.0L, static_cast<long double>(subdivisions))));
-			subTriangles.push_back(bezierTriangle);
-
-			assert(subdivisions == 0 && "Subdivisions > 0 not implemented");
-			// for (int i = 0; i < subdivisions; i++)
-			// {
-			// 	for (size_t j = 0; j < std::pow(4.0L, static_cast<long double>(i)); j++)
-			// 	{
-			// 		BezierTriangle2& t = subTriangles.front();
-			// 		const auto& s = tracer::subdivideBezierTriangle2(t);
-
-			// 		subTriangles.push_back(s.bottomLeft);
-			// 		subTriangles.push_back(s.bottomRight);
-			// 		subTriangles.push_back(s.top);
-			// 		subTriangles.push_back(s.center);
-			// 		subTriangles.erase(subTriangles.begin());
-
-			// 		// visualize center points
-			// 		// for (int li = 0; li < 6; li++)
-			// 		// {
-			// 		// 	if (li <= 2)
-			// 		// 	{
-			// 		// 		addObjectSphere(s.center.controlPoints[li], 0.06f, ColorIdx::t_white);
-			// 		// 	}
-			// 		// 	else
-			// 		// 	{
-			// 		// 		addObjectSphere(s.center.controlPoints[li], 0.03f, ColorIdx::t_yellow);
-			// 		// 	}
-			// 		// }
-			// 	}
-			// }
-
-			for (const auto& subTriangle : subTriangles)
-			{
-				addObjectBezierTriangle(subTriangle);
-			}
-			// visualizeTetrahedron2(raytracingScene, tetrahedron2);
-		}
-	}
-
-	void addSidesFromTetrahedronAsBezierTriangles(const Tetrahedron3& tetrahedron3,
-	                                              const std::array<bool, 4>& sides
-	                                              = {true, true, true, true},
-	                                              const int subdivisions = 0)
-	{
-		for (int side = 1; side <= 4; side++)
-		{
-			if (!sides[static_cast<size_t>(side - 1)])
-			{
-				continue;
-			}
-
-			const auto& bezierTriangle
-			    = tracer::extractBezierTriangleFromTetrahedron(tetrahedron3, side);
-
-			std::vector<BezierTriangle3> subTriangles;
+			std::vector<S> subTriangles;
 			subTriangles.reserve(
 			    static_cast<size_t>(std::pow(4.0L, static_cast<long double>(subdivisions))));
 			subTriangles.push_back(bezierTriangle);
@@ -285,19 +245,10 @@ class RaytracingScene
 		return spheres;
 	}
 
-	std::vector<RaytracingWorldObject<Tetrahedron2>>& getWorldObjectTetrahedrons()
+	template <typename S>
+	std::vector<RaytracingWorldObject<S>>& getWorldObjectBezierTriangles()
 	{
-		return tetrahedrons2;
-	}
-
-	std::vector<RaytracingWorldObject<BezierTriangle2>>& getWorldObjectBezierTriangles2()
-	{
-		return bezierTriangles2;
-	}
-
-	std::vector<RaytracingWorldObject<BezierTriangle3>>& getWorldObjectBezierTriangles3()
-	{
-		return bezierTriangles3;
+		return getTriangleList<S>();
 	}
 
 	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>>&
@@ -350,19 +301,19 @@ class RaytracingScene
 			             objectBuffers.spheresBufferAllocation);
 		}
 
-		if (tetrahedrons2.size() > 0)
-		{
-			createBuffer(physicalDevice,
-			             logicalDevice,
-			             vmaAllocator,
-			             deletionQueueForAccelerationStructure,
-			             tetrahedrons2.size() * sizeof(Tetrahedron2),
-			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-			             memoryAllocateFlagsInfo,
-			             objectBuffers.tetrahedronsBufferHandle,
-			             objectBuffers.tetrahedronsBufferAllocation);
-		}
+		// if (tetrahedrons2.size() > 0)
+		// {
+		// 	createBuffer(physicalDevice,
+		// 	             logicalDevice,
+		// 	             vmaAllocator,
+		// 	             deletionQueueForAccelerationStructure,
+		// 	             tetrahedrons2.size() * sizeof(Tetrahedron2),
+		// 	             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+		// 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		// 	             memoryAllocateFlagsInfo,
+		// 	             objectBuffers.tetrahedronsBufferHandle,
+		// 	             objectBuffers.tetrahedronsBufferAllocation);
+		// }
 
 		if (bezierTriangles2.size() > 0)
 		{
@@ -392,6 +343,20 @@ class RaytracingScene
 			             objectBuffers.bezierTriangles3BuffersAllocation);
 		}
 
+		if (bezierTriangles4.size() > 0)
+		{
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             vmaAllocator,
+			             deletionQueueForAccelerationStructure,
+			             bezierTriangles4.size() * sizeof(BezierTriangle4),
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.bezierTriangles4BufferHandle,
+			             objectBuffers.bezierTriangles4BuffersAllocation);
+		}
+
 		if (rectangularBezierSurfaces2x2.size() > 0)
 		{
 			createBuffer(physicalDevice,
@@ -406,8 +371,9 @@ class RaytracingScene
 			             objectBuffers.rectangularBezierSurfaces2x2BufferAllocation);
 		}
 
-		size_t size = spheres.size() + tetrahedrons2.size() + bezierTriangles2.size()
-		              + rectangularBezierSurfaces2x2.size() + bezierTriangles3.size();
+		size_t size = spheres.size() + /*tetrahedrons2.size() +*/ bezierTriangles2.size()
+		              + rectangularBezierSurfaces2x2.size() + bezierTriangles3.size()
+		              + bezierTriangles4.size();
 		gpuObjects.resize(size);
 	}
 
@@ -497,19 +463,19 @@ class RaytracingScene
 			                 sizeof(Sphere) * spheresList.size());
 		}
 
-		if (tetrahedrons2.size() > 0)
-		{
-			std::vector<Tetrahedron2> tetrahedrons2List;
-			for (size_t i = 0; i < tetrahedrons2.size(); i++)
-			{
-				auto& obj = tetrahedrons2[i];
-				tetrahedrons2List.push_back(obj.getGeometry().getData());
-			}
-			copyDataToBuffer(vmaAllocator,
-			                 objectBuffers.tetrahedronsBufferAllocation,
-			                 tetrahedrons2List.data(),
-			                 sizeof(Tetrahedron2) * tetrahedrons2List.size());
-		}
+		// if (tetrahedrons2.size() > 0)
+		// {
+		// 	std::vector<Tetrahedron2> tetrahedrons2List;
+		// 	for (size_t i = 0; i < tetrahedrons2.size(); i++)
+		// 	{
+		// 		auto& obj = tetrahedrons2[i];
+		// 		tetrahedrons2List.push_back(obj.getGeometry().getData());
+		// 	}
+		// 	copyDataToBuffer(vmaAllocator,
+		// 	                 objectBuffers.tetrahedronsBufferAllocation,
+		// 	                 tetrahedrons2List.data(),
+		// 	                 sizeof(Tetrahedron2) * tetrahedrons2List.size());
+		// }
 
 		if (bezierTriangles2.size() > 0)
 		{
@@ -537,6 +503,20 @@ class RaytracingScene
 			                 objectBuffers.bezierTriangles3BuffersAllocation,
 			                 bezierTriangles3List.data(),
 			                 sizeof(BezierTriangle3) * bezierTriangles3List.size());
+		}
+
+		if (bezierTriangles4.size() > 0)
+		{
+			std::vector<BezierTriangle4> bezierTriangles4List;
+			for (size_t i = 0; i < bezierTriangles4.size(); i++)
+			{
+				auto& obj = bezierTriangles4[i];
+				bezierTriangles4List.push_back(obj.getGeometry().getData());
+			}
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.bezierTriangles4BuffersAllocation,
+			                 bezierTriangles4List.data(),
+			                 sizeof(BezierTriangle4) * bezierTriangles4List.size());
 		}
 
 		if (rectangularBezierSurfaces2x2.size() > 0)
@@ -636,6 +616,7 @@ class RaytracingScene
 		std::vector<tracer::AABB> aabbsTetrahedrons;
 		std::vector<tracer::AABB> aabbsBezierTriangles2;
 		std::vector<tracer::AABB> aabbsBezierTriangles3;
+		std::vector<tracer::AABB> aabbsBezierTriangles4;
 		std::vector<tracer::AABB> aabbsRectangularSurfaces2x2;
 
 		// extract and copy AABBs to buffers
@@ -645,11 +626,11 @@ class RaytracingScene
 		                                  objectBuffers.spheresAABBBufferAllocations,
 		                                  aabbsSpheres);
 
-		std::vector<Tetrahedron2> tetrahedrons2List
-		    = extractAndCopyAABBsToBuffer(tetrahedrons2,
-		                                  objectBuffers.tetrahedronsAABBBufferHandles,
-		                                  objectBuffers.tetrahedronsAABBBufferAllocations,
-		                                  aabbsTetrahedrons);
+		// std::vector<Tetrahedron2> tetrahedrons2List
+		//     = extractAndCopyAABBsToBuffer(tetrahedrons2,
+		//                                   objectBuffers.tetrahedronsAABBBufferHandles,
+		//                                   objectBuffers.tetrahedronsAABBBufferAllocations,
+		//                                   aabbsTetrahedrons);
 
 		std::vector<BezierTriangle2> bezierTriangles2List
 		    = extractAndCopyAABBsToBuffer(bezierTriangles2,
@@ -663,6 +644,12 @@ class RaytracingScene
 		                                  objectBuffers.bezierTriangles3AABBBufferAllocations,
 		                                  aabbsBezierTriangles3);
 
+		std::vector<BezierTriangle4> bezierTriangles4List
+		    = extractAndCopyAABBsToBuffer(bezierTriangles4,
+		                                  objectBuffers.bezierTriangles4AABBBufferHandles,
+		                                  objectBuffers.bezierTriangles4AABBBufferAllocations,
+		                                  aabbsBezierTriangles4);
+
 		std::vector<RectangularBezierSurface2x2> rectangularSurfaces2x2List
 		    = extractAndCopyAABBsToBuffer(
 		        rectangularBezierSurfaces2x2,
@@ -670,8 +657,9 @@ class RaytracingScene
 		        objectBuffers.rectangularBezierSurfacesAABB2x2AABBBufferAllocations,
 		        aabbsRectangularSurfaces2x2);
 
-		VkDeviceSize instancesCount = spheresList.size() + tetrahedrons2List.size()
+		VkDeviceSize instancesCount = spheresList.size() /*+ tetrahedrons2List.size()*/
 		                              + bezierTriangles2List.size() + bezierTriangles3List.size()
+		                              + bezierTriangles4List.size()
 		                              + rectangularSurfaces2x2List.size();
 
 		// FIXME: it is allowed when we do a full rebuild, check if this is a full rebuild
@@ -709,11 +697,11 @@ class RaytracingScene
 		                                               spheresList,
 		                                               objectBuffers.spheresAABBBufferHandles);
 
-		addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
-		                                               tetrahedrons2,
-		                                               ObjectType::t_Tetrahedron2,
-		                                               tetrahedrons2List,
-		                                               objectBuffers.tetrahedronsAABBBufferHandles);
+		// addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
+		//                                                tetrahedrons2,
+		//                                                ObjectType::t_Tetrahedron2,
+		//                                                tetrahedrons2List,
+		//                                                objectBuffers.tetrahedronsAABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
@@ -728,6 +716,13 @@ class RaytracingScene
 		    ObjectType::t_BezierTriangle3,
 		    bezierTriangles3List,
 		    objectBuffers.bezierTriangles3AABBBufferHandles);
+
+		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    blasBuildDataList,
+		    bezierTriangles4,
+		    ObjectType::t_BezierTriangle4,
+		    bezierTriangles4List,
+		    objectBuffers.bezierTriangles4AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
@@ -904,12 +899,13 @@ class RaytracingScene
   private:
 	std::vector<GPUInstance> gpuObjects;
 	std::vector<RaytracingWorldObject<Sphere>> spheres;
-	std::vector<RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
+	// std::vector<RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
 	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>> rectangularBezierSurfaces2x2;
 	std::vector<MeshObject> meshObjects;
 	std::vector<SlicingPlane> slicingPlanes;
 	std::vector<RaytracingWorldObject<BezierTriangle2>> bezierTriangles2;
 	std::vector<RaytracingWorldObject<BezierTriangle3>> bezierTriangles3;
+	std::vector<RaytracingWorldObject<BezierTriangle4>> bezierTriangles4;
 	std::vector<VkAccelerationStructureInstanceKHR> blasInstances;
 
 	size_t blasInstancesCount = 0;

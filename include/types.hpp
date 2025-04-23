@@ -71,6 +71,12 @@ struct RaytracingObjectBuffers
 	std::vector<VmaAllocation> bezierTriangles3AABBBufferAllocations
 	    = std::vector<VmaAllocation>(0);
 
+	VkBuffer bezierTriangles4BufferHandle = VkBuffer(0);
+	VmaAllocation bezierTriangles4BuffersAllocation = VK_NULL_HANDLE;
+	std::vector<VkBuffer> bezierTriangles4AABBBufferHandles = std::vector<VkBuffer>(0);
+	std::vector<VmaAllocation> bezierTriangles4AABBBufferAllocations
+	    = std::vector<VmaAllocation>(0);
+
 	VkBuffer spheresBufferHandle = VkBuffer(0);
 	VmaAllocation spheresBufferAllocation = VK_NULL_HANDLE;
 	std::vector<VkBuffer> spheresAABBBufferHandles = std::vector<VkBuffer>(0);
@@ -115,6 +121,9 @@ struct RaytracingObjectBuffers
 
 		bezierTriangles3BufferHandle = VK_NULL_HANDLE;
 		bezierTriangles3BuffersAllocation = VK_NULL_HANDLE;
+
+		bezierTriangles4BufferHandle = VK_NULL_HANDLE;
+		bezierTriangles4BuffersAllocation = VK_NULL_HANDLE;
 	}
 };
 

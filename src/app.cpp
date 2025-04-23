@@ -165,15 +165,15 @@ void Application::setupScene(tracer::rt::RaytracingScene& raytracingScene)
 		    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
 	}
 
-	// TODO: move this to a more appropriate place
-	if (renderer->getRaytracingScene().getWorldObjectTetrahedrons().size() > 0)
-	{
-		auto& tetrahedron = renderer->getRaytracingScene().getWorldObjectTetrahedrons()[0];
-		for (size_t i = 0; i < uiData->positions.size(); i++)
-		{
-			uiData->positions[i] = tetrahedron.getGeometry().getData().controlPoints[i];
-		}
-	}
+	// // TODO: move this to a more appropriate place
+	// if (renderer->getRaytracingScene().getWorldObjectTetrahedrons().size() > 0)
+	// {
+	// 	auto& tetrahedron = renderer->getRaytracingScene().getWorldObjectTetrahedrons()[0];
+	// 	for (size_t i = 0; i < uiData->positions.size(); i++)
+	// 	{
+	// 		uiData->positions[i] = tetrahedron.getGeometry().getData().controlPoints[i];
+	// 	}
+	// }
 }
 
 // void loadModels()

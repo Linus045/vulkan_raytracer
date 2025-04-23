@@ -12,6 +12,7 @@
 
 #include "bezier_math.hpp"
 #include "common_types.h"
+#include "logger.hpp"
 #include "raytracing_scene.hpp"
 
 namespace tracer
@@ -65,6 +66,44 @@ inline size_t getControlPointIndicesTetrahedron(int i, int j, int k, int l)
 		if (i == 2 && j == 1 && k == 0 && l == 0) return 18;
 		if (i == 3 && j == 0 && k == 0 && l == 0) return 19;
 	}
+	else if constexpr (N == 4)
+	{
+		if (i == 0 && j == 0 && k == 0 && l == 4) return 0;
+		if (i == 0 && j == 0 && k == 1 && l == 3) return 1;
+		if (i == 0 && j == 0 && k == 2 && l == 2) return 2;
+		if (i == 0 && j == 0 && k == 3 && l == 1) return 3;
+		if (i == 0 && j == 0 && k == 4 && l == 0) return 4;
+		if (i == 0 && j == 1 && k == 0 && l == 3) return 5;
+		if (i == 0 && j == 1 && k == 1 && l == 2) return 6;
+		if (i == 0 && j == 1 && k == 2 && l == 1) return 7;
+		if (i == 0 && j == 1 && k == 3 && l == 0) return 8;
+		if (i == 0 && j == 2 && k == 0 && l == 2) return 9;
+		if (i == 0 && j == 2 && k == 1 && l == 1) return 10;
+		if (i == 0 && j == 2 && k == 2 && l == 0) return 11;
+		if (i == 0 && j == 3 && k == 0 && l == 1) return 12;
+		if (i == 0 && j == 3 && k == 1 && l == 0) return 13;
+		if (i == 0 && j == 4 && k == 0 && l == 0) return 14;
+		if (i == 1 && j == 0 && k == 0 && l == 3) return 15;
+		if (i == 1 && j == 0 && k == 1 && l == 2) return 16;
+		if (i == 1 && j == 0 && k == 2 && l == 1) return 17;
+		if (i == 1 && j == 0 && k == 3 && l == 0) return 18;
+		if (i == 1 && j == 1 && k == 0 && l == 2) return 19;
+		if (i == 1 && j == 1 && k == 1 && l == 1) return 20;
+		if (i == 1 && j == 1 && k == 2 && l == 0) return 21;
+		if (i == 1 && j == 2 && k == 0 && l == 1) return 22;
+		if (i == 1 && j == 2 && k == 1 && l == 0) return 23;
+		if (i == 1 && j == 3 && k == 0 && l == 0) return 24;
+		if (i == 2 && j == 0 && k == 0 && l == 2) return 25;
+		if (i == 2 && j == 0 && k == 1 && l == 1) return 26;
+		if (i == 2 && j == 0 && k == 2 && l == 0) return 27;
+		if (i == 2 && j == 1 && k == 0 && l == 1) return 28;
+		if (i == 2 && j == 1 && k == 1 && l == 0) return 29;
+		if (i == 2 && j == 2 && k == 0 && l == 0) return 30;
+		if (i == 3 && j == 0 && k == 0 && l == 1) return 31;
+		if (i == 3 && j == 0 && k == 1 && l == 0) return 32;
+		if (i == 3 && j == 1 && k == 0 && l == 0) return 33;
+		if (i == 4 && j == 0 && k == 0 && l == 0) return 34;
+	}
 	else
 	{
 		throw std::runtime_error("Degree N: " + std::to_string(N) + " not implemented");
@@ -105,7 +144,7 @@ template <int N>
 inline float
 BernsteinPolynomialTrivariate(int i, int j, int k, int l, float u, float v, float w, float s)
 {
-	if (i < 0 || j < 0 || k < 0 || s < 0 || i > N || j > N || k > N || l > N)
+	if (i < 0 || j < 0 || k < 0 || l < 0 || i > N || j > N || k > N || l > N)
 	{
 		return 0;
 	}
@@ -123,8 +162,8 @@ BernsteinPolynomialTrivariate(int i, int j, int k, int l, float u, float v, floa
 }
 
 template <typename T>
-inline glm::vec3
-bezierTetrahedronPointInVolume(const T& tetrahedron, float u, float v, float w, float s)
+inline glm::vec3 bezierTetrahedronPointInVolume(
+    const T& tetrahedron, const float u, const float v, const float w, const float s)
 {
 	constexpr const int N = degree<T>();
 	auto sum = glm::vec3();
@@ -139,12 +178,34 @@ bezierTetrahedronPointInVolume(const T& tetrahedron, float u, float v, float w, 
 				if (i + j + k + l <= N)
 				{
 					size_t idx = getControlPointIndicesTetrahedron<N>(i, j, k, l);
-					sum += tetrahedron.controlPoints[idx]
-					       * BernsteinPolynomialTrivariate<N>(i, j, k, l, u, v, w, s);
+					auto& controlPoint = tetrahedron.controlPoints[idx];
+					auto bernsteinValue = BernsteinPolynomialTrivariate<N>(i, j, k, l, u, v, w, s);
+					auto value = controlPoint * bernsteinValue;
+					sum += value;
+					// std::printf("u: %f v: %f w: %f s: %f i: %d j: %d k: %d l: %d idx: %ld Point:
+					// "
+					//             "(%f,%f, %f) bernsteinValue: %f value: (%f,%f, %f)\n",
+					//             u,
+					//             v,
+					//             w,
+					//             s,
+					//             i,
+					//             j,
+					//             k,
+					//             l,
+					//             idx,
+					//             controlPoint.x,
+					//             controlPoint.y,
+					//             controlPoint.z,
+					//             bernsteinValue,
+					//             value.x,
+					//             value.y,
+					//             value.z);
 				}
 			}
 		}
 	}
+	// std::printf("Sum: (%f,%f, %f)\n", sum.x, sum.y, sum.z);
 	return sum;
 }
 
@@ -513,15 +574,16 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
                                       const T& tetrahedron,
                                       float stepSize = 0.1f)
 {
-	for (float u = 0; u <= 1; u += stepSize)
+	for (float u = 0; u <= 1.0f + 1e-4f; u += stepSize)
 	{
-		for (float v = 0; v <= 1; v += stepSize)
+		for (float v = 0; v <= 1.0f + 1e-4f; v += stepSize)
 		{
-			for (float w = 0; w <= 1; w += stepSize)
-			{
-				if (u + v + w <= 1)
+			for (float w = 0; w <= 1.0f + 1e-4f; w += stepSize)
+				if (u + v + w <= 1.0f + 1e-4f)
 				{
-					auto p = bezierTetrahedronPointInVolume(tetrahedron, u, v, w, 1.0f - u - v - w);
+					float s = 1.0f - u - v - w;
+
+					auto p = bezierTetrahedronPointInVolume(tetrahedron, u, v, w, s);
 
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (isFace1)
@@ -541,7 +603,7 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_green);
 					}
 
-					auto isFace4 = glm::abs(u + v + w - 1) <= 1e-4;
+					auto isFace4 = glm::abs(u + v + w - 1.0f) <= 1e-4;
 					if (isFace4)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_white);
@@ -549,10 +611,10 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
 
 					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						// raytracingScene.addSphere(p, 0.01f, ColorIdx::t_black);
+						// TODO: make a ui element to enable sampling the inside volume as well
+						// raytracingScene.addObjectSphere(p, 0.02f, ColorIdx::t_black);
 					}
 				}
-			}
 		}
 	}
 }

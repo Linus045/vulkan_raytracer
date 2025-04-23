@@ -14,12 +14,42 @@
 namespace tracer
 {
 
+// NOTE: not used
 struct SubdividedTetrahedron2
 {
 	BezierTriangle2 bottomLeft;
 	BezierTriangle2 bottomRight;
 	BezierTriangle2 top;
 	BezierTriangle2 center;
+};
+
+// Tetrahedron -> BezierTriangle class mapping
+
+template <typename T>
+struct BezierTriangleFromTetrahedron;
+
+template <>
+struct BezierTriangleFromTetrahedron<Tetrahedron1>
+{
+	using type = BezierTriangle1;
+};
+
+template <>
+struct BezierTriangleFromTetrahedron<Tetrahedron2>
+{
+	using type = BezierTriangle2;
+};
+
+template <>
+struct BezierTriangleFromTetrahedron<Tetrahedron3>
+{
+	using type = BezierTriangle3;
+};
+
+template <>
+struct BezierTriangleFromTetrahedron<Tetrahedron4>
+{
+	using type = BezierTriangle4;
 };
 
 /// workaround to get degree of a tetrahedron
@@ -48,6 +78,57 @@ constexpr int degree()
 	else if constexpr (std::is_same_v<T, Tetrahedron4> || std::is_same_v<T, BezierTriangle4>)
 	{
 		return 4;
+	}
+	else
+	{
+		static_assert(false, "Unsupported tetrahedron type");
+	}
+}
+
+/// workaround to get object type of a tetrahedron
+template <typename T>
+constexpr ObjectType getObjectType()
+{
+	if (!std::is_constant_evaluated())
+	{
+		throw std::runtime_error("objectType() should only be run at compile time!");
+	}
+
+	if constexpr (std::is_same_v<T, Sphere>)
+	{
+		return ObjectType::t_Sphere;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron1>)
+	{
+		return ObjectType::t_Tetrahedron1;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron2>)
+	{
+		return ObjectType::t_Tetrahedron2;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron3>)
+	{
+		return ObjectType::t_Tetrahedron3;
+	}
+	else if constexpr (std::is_same_v<T, Tetrahedron4>)
+	{
+		return ObjectType::t_Tetrahedron4;
+	}
+	else if constexpr (std::is_same_v<T, BezierTriangle1>)
+	{
+		return ObjectType::t_BezierTriangle1;
+	}
+	else if constexpr (std::is_same_v<T, BezierTriangle2>)
+	{
+		return ObjectType::t_BezierTriangle2;
+	}
+	else if constexpr (std::is_same_v<T, BezierTriangle3>)
+	{
+		return ObjectType::t_BezierTriangle3;
+	}
+	else if constexpr (std::is_same_v<T, BezierTriangle4>)
+	{
+		return ObjectType::t_BezierTriangle4;
 	}
 	else
 	{
@@ -95,113 +176,194 @@ inline Tetrahedron4 createTetrahedron4(const std::array<glm::vec3, 35>& points)
 	return tetrahedron;
 }
 
-inline BezierTriangle2 extractBezierTriangleFromTetrahedron(const Tetrahedron2& tetrahedron2,
-                                                            const int side)
+template <typename T, typename S>
+inline S extractBezierTriangleFromTetrahedron(const T& tetrahedron, const int side)
 {
-	BezierTriangle2 bezierTriangle{};
-	if (side == 1)
+	S bezierTriangle{};
+	if constexpr (std::is_same<T, Tetrahedron2>())
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
+		if (side == 1)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[5];
+		}
+		else if (side == 2)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[6];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[9];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[7];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[2];
+		}
+		else if (side == 3)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[5];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[6];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[9];
+		}
+		else if (side == 4)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[7];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[9];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[5];
+		}
+		else
+		{
+			throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
+		}
 	}
-	else if (side == 2)
+	else if constexpr (std::is_same<T, Tetrahedron3>())
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[9];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[2];
+		if (side == 1)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[5];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[6];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[7];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[9];
+		}
+		else if (side == 2)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[10];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[16];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[19];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[11];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[17];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[12];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[3];
+		}
+		else if (side == 3)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[7];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[9];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[10];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[13];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[15];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[16];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[18];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[19];
+		}
+		else if (side == 4)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[12];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[17];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[19];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[6];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[14];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[18];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[15];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[9];
+		}
+		else
+		{
+			throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
+		}
 	}
-	else if (side == 3)
+	else if constexpr (std::is_same<T, Tetrahedron4>())
 	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[5];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[9];
-	}
-	else if (side == 4)
-	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[9];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
+		if (side == 1)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[5];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[6];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[7];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[9];
+			bezierTriangle.controlPoints[10] = tetrahedron.controlPoints[10];
+			bezierTriangle.controlPoints[11] = tetrahedron.controlPoints[11];
+			bezierTriangle.controlPoints[12] = tetrahedron.controlPoints[12];
+			bezierTriangle.controlPoints[13] = tetrahedron.controlPoints[13];
+			bezierTriangle.controlPoints[14] = tetrahedron.controlPoints[14];
+		}
+		else if (side == 2)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[15];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[25];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[31];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[34];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[1];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[16];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[26];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[32];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[2];
+			bezierTriangle.controlPoints[10] = tetrahedron.controlPoints[17];
+			bezierTriangle.controlPoints[11] = tetrahedron.controlPoints[27];
+			bezierTriangle.controlPoints[12] = tetrahedron.controlPoints[3];
+			bezierTriangle.controlPoints[13] = tetrahedron.controlPoints[18];
+			bezierTriangle.controlPoints[14] = tetrahedron.controlPoints[4];
+		}
+		else if (side == 3)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[0];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[5];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[9];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[12];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[14];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[15];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[19];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[22];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[24];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[25];
+			bezierTriangle.controlPoints[10] = tetrahedron.controlPoints[28];
+			bezierTriangle.controlPoints[11] = tetrahedron.controlPoints[30];
+			bezierTriangle.controlPoints[12] = tetrahedron.controlPoints[31];
+			bezierTriangle.controlPoints[13] = tetrahedron.controlPoints[33];
+			bezierTriangle.controlPoints[14] = tetrahedron.controlPoints[34];
+		}
+		else if (side == 4)
+		{
+			bezierTriangle.controlPoints[0] = tetrahedron.controlPoints[4];
+			bezierTriangle.controlPoints[1] = tetrahedron.controlPoints[18];
+			bezierTriangle.controlPoints[2] = tetrahedron.controlPoints[27];
+			bezierTriangle.controlPoints[3] = tetrahedron.controlPoints[32];
+			bezierTriangle.controlPoints[4] = tetrahedron.controlPoints[34];
+			bezierTriangle.controlPoints[5] = tetrahedron.controlPoints[8];
+			bezierTriangle.controlPoints[6] = tetrahedron.controlPoints[21];
+			bezierTriangle.controlPoints[7] = tetrahedron.controlPoints[29];
+			bezierTriangle.controlPoints[8] = tetrahedron.controlPoints[33];
+			bezierTriangle.controlPoints[9] = tetrahedron.controlPoints[11];
+			bezierTriangle.controlPoints[10] = tetrahedron.controlPoints[23];
+			bezierTriangle.controlPoints[11] = tetrahedron.controlPoints[30];
+			bezierTriangle.controlPoints[12] = tetrahedron.controlPoints[13];
+			bezierTriangle.controlPoints[13] = tetrahedron.controlPoints[24];
+			bezierTriangle.controlPoints[14] = tetrahedron.controlPoints[14];
+		}
+		else
+		{
+			throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
+		}
 	}
 	else
 	{
-		throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
-	}
-
-	return bezierTriangle;
-}
-
-inline BezierTriangle3 extractBezierTriangleFromTetrahedron(const Tetrahedron3& tetrahedron2,
-                                                            const int side)
-{
-	BezierTriangle3 bezierTriangle{};
-	if (side == 1)
-	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[5];
-		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[9];
-	}
-	else if (side == 2)
-	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[10];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[16];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[19];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[1];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[11];
-		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[17];
-		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[2];
-		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[12];
-		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[3];
-	}
-	else if (side == 3)
-	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[0];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[4];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[7];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[9];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[10];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[13];
-		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[15];
-		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[16];
-		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[18];
-		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[19];
-	}
-	else if (side == 4)
-	{
-		bezierTriangle.controlPoints[0] = tetrahedron2.controlPoints[3];
-		bezierTriangle.controlPoints[1] = tetrahedron2.controlPoints[12];
-		bezierTriangle.controlPoints[2] = tetrahedron2.controlPoints[17];
-		bezierTriangle.controlPoints[3] = tetrahedron2.controlPoints[19];
-		bezierTriangle.controlPoints[4] = tetrahedron2.controlPoints[6];
-		bezierTriangle.controlPoints[5] = tetrahedron2.controlPoints[14];
-		bezierTriangle.controlPoints[6] = tetrahedron2.controlPoints[18];
-		bezierTriangle.controlPoints[7] = tetrahedron2.controlPoints[8];
-		bezierTriangle.controlPoints[8] = tetrahedron2.controlPoints[15];
-		bezierTriangle.controlPoints[9] = tetrahedron2.controlPoints[9];
-	}
-	else
-	{
-		throw new std::runtime_error("extractBezierTriangleFromTetrahedron - side invalid");
+		static_assert(false, "Unsupported tetrahedron type");
 	}
 
 	return bezierTriangle;

@@ -167,7 +167,6 @@ float BernsteinPolynomialBivariate(int n, int i, int j, int k, float u, float v,
 	float powi = customPow(u, i);
 	float powj = customPow(v, j);
 	float powk = customPow(w, k);
-
 	return fraction * powi * powj * powk;
 }
 
@@ -274,6 +273,29 @@ int getControlPointIndicesBezierTriangle3(int i, int j, int k)
 	return 0;
 }
 
+// returns the control point index for the bezier triangle of degree 3
+int getControlPointIndicesBezierTriangle4(int i, int j, int k)
+{
+	if (i == 0 && j == 0 && k == 4) return 1;
+	if (i == 1 && j == 0 && k == 3) return 1;
+	if (i == 2 && j == 0 && k == 2) return 2;
+	if (i == 3 && j == 0 && k == 1) return 3;
+	if (i == 4 && j == 0 && k == 0) return 4;
+	if (i == 0 && j == 1 && k == 3) return 5;
+	if (i == 1 && j == 1 && k == 2) return 6;
+	if (i == 2 && j == 1 && k == 1) return 7;
+	if (i == 3 && j == 1 && k == 0) return 8;
+	if (i == 0 && j == 2 && k == 2) return 9;
+	if (i == 1 && j == 2 && k == 1) return 10;
+	if (i == 2 && j == 2 && k == 0) return 11;
+	if (i == 0 && j == 3 && k == 1) return 12;
+	if (i == 1 && j == 3 && k == 0) return 13;
+	if (i == 0 && j == 4 && k == 0) return 14;
+
+	debugPrintfEXT("Error: getControlPointIndicesBezierTriangle4: %d, %d, %d", i, j, k);
+	return 0;
+}
+
 // returns the partial directional derivative for bezier triangles of degree 2
 vec3 partialBezierTriangle2Directional(vec3 controlPoints[6], vec3 direction, float u, float v)
 {
@@ -323,6 +345,36 @@ vec3 partialBezierTriangle3Directional(vec3 controlPoints[10], vec3 direction, f
 					int be1 = getControlPointIndicesBezierTriangle3(i + 1, j + 0, k + 0);
 					int be2 = getControlPointIndicesBezierTriangle3(i + 0, j + 1, k + 0);
 					int be3 = getControlPointIndicesBezierTriangle3(i + 0, j + 0, k + 1);
+					vec3 x = controlPoints[be1] * direction.x;
+					vec3 y = controlPoints[be2] * direction.y;
+					vec3 z = controlPoints[be3] * direction.z;
+					sum += (x + y + z) * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
+				}
+			}
+		}
+	}
+	return n * sum;
+}
+
+// returns the partial directional derivative for bezier triangles of degree 4
+vec3 partialBezierTriangle4Directional(vec3 controlPoints[15], vec3 direction, float u, float v)
+{
+	int n = 4;
+	vec3 sum = vec3(0);
+	float w = 1.0 - u - v;
+
+	// TODO: remove this loop and write out the formula
+	for (int k = 0; k <= n; k++)
+	{
+		for (int j = 0; j <= n - k; j++)
+		{
+			for (int i = 0; i <= n - k - j; i++)
+			{
+				if (i + j + k == n - 1)
+				{
+					int be1 = getControlPointIndicesBezierTriangle4(i + 1, j + 0, k + 0);
+					int be2 = getControlPointIndicesBezierTriangle4(i + 0, j + 1, k + 0);
+					int be3 = getControlPointIndicesBezierTriangle4(i + 0, j + 0, k + 1);
 					vec3 x = controlPoints[be1] * direction.x;
 					vec3 y = controlPoints[be2] * direction.y;
 					vec3 z = controlPoints[be3] * direction.z;

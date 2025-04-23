@@ -32,9 +32,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	raytracingScene.currentSceneNr = sceneNr;
 
 	raytracingScene.getWorldObjectSpheres().clear();
-	raytracingScene.getWorldObjectTetrahedrons().clear();
-	raytracingScene.getWorldObjectBezierTriangles2().clear();
-	raytracingScene.getWorldObjectBezierTriangles3().clear();
+	// raytracingScene.getWorldObjectTetrahedrons().clear();
+	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle2>().clear();
+	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle3>().clear();
+	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle4>().clear();
 	raytracingScene.getWorldObjectRectangularBezierSurfaces2x2().clear();
 
 	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it per
@@ -247,6 +248,56 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 					visualizeTetrahedronSides(raytracingScene, tetrahedron2);
 				}
 			}
+		}
+	}
+	else if (sceneNr == 7)
+	{
+		[[maybe_unused]] auto tetrahedron4 = tracer::createTetrahedron4(std::to_array({
+		    glm::vec3(0, 0, 0), glm::vec3(0, 0, 1), glm::vec3(0, 0, 2), glm::vec3(0, 0, 3),
+		    glm::vec3(0, 0, 4), glm::vec3(0, 1, 0), glm::vec3(0, 1, 1), glm::vec3(0, 1, 2),
+		    glm::vec3(0, 1, 3), glm::vec3(0, 2, 0), glm::vec3(0, 2, 1), glm::vec3(0, 2, 2),
+		    glm::vec3(0, 3, 0), glm::vec3(0, 3, 1), glm::vec3(0, 4, 0), glm::vec3(1, 0, 0),
+		    glm::vec3(1, 0, 1), glm::vec3(1, 0, 2), glm::vec3(1, 0, 3), glm::vec3(1, 1, 0),
+		    glm::vec3(1, 1, 1), glm::vec3(1, 1, 2), glm::vec3(1, 2, 0), glm::vec3(1, 2, 1),
+		    glm::vec3(1, 3, 0), glm::vec3(2, 0, 0), glm::vec3(2, 0, 1), glm::vec3(2, 0, 2),
+		    glm::vec3(2, 1, 0), glm::vec3(2, 1, 1), glm::vec3(2, 2, 0), glm::vec3(3, 0, 0),
+		    glm::vec3(3, 0, 1), glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
+		}));
+
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron4);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron4);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron4);
+		}
+	}
+	else if (sceneNr == 8)
+	{
+		[[maybe_unused]] auto tetrahedron4 = tracer::createTetrahedron4(std::to_array({
+		    glm::vec3(0, 0, 0),   glm::vec3(0, 0, 1), glm::vec3(0, 0, 2), glm::vec3(0, 0, 3),
+		    glm::vec3(0, 0, 4),   glm::vec3(0, 1, 0), glm::vec3(0, 1, 1), glm::vec3(0, 1, 2),
+		    glm::vec3(0, 1, 3),   glm::vec3(0, 2, 0), glm::vec3(0, 2, 1), glm::vec3(0, 2, 2),
+		    glm::vec3(0, 3, 0),   glm::vec3(0, 3, 1), glm::vec3(0, 4, 0), glm::vec3(1, 0, 0),
+		    glm::vec3(1, 0, 1),   glm::vec3(1, 0, 2), glm::vec3(1, 0, 3), glm::vec3(1, 1, 0),
+		    glm::vec3(-60, 1, 1), glm::vec3(0, 1, 2), glm::vec3(1, 2, 0), glm::vec3(1, 2, 1),
+		    glm::vec3(1, 3, 0),   glm::vec3(2, 0, 0), glm::vec3(2, 0, 1), glm::vec3(2, 0, 2),
+		    glm::vec3(2, 1, 0),   glm::vec3(2, 1, 1), glm::vec3(2, 2, 0), glm::vec3(3, 0, 0),
+		    glm::vec3(3, 0, 1),   glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
+		}));
+
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron4);
+
+		if (sceneConfig.visualizeControlPoints)
+		{
+			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron4);
+		}
+		if (sceneConfig.visualizeSampledSurface)
+		{
+			visualizeTetrahedronSides(raytracingScene, tetrahedron4);
 		}
 	}
 	else

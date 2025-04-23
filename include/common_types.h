@@ -51,14 +51,16 @@ using uint = unsigned int;
 #endif
 
 START_BINDING(ObjectType)
-	t_Sphere = 1,
-	t_Triangle = 2,
-	t_Tetrahedron1 = 3,
-	t_Tetrahedron2 = 4,
-	t_Tetrahedron3 = 5,
-	t_RectangularBezierSurface2x2 = 6,
-	t_BezierTriangle2 = 7,
-	t_BezierTriangle3 = 8,
+	t_Tetrahedron1 = 1,
+	t_Tetrahedron2 = 2,
+	t_Tetrahedron3 = 3,
+	t_Tetrahedron4 = 4,
+	t_RectangularBezierSurface2x2 = 10,
+	t_BezierTriangle1 = 11,
+	t_BezierTriangle2 = 12,
+	t_BezierTriangle3 = 13,
+	t_BezierTriangle4 = 14,
+	t_Sphere = 99,
 	t_AABBDebug = 100
 END_BINDING();
 
