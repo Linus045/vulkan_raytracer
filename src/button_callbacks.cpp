@@ -21,46 +21,51 @@ namespace tracer
 {
 namespace rt
 {
-static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiData)
-{
-	glm::vec2 initialGuess = vec2(0.3, 0.3);
 
-	auto& raytracingScene = renderer.getRaytracingScene();
-	glm::vec3 intersectionPoint = glm::vec3(0);
+/// NOTE: this is not working generally for every degree so don't use it, it was just for
+/// debugging anyway
+// static void shootRay(Renderer& renderer, const Camera& camera, ui::UIData& uiData)
+// {
+// 	glm::vec2 initialGuess = vec2(0.3, 0.3);
 
-	Ray ray{
-	    .origin = camera.transform.getPos(),
-	    .direction = camera.transform.getForward(),
-	};
+// 	auto& raytracingScene = renderer.getRaytracingScene();
+// 	glm::vec3 intersectionPoint = glm::vec3(0);
 
-	// TODO: test out other definition for normals
-	// Visualize planes
-	glm::vec3 v = (glm::abs(ray.direction.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
-	                                                  : glm::vec3(1.0f, 0.0f, 0.0f);
-	glm::vec3 n1 = normalize(cross(ray.direction, v));
-	glm::vec3 n2 = normalize(cross(ray.direction, n1));
+// 	Ray ray{
+// 	    .origin = camera.transform.getPos(),
+// 	    .direction = camera.transform.getForward(),
+// 	};
 
-	for (size_t side = 0; side < 4; side++)
-	{
-		// clear the spheres before we test a side so only corresponding spheres for that side
-		// remain
-		raytracingScene.getWorldObjectSpheres().clear();
-		if (tracer::rt::newtonsMethodTriangle2(
-		        raytracingScene,
-		        renderer.getRaytracingDataConstants(),
-		        intersectionPoint,
-		        initialGuess,
-		        ray.origin,
-		        raytracingScene.getWorldObjectBezierTriangles2()[side].getGeometry().getData(),
-		        n1,
-		        n2))
-		{
-			raytracingScene.addObjectSphere(intersectionPoint, 0.2f, ColorIdx::t_red);
-			break;
-		}
-	}
-	uiData.recreateAccelerationStructures.requestRecreate(true);
-};
+// 	// TODO: test out other definition for normals
+// 	// Visualize planes
+// 	glm::vec3 v = (glm::abs(ray.direction.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
+// 	                                                  : glm::vec3(1.0f, 0.0f, 0.0f);
+// 	glm::vec3 n1 = normalize(cross(ray.direction, v));
+// 	glm::vec3 n2 = normalize(cross(ray.direction, n1));
+
+// 	for (size_t side = 0; side < 4; side++)
+// 	{
+// 		// clear the spheres before we test a side so only corresponding spheres for that side
+// 		// remain
+// 		raytracingScene.getWorldObjectSpheres().clear();
+// 		if (tracer::rt::newtonsMethodTriangle2(
+// 		        raytracingScene,
+// 		        renderer.getRaytracingDataConstants(),
+// 		        intersectionPoint,
+// 		        initialGuess,
+// 		        ray.origin,
+// 		        raytracingScene.getWorldObjectBezierTriangles<BezierTriangle2>()[side]
+// 		            .getGeometry()
+// 		            .getData(),
+// 		        n1,
+// 		        n2))
+// 		{
+// 			raytracingScene.addObjectSphere(intersectionPoint, 0.2f, ColorIdx::t_red);
+// 			break;
+// 		}
+// 	}
+// 	uiData.recreateAccelerationStructures.requestRecreate(true);
+// };
 
 static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UIData& uiData)
 {
@@ -122,17 +127,18 @@ void registerButtonFunctions(Window& window,
 	                    tracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
 	                    openUI);
 
-	uiData.buttonCallbacks.push_back(ui::ButtonData{
-	    .label = "[R] [Debug] CPU Raytrace",
-	    .tooltip = "Shoots a ray into the scene and prints the calculations to the console. Only "
-	               "used for debugging.",
-	    .callback = [&]() { shootRay(renderer, camera, uiData); },
-	});
-	registerKeyListener(window,
-	                    GLFW_KEY_R,
-	                    tracer::KeyTriggerMode::KeyDown,
-	                    tracer::KeyListeningMode::FLYING_CAMERA,
-	                    [&]() { shootRay(renderer, camera, uiData); });
+	// uiData.buttonCallbacks.push_back(ui::ButtonData{
+	//      .label = "[R] [Debug] CPU Raytrace",
+	//      .tooltip = "Shoots a ray into the scene and prints the calculations to the console. Only
+	//      "
+	//                 "used for debugging.",
+	//      .callback = [&]() { shootRay(renderer, camera, uiData); },
+	//  });
+	//  registerKeyListener(window,
+	//                      GLFW_KEY_R,
+	//                      tracer::KeyTriggerMode::KeyDown,
+	//                      tracer::KeyListeningMode::FLYING_CAMERA,
+	//                      [&]() { shootRay(renderer, camera, uiData); });
 
 	uiData.buttonCallbacks.push_back(ui::ButtonData{
 	    .label = "[T] Visualize Ray Planes",
