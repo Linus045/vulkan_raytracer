@@ -111,6 +111,7 @@ struct UniformStructure
 	ALIGNAS(4) float debugFastRenderMode;                                                          \
 	ALIGNAS(4) float debugVisualizeControlPoints;                                                  \
 	ALIGNAS(4) float debugVisualizeSampledSurface;                                                 \
+	ALIGNAS(4) float debugVisualizeSampledVolume;                                                  \
 	ALIGNAS(16) vec3 cameraDir;
 
 #ifdef __cplusplus // Descriptor binding helper for C++ and GLSL

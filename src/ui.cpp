@@ -465,6 +465,16 @@ void renderSceneOptions(UIData& uiData)
 		uiData.raytracingDataConstants.debugVisualizeSampledSurface
 		    = static_cast<float>(debugVisualizeSampledSurface ? 1 : 0);
 
+		bool debugVisualizeSampledVolume
+		    = uiData.raytracingDataConstants.debugVisualizeSampledVolume > 0;
+		sceneReloadNeeded
+		    = ImGui::Checkbox("Debug: Visualize sampled Volume", &debugVisualizeSampledVolume)
+		      || sceneReloadNeeded;
+		TOOLTIP("Whether to render the tetrahedrons volume as sampled points or not (disable "
+		        "triangle sides is to see)");
+		uiData.raytracingDataConstants.debugVisualizeSampledVolume
+		    = static_cast<float>(debugVisualizeSampledVolume ? 1 : 0);
+
 		bool renderSideTriangle = uiData.raytracingDataConstants.renderSideTriangle > 0;
 		valueChanged = ImGui::Checkbox("Render Triangles", &renderSideTriangle) || valueChanged;
 		TOOLTIP("Whether to render the sides of the bezier tetrahedrons or not.");

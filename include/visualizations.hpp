@@ -572,6 +572,8 @@ inline void visualizeTetrahedronControlPoints(RaytracingScene& raytracingScene,
 template <typename T>
 inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
                                       const T& tetrahedron,
+                                      const bool visualizeSides,
+                                      const bool visualizeVolume,
                                       float stepSize = 0.1f)
 {
 	for (float u = 0; u <= 1.0f + 1e-4f; u += stepSize)
@@ -586,33 +588,32 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
 					auto p = bezierTetrahedronPointInVolume(tetrahedron, u, v, w, s);
 
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
-					if (isFace1)
+					if (visualizeSides && isFace1)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = glm::abs(v) < 1e-4 && u + w <= 1;
-					if (isFace2)
+					if (visualizeSides && isFace2)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = glm::abs(w) < 1e-4 && u + v <= 1;
-					if (isFace3)
+					if (visualizeSides && isFace3)
 					{
 						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1.0f) <= 1e-4;
-					if (isFace4)
+					if (visualizeSides && isFace4)
 					{
-						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_white);
+						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_blue);
 					}
 
-					if (!isFace1 && !isFace2 && !isFace3 && !isFace4)
+					if (visualizeVolume && !isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						// TODO: make a ui element to enable sampling the inside volume as well
-						// raytracingScene.addObjectSphere(p, 0.02f, ColorIdx::t_black);
+						raytracingScene.addObjectSphere(p, 0.02f, ColorIdx::t_black);
 					}
 				}
 		}

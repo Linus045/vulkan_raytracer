@@ -72,10 +72,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron2,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeControlPoints);
 	}
 	else if (sceneNr == 2)
 	{
@@ -100,10 +100,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron2,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeControlPoints);
 	}
 	else if (sceneNr == 3)
 	{
@@ -133,10 +133,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			{
 				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 			}
-			if (sceneConfig.visualizeSampledSurface)
-			{
-				visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-			}
+			visualizeTetrahedronSides(raytracingScene,
+			                          tetrahedron2,
+			                          sceneConfig.visualizeSampledSurface,
+			                          sceneConfig.visualizeSampledVolume);
 		}
 		{
 			[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
@@ -157,10 +157,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			{
 				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 			}
-			if (sceneConfig.visualizeSampledSurface)
-			{
-				visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-			}
+			visualizeTetrahedronSides(raytracingScene,
+			                          tetrahedron2,
+			                          sceneConfig.visualizeSampledSurface,
+			                          sceneConfig.visualizeSampledVolume);
 		}
 	}
 	else if (sceneNr == 4)
@@ -179,10 +179,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron3);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron3);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron3,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeSampledVolume);
 	}
 	else if (sceneNr == 5)
 	{
@@ -207,10 +207,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron2,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeSampledVolume);
 	}
 	else if (sceneNr == 6)
 	{
@@ -243,10 +243,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 				{
 					visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
 				}
-				if (sceneConfig.visualizeSampledSurface)
-				{
-					visualizeTetrahedronSides(raytracingScene, tetrahedron2);
-				}
+				visualizeTetrahedronSides(raytracingScene,
+				                          tetrahedron2,
+				                          sceneConfig.visualizeSampledSurface,
+				                          sceneConfig.visualizeSampledVolume);
 			}
 		}
 	}
@@ -270,10 +270,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron4);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron4);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron4,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeSampledVolume);
 	}
 	else if (sceneNr == 8)
 	{
@@ -295,10 +295,11 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		{
 			visualizeTetrahedronControlPoints(raytracingScene, tetrahedron4);
 		}
-		if (sceneConfig.visualizeSampledSurface)
-		{
-			visualizeTetrahedronSides(raytracingScene, tetrahedron4);
-		}
+		visualizeTetrahedronSides(raytracingScene,
+		                          tetrahedron4,
+		                          sceneConfig.visualizeSampledSurface,
+		                          sceneConfig.visualizeSampledVolume,
+		                          0.05f);
 	}
 	else
 	{

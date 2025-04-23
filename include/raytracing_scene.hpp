@@ -27,6 +27,7 @@ struct SceneConfig
 {
 	bool visualizeControlPoints;
 	bool visualizeSampledSurface;
+	bool visualizeSampledVolume;
 
 	static const SceneConfig fromUIData(const ui::UIData& uiData)
 	{
@@ -35,6 +36,8 @@ struct SceneConfig
 		    = uiData.raytracingDataConstants.debugVisualizeControlPoints > 0.0f,
 		    .visualizeSampledSurface
 		    = uiData.raytracingDataConstants.debugVisualizeSampledSurface > 0.0f,
+		    .visualizeSampledVolume
+		    = uiData.raytracingDataConstants.debugVisualizeSampledVolume > 0.0f,
 		};
 	}
 };

@@ -129,6 +129,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .debugFastRenderMode = 0.0f,
 	    .debugVisualizeControlPoints = 0.0f,
 	    .debugVisualizeSampledSurface = 0.0f,
+	    .debugVisualizeSampledVolume = 0.0f,
 	    .cameraDir = glm::vec3(0),
 	};
 
