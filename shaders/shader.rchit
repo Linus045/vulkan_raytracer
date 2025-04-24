@@ -254,7 +254,7 @@ void main()
 			float v = hitData.coords.y;
 			if (u < 1e-2f || v < 1e-2f || abs(1.0 - u - v) < 1e-2f)
 			{
-				payload.directColor = vec3(1, 1, 1);
+				payload.directColor = vec3(0, 0, 0);
 				payload.indirectColor = vec3(0, 0, 0);
 			}
 		}
