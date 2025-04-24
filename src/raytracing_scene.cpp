@@ -44,7 +44,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 	// first sphere represents light
 	raytracingScene.addObjectSphere(
-	    renderer.getRaytracingDataConstants().globalLightPosition, 0.1f, ColorIdx::t_yellow);
+	    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
 
 	// TODO: support multiple slicing planes
 	// raytracingScene.addSlicingPlane(SlicingPlane{
