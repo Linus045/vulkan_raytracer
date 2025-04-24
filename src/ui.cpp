@@ -215,17 +215,6 @@ void renderRaytracingOptions(UIData& uiData)
 	{
 		ImGui::SeparatorText("Debug");
 		{
-			// passing a boolean in a storage buffer directly didn't work probably due to alignment
-			// issues, so we just send 0 or 1 instead
-			bool debugShowAABBs = uiData.raytracingDataConstants.debugShowAABBs > 0;
-			valueChanged = ImGui::Checkbox(
-			                   "Debug: Show Axis-Aligned Bounding-Boxes (ignores slicing planes)",
-			                   &debugShowAABBs)
-			               || valueChanged;
-			TOOLTIP("Renders the AABB of each object instead of the actual object");
-			uiData.raytracingDataConstants.debugShowAABBs
-			    = static_cast<float>(debugShowAABBs ? 1 : 0);
-
 			bool debugPrintCrosshairRay = uiData.raytracingDataConstants.debugPrintCrosshairRay > 0;
 			valueChanged = ImGui::Checkbox("Debug: Print Crosshair Ray calculations",
 			                               &debugPrintCrosshairRay)
@@ -234,21 +223,6 @@ void renderRaytracingOptions(UIData& uiData)
 			        "This is only used for debugging purposes.");
 			uiData.raytracingDataConstants.debugPrintCrosshairRay
 			    = static_cast<float>(debugPrintCrosshairRay ? 1 : 0);
-
-			bool debugSlicingPlanes = uiData.raytracingDataConstants.debugSlicingPlanes > 0;
-			valueChanged = ImGui::Checkbox("Debug: Show Slicing Planes", &debugSlicingPlanes)
-			               || valueChanged;
-			TOOLTIP("Highlights the slicing plane on the object in pink");
-			uiData.raytracingDataConstants.debugSlicingPlanes
-			    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
-
-			bool debugShowSubdivisions
-			    = uiData.raytracingDataConstants.debugHighlightObjectEdges > 0;
-			valueChanged
-			    = ImGui::Checkbox("Debug: Show Edges", &debugShowSubdivisions) || valueChanged;
-			TOOLTIP("Highlights the edges of the objects");
-			uiData.raytracingDataConstants.debugHighlightObjectEdges
-			    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
 
 			bool debugFastRenderMode = uiData.raytracingDataConstants.debugFastRenderMode > 0;
 			valueChanged
@@ -398,47 +372,50 @@ void renderPositionSliders(tracer::ui::UIData& uiData)
 
 void renderSlicingPlaneSliders(UIData& uiData)
 {
+	bool valueChanged = false;
 	if (ImGui::CollapsingHeader("Raytracing - Slicing Planes"))
 	{
-		// if (uiData.raytracingSupported)
+		//////////////////////////////////////////////////////////////////////////
+		bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
+		valueChanged
+		    = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes) || valueChanged;
+		uiData.raytracingDataConstants.enableSlicingPlanes
+		    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
+
+		bool debugSlicingPlanes = uiData.raytracingDataConstants.debugSlicingPlanes > 0;
+		valueChanged
+		    = ImGui::Checkbox("Highlight Slicing Plane", &debugSlicingPlanes) || valueChanged;
+		TOOLTIP("Highlights the slicing plane on the object in pink");
+		uiData.raytracingDataConstants.debugSlicingPlanes
+		    = static_cast<float>(debugSlicingPlanes ? 1 : 0);
+
+		//////////////////////////////////////////////////////////////////////////
+		bool accelerationStructureRebuildNeeded = false;
+		for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
 		{
-			{
-				bool valueChanged = false;
-				bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
-				valueChanged = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes)
-				               || valueChanged;
-				uiData.raytracingDataConstants.enableSlicingPlanes
-				    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
-
-				uiData.configurationChanged = uiData.configurationChanged || valueChanged;
-			}
-
-			{
-				bool valueChanged = false;
-				for (size_t i = 0; i < uiData.slicingPlanes.size(); i++)
-				{
-					ImGui::LabelText("Slicingplane:", "%ld", i);
-					valueChanged = ImGui::SliderFloat3(
-					                   (std::string("Position#") + std::to_string(i)).c_str(),
-					                   &uiData.slicingPlanes[i].planeOrigin.x,
-					                   -10.0,
-					                   10.0,
-					                   "%.2f")
-					               || valueChanged;
-					valueChanged
-					    = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
-					                          &uiData.slicingPlanes[i].normal.x,
-					                          -1.0,
-					                          1.0,
-					                          "%.2f")
-					      || valueChanged;
-				}
-				if (valueChanged)
-				{
-					uiData.recreateAccelerationStructures.requestRecreate(false);
-				}
-			}
+			ImGui::LabelText("Slicingplane:", "%ld", i);
+			accelerationStructureRebuildNeeded
+			    = ImGui::SliderFloat3((std::string("Position#") + std::to_string(i)).c_str(),
+			                          &uiData.slicingPlanes[i].planeOrigin.x,
+			                          -10.0,
+			                          10.0,
+			                          "%.2f")
+			      || accelerationStructureRebuildNeeded;
+			accelerationStructureRebuildNeeded
+			    = ImGui::SliderFloat3((std::string("Normal#") + std::to_string(i)).c_str(),
+			                          &uiData.slicingPlanes[i].normal.x,
+			                          -1.0,
+			                          1.0,
+			                          "%.2f")
+			      || accelerationStructureRebuildNeeded;
 		}
+		if (accelerationStructureRebuildNeeded)
+		{
+			uiData.recreateAccelerationStructures.requestRecreate(false);
+		}
+
+		//////////////////////////////////////////////////////////////////////////
+		uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 	}
 }
 
@@ -449,10 +426,19 @@ void renderSceneOptions(UIData& uiData)
 	if (ImGui::CollapsingHeader("Raytracing - Scene"))
 	{
 
+		// passing a boolean in a storage buffer directly didn't work probably due to alignment
+		// issues, so we just send 0 or 1 instead
+		bool debugShowAABBs = uiData.raytracingDataConstants.debugShowAABBs > 0;
+		valueChanged = ImGui::Checkbox("Show Axis-Aligned Bounding-Boxes (ignores slicing planes)",
+		                               &debugShowAABBs)
+		               || valueChanged;
+		TOOLTIP("Renders the AABB of each object instead of the actual object");
+		uiData.raytracingDataConstants.debugShowAABBs = static_cast<float>(debugShowAABBs ? 1 : 0);
+
 		bool debugVisualizeControlPoints
 		    = uiData.raytracingDataConstants.debugVisualizeControlPoints > 0;
 		sceneReloadNeeded
-		    = ImGui::Checkbox("Debug: Visualize Control Points", &debugVisualizeControlPoints)
+		    = ImGui::Checkbox("Visualize Control Points", &debugVisualizeControlPoints)
 		      || sceneReloadNeeded;
 		TOOLTIP("Whether to render the bezier tetrahedron's control points or not");
 		uiData.raytracingDataConstants.debugVisualizeControlPoints
@@ -461,7 +447,7 @@ void renderSceneOptions(UIData& uiData)
 		bool debugVisualizeSampledSurface
 		    = uiData.raytracingDataConstants.debugVisualizeSampledSurface > 0;
 		sceneReloadNeeded
-		    = ImGui::Checkbox("Debug: Visualize sampled surface", &debugVisualizeSampledSurface)
+		    = ImGui::Checkbox("Visualize sampled surface", &debugVisualizeSampledSurface)
 		      || sceneReloadNeeded;
 		TOOLTIP(
 		    "Whether to render the sides of the bezier tetrahedrons with sampled points or not.");
@@ -471,7 +457,7 @@ void renderSceneOptions(UIData& uiData)
 		bool debugVisualizeSampledVolume
 		    = uiData.raytracingDataConstants.debugVisualizeSampledVolume > 0;
 		sceneReloadNeeded
-		    = ImGui::Checkbox("Debug: Visualize sampled Volume", &debugVisualizeSampledVolume)
+		    = ImGui::Checkbox("Visualize sampled Volume", &debugVisualizeSampledVolume)
 		      || sceneReloadNeeded;
 		TOOLTIP("Whether to render the tetrahedrons volume as sampled points or not (disable "
 		        "triangle sides is to see)");
@@ -483,6 +469,13 @@ void renderSceneOptions(UIData& uiData)
 		TOOLTIP("Whether to render the sides of the bezier tetrahedrons or not.");
 		uiData.raytracingDataConstants.renderSideTriangle
 		    = static_cast<float>(renderSideTriangle ? 1 : 0);
+
+		bool debugShowSubdivisions = uiData.raytracingDataConstants.debugHighlightObjectEdges > 0;
+		valueChanged
+		    = ImGui::Checkbox("Show Tetrahedron Edges", &debugShowSubdivisions) || valueChanged;
+		TOOLTIP("Highlights the edges of the objects");
+		uiData.raytracingDataConstants.debugHighlightObjectEdges
+		    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
 	}
 
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
