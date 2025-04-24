@@ -770,10 +770,7 @@ void Renderer::createRenderPass()
 	    .pDependencies = &dependency,
 	};
 
-	if (vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass) != VK_SUCCESS)
-	{
-		throw std::runtime_error("failed to create render pass!");
-	}
+	VK_CHECK_RESULT(vkCreateRenderPass(logicalDevice, &renderPassInfo, nullptr, &renderPass));
 
 	deletionQueue.push_function([=, this]()
 	                            { vkDestroyRenderPass(logicalDevice, renderPass, nullptr); });
