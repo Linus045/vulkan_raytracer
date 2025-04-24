@@ -88,6 +88,7 @@ add_subdirectory(3rdparty/glm)
 add_subdirectory(3rdparty/glfw)
 add_subdirectory(3rdparty/tinyobjloader)
 add_subdirectory(3rdparty/vulkanMemoryAllocator)
+add_subdirectory(3rdparty/OpenVolumeMesh)
 
 # mark includes as system includes
 include_directories(SYSTEM 3rdparty/tinyobjloader)
@@ -95,6 +96,7 @@ include_directories(SYSTEM 3rdparty/glm)
 include_directories(SYSTEM 3rdparty/glfw/include)
 include_directories(SYSTEM 3rdparty/imgui)
 include_directories(SYSTEM 3rdparty/vulkanMemoryAllocator/include)
+include_directories(SYSTEM 3rdparty/OpenVolumeMesh/src)
 
 
 ###############################################################################
@@ -279,4 +281,5 @@ target_link_libraries(${target_name} PRIVATE
   ${Vulkan_LIBRARY}
   "imgui"
   GPUOpen::VulkanMemoryAllocator
+  OpenVolumeMesh::OpenVolumeMesh
 )

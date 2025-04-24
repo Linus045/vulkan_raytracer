@@ -125,7 +125,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	    .debugPrintCrosshairRay = 0.0f,
 	    .debugSlicingPlanes = 0.0f,
 	    .enableSlicingPlanes = 0.0f,
-	    .debugHighlightObjectEdges = 0.0f,
+	    .debugHighlightObjectEdges = 1.0f,
 	    .debugFastRenderMode = 0.0f,
 	    .debugVisualizeControlPoints = 0.0f,
 	    .debugVisualizeSampledSurface = 0.0f,

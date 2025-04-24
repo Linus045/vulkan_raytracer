@@ -152,6 +152,7 @@ git submodule add https://github.com/KhronosGroup/glslang.git 3rdparty/glslang
 git submodule add https://github.com/tinyobjloader/tinyobjloader.git 3rdparty/tinyobjloader
 git submodule add https://github.com/ocornut/imgui.git 3rdparty/imgui
 git submodule add https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git 3rdparty/vulkanMemoryAllocator
+git submodule add https://gitlab.vci.rwth-aachen.de:9000/OpenVolumeMesh/OpenVolumeMesh.git 3rdparty/OpenVolumeMesh
 ```
 
 </details>

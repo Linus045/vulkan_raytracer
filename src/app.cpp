@@ -1,4 +1,3 @@
-#include "common_types.h"
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -7,6 +6,7 @@
 #include <iostream>
 #include <format>
 #include <memory>
+#include <print>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -35,6 +35,12 @@
 #include "input.hpp"
 #include "raytracing_scene.hpp"
 #include "button_callbacks.hpp"
+#include "common_types.h"
+
+#include <OpenVolumeMesh/FileManager/FileManager.hh>
+#include "OpenVolumeMesh/Mesh/TetrahedralMesh.hh"
+#include <OpenVolumeMesh/Mesh/PolyhedralMesh.hh>
+#include <OpenVolumeMesh/Core/Entities.hh>
 
 // #include "tiny_obj_loader.h"
 
@@ -145,6 +151,279 @@ bool Application::checkValidationLayerSupport()
 	return true;
 }
 
+bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
+                                         tracer::rt::RaytracingScene& raytracingScene,
+                                         tracer::Renderer& renderer,
+                                         const tracer::SceneConfig sceneConfig)
+{
+	static auto filemanager = OpenVolumeMesh::IO::FileManager();
+	OpenVolumeMesh::GeometricTetrahedralMeshV3d mesh;
+	if (filemanager.readFile(path, mesh))
+	{
+		std::println("Mesh loaded");
+	}
+	else
+	{
+		std::println("Error: Mesh failed to load!");
+		return false;
+	}
+
+	std::cout << mesh.n_vertices() << " vertices" << std::endl;
+	std::cout << mesh.n_cells() << " tetrahedra" << std::endl;
+
+	auto propertyControlPointsOpt
+	    = mesh.get_face_property<std::vector<double>>("BezierFaceControlPoints");
+	auto propertyBezierDegreeOpt
+	    = mesh.get_property<int, OpenVolumeMesh::Entity::Mesh>("BezierDegree");
+	auto propertyIsBezierMesh
+	    = mesh.get_property<bool, OpenVolumeMesh::Entity::Mesh>("IsBezierMesh");
+
+	if (!propertyIsBezierMesh)
+	{
+		std::printf("ERROR: Property IsBezierMesh not found\n");
+		return false;
+	}
+
+	int N = 0;
+	if (propertyBezierDegreeOpt)
+	{
+		N = propertyBezierDegreeOpt.value().data_vector()[0];
+		debug_printFmt("Found Tetrahedron degree: %d\n", N);
+	}
+	else
+	{
+		std::printf("ERROR: Propery BezierDegree not found\n");
+		return false;
+	}
+
+	raytracingScene.clearScene();
+
+	// first sphere represents light
+	raytracingScene.addObjectSphere(
+	    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
+
+	// if we found the control points property
+	if (propertyControlPointsOpt)
+	{
+		auto controlPointsVectors = propertyControlPointsOpt.value();
+
+		// TODO: temporary limit
+		const int triangle_max = 30;
+		int triangles_added = 0;
+
+		// each vector represents one face - data is the control points as 3 doubles
+		for (auto it = controlPointsVectors.begin(); it != controlPointsVectors.end(); it++)
+		{
+			std::vector<glm::vec3> faceControlPoints;
+
+			for (auto controlPoint = it->begin(); controlPoint != it->end();)
+			{
+				// extract 3 values at a time and convert to vec3
+				auto x = *controlPoint;
+				controlPoint++;
+				auto y = *controlPoint;
+				controlPoint++;
+				auto z = *controlPoint;
+				controlPoint++;
+
+				auto point = glm::vec3(x, y, z);
+				faceControlPoints.push_back(point);
+			}
+
+			size_t num_control_points = faceControlPoints.size();
+
+			// convert the control points to the correct bezier triangle type
+			if (N == 1)
+			{
+				if (num_control_points != 3)
+				{
+					std::printf("ERROR: BezierTriangle1 requires 3 control points\n");
+					continue;
+				}
+				// 	auto bezierTriangle = BezierTriangle1{};
+				// 	bezierTriangle.controlPoints[0] = faceControlPoints[2];
+				// 	bezierTriangle.controlPoints[1] = faceControlPoints[1];
+				// 	bezierTriangle.controlPoints[2] = faceControlPoints[0];
+				// 	raytracingScene.addObjectBezierTriangle(bezierTriangle);
+
+				// TODO: implement BezierTriangle1
+				throw std::runtime_error("BezierTriangle1 not implemented");
+			}
+			else if (N == 2)
+			{
+				if (num_control_points != 6)
+				{
+					std::printf("ERROR: BezierTriangle2 requires 6 control points\n");
+					continue;
+				}
+
+				auto bezierTriangle = BezierTriangle2{};
+				// we need to flip the order here so the lighting calculation is correct - the
+				// normal of the face is inverted otherwise - we could also inverse the normal
+				// calculation but everything else already uses the current normal direction
+				bezierTriangle.controlPoints[0] = faceControlPoints[2];
+				bezierTriangle.controlPoints[1] = faceControlPoints[1];
+				bezierTriangle.controlPoints[2] = faceControlPoints[0];
+
+				bezierTriangle.controlPoints[3] = faceControlPoints[4];
+				bezierTriangle.controlPoints[4] = faceControlPoints[3];
+
+				bezierTriangle.controlPoints[5] = faceControlPoints[5];
+				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+			}
+			else if (N == 3)
+			{
+				if (num_control_points != 10)
+				{
+					std::printf("ERROR: BezierTriangle3 requires 10 control points\n");
+					continue;
+				}
+
+				auto bezierTriangle = BezierTriangle3{};
+				// we need to flip the order here so the lighting calculation is correct - the
+				// normal of the face is inverted otherwise - we could also inverse the normal
+				// calculation but everything else already uses the current normal direction
+				bezierTriangle.controlPoints[0] = faceControlPoints[3];
+				bezierTriangle.controlPoints[1] = faceControlPoints[2];
+				bezierTriangle.controlPoints[2] = faceControlPoints[1];
+				bezierTriangle.controlPoints[3] = faceControlPoints[0];
+
+				bezierTriangle.controlPoints[4] = faceControlPoints[6];
+				bezierTriangle.controlPoints[5] = faceControlPoints[5];
+				bezierTriangle.controlPoints[6] = faceControlPoints[4];
+
+				bezierTriangle.controlPoints[7] = faceControlPoints[8];
+				bezierTriangle.controlPoints[8] = faceControlPoints[7];
+
+				bezierTriangle.controlPoints[9] = faceControlPoints[9];
+				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+			}
+			else if (N == 4)
+			{
+				if (num_control_points != 15)
+				{
+					std::printf("ERROR: BezierTriangle3 requires 15 control points\n");
+					continue;
+				}
+				auto bezierTriangle = BezierTriangle3{};
+				// we need to flip the order here so the lighting calculation is correct - the
+				// normal of the face is inverted otherwise - we could also inverse the normal
+				// calculation but everything else already uses the current normal direction
+				bezierTriangle.controlPoints[0] = faceControlPoints[4];
+				bezierTriangle.controlPoints[1] = faceControlPoints[3];
+				bezierTriangle.controlPoints[2] = faceControlPoints[2];
+				bezierTriangle.controlPoints[3] = faceControlPoints[1];
+				bezierTriangle.controlPoints[4] = faceControlPoints[0];
+
+				bezierTriangle.controlPoints[5] = faceControlPoints[8];
+				bezierTriangle.controlPoints[6] = faceControlPoints[7];
+				bezierTriangle.controlPoints[7] = faceControlPoints[6];
+				bezierTriangle.controlPoints[8] = faceControlPoints[5];
+
+				bezierTriangle.controlPoints[9] = faceControlPoints[11];
+				bezierTriangle.controlPoints[10] = faceControlPoints[10];
+				bezierTriangle.controlPoints[11] = faceControlPoints[9];
+
+				bezierTriangle.controlPoints[12] = faceControlPoints[13];
+				bezierTriangle.controlPoints[13] = faceControlPoints[12];
+
+				bezierTriangle.controlPoints[14] = faceControlPoints[14];
+				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+			}
+			else
+			{
+				std::printf("ERROR: BezierTriangle not implemented for degree %d\n", N);
+			}
+
+			if (sceneConfig.visualizeControlPoints)
+			{
+				for (auto& point : faceControlPoints)
+				{
+					raytracingScene.addObjectSphere(point, 0.02f, ColorIdx::t_orange);
+					// printf("Control point: (%f, %f, %f)\n", point.x, point.y, point.z);
+				}
+			}
+
+			triangles_added++;
+			if (triangles_added > triangle_max) break;
+		}
+	}
+
+	auto cells = mesh.cells();
+	for (auto cellItr = cells.first; cellItr != cells.second; cellItr++)
+	{
+		auto faces = mesh.cell_faces(*cellItr);
+		for (auto facePtr = faces.first; facePtr != faces.second; facePtr++)
+		{
+			auto face = mesh.face(*facePtr);
+
+			auto halfedges = face.halfedges();
+			for (auto& halfedgePtr : halfedges)
+			{
+				auto halfedge = mesh.halfedge(halfedgePtr);
+				auto vertPtrFrom = halfedge.from_vertex();
+				auto vertPtrTo = halfedge.to_vertex();
+				auto vert1 = mesh.vertex(vertPtrFrom);
+				auto vert2 = mesh.vertex(vertPtrTo);
+
+				auto v1 = glm::vec3(vert1[0], vert1[1], vert1[2]);
+				auto v2 = glm::vec3(vert2[0], vert2[1], vert2[2]);
+				// raytracingScene.addObjectSphere(v1, 0.2f, ColorIdx::t_red);
+				// raytracingScene.addObjectSphere(v2, 0.2f, ColorIdx::t_yellow);
+
+				float step = 0.1f;
+				// auto dir = v2 - v1;
+				for (float a = 0.0; a <= 1.0f + 1e-5f; a += step)
+				{
+					// auto v = v1 + dir * a;
+					// raytracingScene.addObjectSphere(v, 0.1f, ColorIdx::t_green);
+				}
+
+				// std::printf("face %d:  halfedge %d from: %d: (%f, %f, %f) -> %d: (%f,%f,%f)\n",
+				//             facePtr->idx(),
+				//             halfedgePtr.idx(),
+				//             vertPtrFrom.idx(),
+				//             vert1[0],
+				//             vert1[1],
+				//             vert1[2],
+				//             vertPtrTo.idx(),
+				//             vert2[0],
+				//             vert2[1],
+				//             vert2[2]);
+			}
+		}
+	}
+	return true;
+}
+
+void Application::handle_dropped_file(GLFWwindow* window, const std::string path)
+{
+	tracer::CustomUserData& userData
+	    = *reinterpret_cast<tracer::CustomUserData*>(glfwGetWindowUserPointer(window));
+
+	auto& renderer = userData.renderer;
+	auto sceneConfig = tracer::SceneConfig::fromUIData(userData.uiData);
+	auto& raytracingScene = renderer.getRaytracingScene();
+
+	std::printf("Loading OpenVolumeMesh model from file: %s\n", path.c_str());
+
+	bool loadingSuccessful
+	    = Application::loadOpenVolumeMeshFile(path, raytracingScene, renderer, sceneConfig);
+
+	// =========================================================================
+	// Rebuild Bottom and Top Level Acceleration Structure
+	if (loadingSuccessful && renderer.getRaytracingSupported())
+	{
+		vkQueueWaitIdle(renderer.getRaytracingInfo().graphicsQueueHandle);
+		raytracingScene.recreateAccelerationStructures(renderer.getRaytracingInfo(), true);
+
+		// =========================================================================
+		// Update Descriptor Set
+		tracer::rt::updateAccelerationStructureDescriptorSet(
+		    userData.logicalDevice, raytracingScene, renderer.getRaytracingInfo());
+	}
+}
+
 void Application::setupScene(tracer::rt::RaytracingScene& raytracingScene)
 {
 	auto sceneConfig = tracer::SceneConfig::fromUIData(*uiData);
@@ -153,7 +432,7 @@ void Application::setupScene(tracer::rt::RaytracingScene& raytracingScene)
 	    *renderer, raytracingScene, sceneConfig, raytracingScene.getCurrentSceneNr());
 
 	// =========================================================================
-	// Bottom and Top Level Acceleration Structure
+	// Rebuild Bottom and Top Level Acceleration Structure
 	if (raytracingSupported)
 	{
 		vkQueueWaitIdle(renderer->getRaytracingInfo().graphicsQueueHandle);
@@ -242,6 +521,23 @@ void Application::initInputHandlers()
 	glfwSetCursorEnterCallback(window.getGLFWWindow(), ImGui_ImplGlfw_CursorEnterCallback);
 	glfwSetCharCallback(window.getGLFWWindow(), ImGui_ImplGlfw_CharCallback);
 	glfwSetMonitorCallback(ImGui_ImplGlfw_MonitorCallback);
+
+	// TODO: move lambda into input.cpp file
+	glfwSetDropCallback(window.getGLFWWindow(),
+	                    [](GLFWwindow* window, int count, const char** path)
+	                    {
+		                    if (count > 1)
+		                    {
+			                    std::printf(
+			                        "ERROR: Only one file can be loaded. Loading first file\n");
+		                    }
+
+		                    if (count > 0)
+		                    {
+			                    std::string pathStr = path[0];
+			                    Application::handle_dropped_file(window, pathStr);
+		                    }
+	                    });
 }
 
 void Application::printSelectedGPU()

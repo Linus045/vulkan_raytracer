@@ -355,6 +355,7 @@ void renderHelpInfo(const tracer::ui::UIData& uiData)
 	ImGui::Text("Arrow keys to rotate");
 	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
 	ImGui::Text("C to [C]ollapse/Expand menu");
+	ImGui::Text("Drag & drop a .ovm file onto the window to load (OpenVolumeMesh)");
 
 	ImGui::Separator();
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());

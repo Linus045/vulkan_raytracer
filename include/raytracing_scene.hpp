@@ -141,7 +141,6 @@ class RaytracingScene
 
 	template <typename T>
 	std::vector<RaytracingWorldObject<T>>& getTriangleList();
-
 	template <>
 	std::vector<RaytracingWorldObject<BezierTriangle2>>& getTriangleList()
 	{
@@ -183,6 +182,8 @@ class RaytracingScene
 	{
 		slicingPlanes.push_back(slicingPlane);
 	}
+
+	void clearScene();
 
 	template <typename T>
 	void addSidesFromTetrahedronAsBezierTriangles(const T& tetrahedron,

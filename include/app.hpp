@@ -2,6 +2,7 @@
 
 #include <memory>
 
+#include "raytracing_scene.hpp"
 #include "vk_mem_alloc.h"
 
 #include "custom_user_data.hpp"
@@ -35,6 +36,10 @@ class Application
 	                                 const std::vector<const char*> requiredDeviceExtensions);
 	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions);
 	void setupScene(tracer::rt::RaytracingScene& RaytracingScene);
+	static bool loadOpenVolumeMeshFile(std::filesystem::path path,
+	                                   tracer::rt::RaytracingScene& raytracingScene,
+	                                   tracer::Renderer& renderer,
+	                                   const tracer::SceneConfig sceneConfig);
 
 	static void resizeFramebuffer(VkPhysicalDevice physicalDevice,
 	                              VkDevice logicalDevice,
@@ -78,6 +83,8 @@ class Application
 	static void framebufferResizeCallback(GLFWwindow* window,
 	                                      [[maybe_unused]] int width,
 	                                      [[maybe_unused]] int height);
+
+	static void handle_dropped_file(GLFWwindow* window, const std::string path);
 
   private:
 	// stores the data displayed in the ui

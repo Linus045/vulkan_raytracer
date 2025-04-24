@@ -169,6 +169,11 @@ class Renderer
 		return raytracingInfo;
 	}
 
+	inline bool getRaytracingSupported() const
+	{
+		return raytracingSupported;
+	}
+
 	inline RaytracingInfo& getRaytracingInfo()
 	{
 		return raytracingInfo;

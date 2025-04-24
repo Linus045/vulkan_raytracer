@@ -16,3 +16,6 @@
 [submodule "3rdparty/vulkanMemoryAllocator"]
 	path = 3rdparty/vulkanMemoryAllocator
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+[submodule "3rdparty/OpenVolumeMesh"]
+	path = 3rdparty/OpenVolumeMesh
+	url = https://gitlab.vci.rwth-aachen.de:9000/OpenVolumeMesh/OpenVolumeMesh.git

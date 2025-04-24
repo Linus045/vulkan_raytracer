@@ -478,3 +478,5 @@ shaders/*.spv
 [Dd]ebug/
 [Rr]elease/
 !/3d-models/**/*.obj
+
+models-OpenVolumeMesh/

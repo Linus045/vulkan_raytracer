@@ -16,6 +16,20 @@ static glm::vec3 getRandomOffset(const int min, const int max)
 	return glm::vec3(dist(rd), dist(rd), dist(rd));
 }
 
+void RaytracingScene::clearScene()
+{
+	getWorldObjectSpheres().clear();
+	// raytracingScene.getWorldObjectTetrahedrons().clear();
+	getWorldObjectBezierTriangles<BezierTriangle2>().clear();
+	getWorldObjectBezierTriangles<BezierTriangle3>().clear();
+	getWorldObjectBezierTriangles<BezierTriangle4>().clear();
+	getWorldObjectRectangularBezierSurfaces2x2().clear();
+
+	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it
+	/// per scene
+	// raytracingScene.getSlicingPlanes().clear();
+}
+
 /// Loads the scene with the given index. A manual rebuild of the acceleration
 /// structure is still required
 void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
@@ -29,18 +43,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		return;
 	}
 
+	raytracingScene.clearScene();
 	raytracingScene.currentSceneNr = sceneNr;
-
-	raytracingScene.getWorldObjectSpheres().clear();
-	// raytracingScene.getWorldObjectTetrahedrons().clear();
-	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle2>().clear();
-	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle3>().clear();
-	raytracingScene.getWorldObjectBezierTriangles<BezierTriangle4>().clear();
-	raytracingScene.getWorldObjectRectangularBezierSurfaces2x2().clear();
-
-	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it per
-	/// scene
-	// raytracingScene.getSlicingPlanes().clear();
 
 	// first sphere represents light
 	raytracingScene.addObjectSphere(
