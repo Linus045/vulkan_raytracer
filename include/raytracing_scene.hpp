@@ -679,16 +679,19 @@ class RaytracingScene
 		assert(objectBuffers.gpuObjectsBufferHandle == VK_NULL_HANDLE
 		       && "GPU buffer already created");
 
-		createBuffer(physicalDevice,
-		             logicalDevice,
-		             vmaAllocator,
-		             deletionQueueForAccelerationStructure,
-		             sizeof(GPUInstance) * instancesCount,
-		             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-		             memoryAllocateFlagsInfo,
-		             objectBuffers.gpuObjectsBufferHandle,
-		             objectBuffers.gpuObjectsBufferAllocation);
+		if (instancesCount > 0)
+		{
+			createBuffer(physicalDevice,
+			             logicalDevice,
+			             vmaAllocator,
+			             deletionQueueForAccelerationStructure,
+			             sizeof(GPUInstance) * instancesCount,
+			             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+			             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+			             memoryAllocateFlagsInfo,
+			             objectBuffers.gpuObjectsBufferHandle,
+			             objectBuffers.gpuObjectsBufferAllocation);
+		}
 
 		std::vector<BLASBuildData> blasBuildDataList;
 
@@ -751,10 +754,13 @@ class RaytracingScene
 		// }
 
 		// update buffer data
-		copyDataToBuffer(vmaAllocator,
-		                 objectBuffers.gpuObjectsBufferAllocation,
-		                 gpuObjects.data(),
-		                 sizeof(GPUInstance) * instancesCount);
+		if (instancesCount > 0)
+		{
+			copyDataToBuffer(vmaAllocator,
+			                 objectBuffers.gpuObjectsBufferAllocation,
+			                 gpuObjects.data(),
+			                 sizeof(GPUInstance) * instancesCount);
+		}
 
 		return blasBuildDataList;
 	}
