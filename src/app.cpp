@@ -6,7 +6,6 @@
 #include <iostream>
 #include <format>
 #include <memory>
-#include <print>
 #include <set>
 #include <stdexcept>
 #include <vector>
@@ -160,11 +159,11 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	OpenVolumeMesh::GeometricTetrahedralMeshV3d mesh;
 	if (filemanager.readFile(path, mesh))
 	{
-		std::println("Mesh loaded");
+		std::printf("Mesh loaded\n");
 	}
 	else
 	{
-		std::println("Error: Mesh failed to load!");
+		std::printf("Error: Mesh failed to load!\n");
 		return false;
 	}
 
