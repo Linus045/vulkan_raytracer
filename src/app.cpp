@@ -157,7 +157,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 {
 	static auto filemanager = OpenVolumeMesh::IO::FileManager();
 	OpenVolumeMesh::GeometricTetrahedralMeshV3d mesh;
-	if (filemanager.readFile(path, mesh))
+	if (filemanager.readFile(path.string(), mesh))
 	{
 		std::printf("Mesh loaded\n");
 	}
