@@ -276,7 +276,7 @@ int getControlPointIndicesBezierTriangle3(int i, int j, int k)
 // returns the control point index for the bezier triangle of degree 3
 int getControlPointIndicesBezierTriangle4(int i, int j, int k)
 {
-	if (i == 0 && j == 0 && k == 4) return 1;
+	if (i == 0 && j == 0 && k == 4) return 0;
 	if (i == 1 && j == 0 && k == 3) return 1;
 	if (i == 2 && j == 0 && k == 2) return 2;
 	if (i == 3 && j == 0 && k == 1) return 3;
