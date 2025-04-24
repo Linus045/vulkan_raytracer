@@ -304,7 +304,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 					std::printf("ERROR: BezierTriangle3 requires 15 control points\n");
 					continue;
 				}
-				auto bezierTriangle = BezierTriangle3{};
+				auto bezierTriangle = BezierTriangle4{};
 				// we need to flip the order here so the lighting calculation is correct - the
 				// normal of the face is inverted otherwise - we could also inverse the normal
 				// calculation but everything else already uses the current normal direction
@@ -348,50 +348,50 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 		}
 	}
 
-	auto cells = mesh.cells();
-	for (auto cellItr = cells.first; cellItr != cells.second; cellItr++)
-	{
-		auto faces = mesh.cell_faces(*cellItr);
-		for (auto facePtr = faces.first; facePtr != faces.second; facePtr++)
-		{
-			auto face = mesh.face(*facePtr);
+	// auto cells = mesh.cells();
+	// for (auto cellItr = cells.first; cellItr != cells.second; cellItr++)
+	// {
+	// 	auto faces = mesh.cell_faces(*cellItr);
+	// 	for (auto facePtr = faces.first; facePtr != faces.second; facePtr++)
+	// 	{
+	// 		auto face = mesh.face(*facePtr);
 
-			auto halfedges = face.halfedges();
-			for (auto& halfedgePtr : halfedges)
-			{
-				auto halfedge = mesh.halfedge(halfedgePtr);
-				auto vertPtrFrom = halfedge.from_vertex();
-				auto vertPtrTo = halfedge.to_vertex();
-				auto vert1 = mesh.vertex(vertPtrFrom);
-				auto vert2 = mesh.vertex(vertPtrTo);
+	// 		auto halfedges = face.halfedges();
+	// 		for (auto& halfedgePtr : halfedges)
+	// 		{
+	// 			auto halfedge = mesh.halfedge(halfedgePtr);
+	// 			auto vertPtrFrom = halfedge.from_vertex();
+	// 			auto vertPtrTo = halfedge.to_vertex();
+	// 			auto vert1 = mesh.vertex(vertPtrFrom);
+	// 			auto vert2 = mesh.vertex(vertPtrTo);
 
-				auto v1 = glm::vec3(vert1[0], vert1[1], vert1[2]);
-				auto v2 = glm::vec3(vert2[0], vert2[1], vert2[2]);
-				// raytracingScene.addObjectSphere(v1, 0.2f, ColorIdx::t_red);
-				// raytracingScene.addObjectSphere(v2, 0.2f, ColorIdx::t_yellow);
+	// 			auto v1 = glm::vec3(vert1[0], vert1[1], vert1[2]);
+	// 			auto v2 = glm::vec3(vert2[0], vert2[1], vert2[2]);
+	// raytracingScene.addObjectSphere(v1, 0.2f, ColorIdx::t_red);
+	// raytracingScene.addObjectSphere(v2, 0.2f, ColorIdx::t_yellow);
 
-				float step = 0.1f;
-				// auto dir = v2 - v1;
-				for (float a = 0.0; a <= 1.0f + 1e-5f; a += step)
-				{
-					// auto v = v1 + dir * a;
-					// raytracingScene.addObjectSphere(v, 0.1f, ColorIdx::t_green);
-				}
+	// float step = 0.1f;
+	// auto dir = v2 - v1;
+	// for (float a = 0.0; a <= 1.0f + 1e-5f; a += step)
+	// {
+	// auto v = v1 + dir * a;
+	// raytracingScene.addObjectSphere(v, 0.1f, ColorIdx::t_green);
+	// }
 
-				// std::printf("face %d:  halfedge %d from: %d: (%f, %f, %f) -> %d: (%f,%f,%f)\n",
-				//             facePtr->idx(),
-				//             halfedgePtr.idx(),
-				//             vertPtrFrom.idx(),
-				//             vert1[0],
-				//             vert1[1],
-				//             vert1[2],
-				//             vertPtrTo.idx(),
-				//             vert2[0],
-				//             vert2[1],
-				//             vert2[2]);
-			}
-		}
-	}
+	// std::printf("face %d:  halfedge %d from: %d: (%f, %f, %f) -> %d: (%f,%f,%f)\n",
+	//             facePtr->idx(),
+	//             halfedgePtr.idx(),
+	//             vertPtrFrom.idx(),
+	//             vert1[0],
+	//             vert1[1],
+	//             vert1[2],
+	//             vertPtrTo.idx(),
+	//             vert2[0],
+	//             vert2[1],
+	//             vert2[2]);
+	// 		}
+	// 	}
+	// }
 	return true;
 }
 
