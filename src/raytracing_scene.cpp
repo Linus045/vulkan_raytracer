@@ -316,5 +316,23 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	}
 }
 
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle2>>& RaytracingScene::getTriangleList()
+{
+	return bezierTriangles2;
+}
+
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle3>>& RaytracingScene::getTriangleList()
+{
+	return bezierTriangles3;
+}
+
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle4>>& RaytracingScene::getTriangleList()
+{
+	return bezierTriangles4;
+}
+
 } // namespace rt
 } // namespace tracer

@@ -142,23 +142,6 @@ class RaytracingScene
 
 	template <typename T>
 	std::vector<RaytracingWorldObject<T>>& getTriangleList();
-	template <>
-	std::vector<RaytracingWorldObject<BezierTriangle2>>& getTriangleList()
-	{
-		return bezierTriangles2;
-	}
-
-	template <>
-	std::vector<RaytracingWorldObject<BezierTriangle3>>& getTriangleList()
-	{
-		return bezierTriangles3;
-	}
-
-	template <>
-	std::vector<RaytracingWorldObject<BezierTriangle4>>& getTriangleList()
-	{
-		return bezierTriangles4;
-	}
 
 	template <typename S>
 	RaytracingWorldObject<S>& addObjectBezierTriangle(const S& bezierTriangle,
