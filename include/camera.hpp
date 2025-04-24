@@ -29,9 +29,10 @@ class Camera
   public:
 	Transform transform;
 	const glm::vec3 globalUp = {0, 1, 0};
+	constexpr static const glm::vec3 initial_position = {-3.5, 1, 1};
 
   public:
-	explicit Camera() : transform(glm::vec3(-3.5, 1, 1))
+	explicit Camera() : transform(initial_position)
 	{
 		glm::vec3 up = globalUp;
 		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(1, 0, 0)), up));
@@ -57,6 +58,16 @@ class Camera
 	glm::mat4 getViewMatrix() const
 	{
 		return viewMatrix;
+	}
+
+	void resetPositionAndOrientation()
+	{
+		transform.setPos(initial_position);
+		transform.setRotation(glm::quatLookAtRH(glm::normalize(glm::vec3(1, 0, 0)), globalUp));
+		pitchRadians = glm::pitch(transform.getRotation());
+		yawRadians = glm::yaw(transform.getRotation());
+		updateViewMatrix();
+		cameraMoved = true;
 	}
 
 	void updateScreenSize(const uint32_t width, const uint32_t height)

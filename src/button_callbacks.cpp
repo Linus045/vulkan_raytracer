@@ -110,10 +110,7 @@ static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneNr)
 	uiData.recreateAccelerationStructures.requestRecreate(true);
 };
 
-void registerButtonFunctions(Window& window,
-                             Renderer& renderer,
-                             const Camera& camera,
-                             ui::UIData& uiData)
+void registerButtonFunctions(Window& window, Renderer& renderer, Camera& camera, ui::UIData& uiData)
 {
 	auto openUI = [&]() { uiData.mainPanelCollapsed = !uiData.mainPanelCollapsed; };
 	uiData.buttonCallbacks.push_back(ui::ButtonData{
@@ -157,6 +154,18 @@ void registerButtonFunctions(Window& window,
 	    .tooltip = "Visualizes the slicing plane with spheres. For debugging only.",
 	    .callback = [&]() { visualizeSlicingPlanes(renderer, uiData); },
 	});
+
+	auto moveCameraHome = [&]() { camera.resetPositionAndOrientation(); };
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "[H] move camera [H]ome",
+	    .tooltip = "Resets the camera to its original position and orientation",
+	    .callback = moveCameraHome,
+	});
+	registerKeyListener(window,
+	                    GLFW_KEY_H,
+	                    tracer::KeyTriggerMode::KeyDown,
+	                    tracer::KeyListeningMode::FLYING_CAMERA,
+	                    moveCameraHome);
 
 	auto sceneCount = RaytracingScene::getSceneCount();
 	for (int sceneNr = 1; sceneNr <= sceneCount; sceneNr++)

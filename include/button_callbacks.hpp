@@ -17,7 +17,7 @@ namespace rt
 
 void registerButtonFunctions(Window& window,
                              Renderer& renderer,
-                             const Camera& camera,
+                             Camera& camera,
                              ui::UIData& uiData);
 }
 } // namespace tracer
