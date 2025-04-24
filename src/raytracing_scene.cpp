@@ -91,7 +91,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
 		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
-		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset,
+		    glm::vec3(3.0f, 1.5f, 0.0f) * scalar + offset,
 		}));
 
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
@@ -107,7 +107,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	}
 	else if (sceneNr == 3)
 	{
-		auto point02 = glm::vec3(1.0f, -1.0f, 0.0f);
+		auto point02 = glm::vec3(0.0f, 0.0f, 0.0f);
 		auto point34 = glm::vec3(0.0f, 1.0f, 0.0f);
 		auto point55 = glm::vec3(0.0f, 2.0f, 0.0f);
 		auto point67 = glm::vec3(1.0f, 0.0f, 0.0f);
