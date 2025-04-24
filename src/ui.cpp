@@ -167,8 +167,8 @@ void renderRaytracingOptions(UIData& uiData)
 			bool lightPositionChanged
 			    = ImGui::SliderFloat3("Global Light Position",
 			                          &uiData.raytracingDataConstants.globalLightPosition.x,
-			                          -10.0f,
-			                          10.0f,
+			                          -30.0f,
+			                          30.0f,
 			                          "%.1f",
 			                          0);
 			if (lightPositionChanged)
