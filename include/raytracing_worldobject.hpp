@@ -41,6 +41,11 @@ class RaytracingWorldObject : public WorldObject
 		return type;
 	}
 
+	void setType(const ObjectType new_type)
+	{
+		type = new_type;
+	}
+
 	void setPosition(const glm::vec3) override
 	{
 		throw new std::runtime_error("setPosition not implemented for type T. Please add a "
@@ -81,7 +86,7 @@ class RaytracingWorldObject : public WorldObject
 
   protected:
 	Geometry<T> geometry;
-	const ObjectType type;
+	ObjectType type;
 
 	// TODO: The RaytracingWorldObject should not keep track of its index, create some kind of
 	// mapping inside RaytracingScene that holds the mapping from the object to its entry in the

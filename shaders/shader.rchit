@@ -135,7 +135,9 @@ void main()
 		payload.indirectColor = vec3(0, 0, 0);
 	}
 	else if (gl_HitKindEXT == t_BezierTriangle2 || gl_HitKindEXT == t_BezierTriangle3
-	         || gl_HitKindEXT == t_BezierTriangle4)
+	         || gl_HitKindEXT == t_BezierTriangle4 || gl_HitKindEXT == t_BezierTriangleInside2
+	         || gl_HitKindEXT == t_BezierTriangleInside3
+	         || gl_HitKindEXT == t_BezierTriangleInside4)
 	{
 		vec3 surfaceColor = vec3(1.0, 1.0, 0.0);
 
@@ -148,13 +150,21 @@ void main()
 
 		// if we have slicing planes enables, we wanna treat points in front of the slicing
 		// plane special
-		//
-		// check if we hit the inside of the object by comparing the normal with our ray direction
-		// if the normal and the ray direction faces in the same direction, we hit the inside,
-		// if the normal is facing us we hit the outside of the object
+		// either we hit a plane that is already marked as an inside plane, or otherwise we need to
+		// calculate it:
+		// check if we hit the inside of the object by comparing the normal with our
+		// ray direction if the normal and the ray direction faces in the same direction, we hit the
+		// inside, if the normal is facing us we hit the outside of the object
 		if (raytracingDataConstants.enableSlicingPlanes > 0.0
-		    && dot(hitData.normal, payload.rayDirection) > 0.0)
+		    && ((gl_HitKindEXT == t_BezierTriangleInside2
+		         || gl_HitKindEXT == t_BezierTriangleInside3
+		         || gl_HitKindEXT == t_BezierTriangleInside4)
+		        || dot(hitData.normal, payload.rayDirection) > 0.0))
 		{
+			if (isCrosshairRay)
+			{
+				debugPrintfEXT("gl_HitKindTEXT: %d", gl_HitKindEXT);
+			}
 			// we hit the inside of the object,
 			// so we need move the hitpoint to the slicing plane instead
 			SlicingPlane plane = slicingPlanes[0];

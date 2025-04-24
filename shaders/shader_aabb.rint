@@ -656,7 +656,8 @@ void main()
 
 	float tHit = -1;
 	if (objectType == t_BezierTriangle2 || objectType == t_BezierTriangle3
-	    || objectType == t_BezierTriangle4)
+	    || objectType == t_BezierTriangle4 || objectType == t_BezierTriangleInside2
+	    || objectType == t_BezierTriangleInside3 || objectType == t_BezierTriangleInside4)
 	{
 		vec3 n1, n2;
 
@@ -705,7 +706,7 @@ void main()
 			    vec2(.5, .5),
 			};
 
-			if (objectType == t_BezierTriangle2)
+			if (objectType == t_BezierTriangle2 || objectType == t_BezierTriangleInside2)
 			{
 				BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
@@ -725,7 +726,7 @@ void main()
 					}
 				}
 			}
-			else if (objectType == t_BezierTriangle3)
+			else if (objectType == t_BezierTriangle3 || objectType == t_BezierTriangleInside3)
 			{
 				BezierTriangle3 bezierTriangle = bezierTriangles3[instance.bufferIndex];
 				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
@@ -745,7 +746,7 @@ void main()
 					}
 				}
 			}
-			else if (objectType == t_BezierTriangle4)
+			else if (objectType == t_BezierTriangle4 || objectType == t_BezierTriangleInside4)
 			{
 				BezierTriangle4 bezierTriangle = bezierTriangles4[instance.bufferIndex];
 				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)

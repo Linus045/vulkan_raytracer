@@ -55,11 +55,22 @@ START_BINDING(ObjectType)
 	t_Tetrahedron2 = 2,
 	t_Tetrahedron3 = 3,
 	t_Tetrahedron4 = 4,
+
+	// not used
 	t_RectangularBezierSurface2x2 = 10,
+
+	// represents the sides of a tetrahedron that are outside, default
 	t_BezierTriangle1 = 11,
 	t_BezierTriangle2 = 12,
 	t_BezierTriangle3 = 13,
 	t_BezierTriangle4 = 14,
+
+	// represents the sides of a tetrahedron that are inside (used for the slicing plane calculations)
+	t_BezierTriangleInside1 = 21,
+	t_BezierTriangleInside2 = 22,
+	t_BezierTriangleInside3 = 23,
+	t_BezierTriangleInside4 = 24,
+
 	t_Sphere = 99,
 	t_AABBDebug = 100
 END_BINDING();

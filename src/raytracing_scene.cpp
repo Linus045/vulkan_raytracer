@@ -131,7 +131,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			    point88,
 			    point99,
 			}));
-			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+
+			// mark left side triangle as inside
+			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
+			    tetrahedron2, {true, true, true, true}, {false, false, true, false});
 
 			if (sceneConfig.visualizeControlPoints)
 			{
@@ -155,8 +158,10 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 			    point88,
 			    point99,
 			}));
-			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
 
+			// mark right side triangle as inside
+			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
+			    tetrahedron2, {true, true, true, true}, {false, false, false, true});
 			if (sceneConfig.visualizeControlPoints)
 			{
 				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);

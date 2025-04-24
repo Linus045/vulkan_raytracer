@@ -269,7 +269,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[4] = faceControlPoints[3];
 
 				bezierTriangle.controlPoints[5] = faceControlPoints[5];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
 			}
 			else if (N == 3)
 			{
@@ -296,7 +296,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[8] = faceControlPoints[7];
 
 				bezierTriangle.controlPoints[9] = faceControlPoints[9];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
 			}
 			else if (N == 4)
 			{
@@ -328,7 +328,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[13] = faceControlPoints[12];
 
 				bezierTriangle.controlPoints[14] = faceControlPoints[14];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle);
+				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
 			}
 			else
 			{

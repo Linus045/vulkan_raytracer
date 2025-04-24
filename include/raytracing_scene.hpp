@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stdexcept>
 #include <vector>
 #include <cmath>
 
@@ -160,12 +161,39 @@ class RaytracingScene
 	}
 
 	template <typename S>
-	RaytracingWorldObject<S>& addObjectBezierTriangle(const S& bezierTriangle)
+	RaytracingWorldObject<S>& addObjectBezierTriangle(const S& bezierTriangle,
+	                                                  const bool markAsInside)
 	{
 		AABB aabb = AABB::fromBezierTriangle(bezierTriangle);
 		constexpr auto objectType = getObjectType<S>();
+
+		ObjectType type = objectType;
+
+		// mark as inside for the slicing plane calculations
+		if (markAsInside)
+		{
+			switch (objectType)
+			{
+			case ObjectType::t_BezierTriangle1:
+				type = ObjectType::t_BezierTriangleInside1;
+				break;
+			case ObjectType::t_BezierTriangle2:
+				type = ObjectType::t_BezierTriangleInside2;
+				break;
+			case ObjectType::t_BezierTriangle3:
+				type = ObjectType::t_BezierTriangleInside3;
+				break;
+			case ObjectType::t_BezierTriangle4:
+				type = ObjectType::t_BezierTriangleInside4;
+				break;
+			default:
+				throw std::runtime_error(
+				    "addObjectBezierTriangle - Object type has no inside variant");
+			}
+		}
+
 		auto& trianglesList = getTriangleList<S>();
-		trianglesList.emplace_back(objectType, aabb, bezierTriangle, glm::vec3(0));
+		trianglesList.emplace_back(type, aabb, bezierTriangle, glm::vec3(0));
 		return trianglesList.back();
 	}
 
@@ -185,17 +213,34 @@ class RaytracingScene
 
 	void clearScene();
 
+	/**
+	 * @brief extracts the 4 sides from the tetehedron and adds them to the scene
+	 *
+	 * @param tetrahedron the tetrahedron to extract the sides from
+	 * @param extractSide indicates if the side should be added
+	 * @param markTriangleAsInside indicates if the triangle should be marked as inside (used for
+	 * slicing plane calculations)
+	 * @param subdivisions NOT IMPLEMENTED - sets the amount of subdivisions
+	 *
+	 * sids are as follows using a simple tetrahedron as reference:
+	 * 0: front face (negative x)
+	 * 1: bottom face (negative y)
+	 * 2: left face (negative z)
+	 * 3: right face (positive x/z)
+	 */
 	template <typename T>
 	void addSidesFromTetrahedronAsBezierTriangles(const T& tetrahedron,
-	                                              const std::array<bool, 4>& sides
+	                                              const std::array<bool, 4>& extractSide
 	                                              = {true, true, true, true},
+	                                              const std::array<bool, 4>& markTriangleAsInside
+	                                              = {false, false, false, false},
 	                                              const int subdivisions = 0)
 	{
 		using S = typename BezierTriangleFromTetrahedron<T>::type;
 
 		for (int side = 1; side <= 4; side++)
 		{
-			if (!sides[static_cast<size_t>(side - 1)])
+			if (!extractSide[static_cast<size_t>(side - 1)])
 			{
 				continue;
 			}
@@ -238,7 +283,8 @@ class RaytracingScene
 
 			for (const auto& subTriangle : subTriangles)
 			{
-				addObjectBezierTriangle(subTriangle);
+				addObjectBezierTriangle(subTriangle,
+				                        markTriangleAsInside[static_cast<size_t>(side - 1)]);
 			}
 			// visualizeTetrahedron2(raytracingScene, tetrahedron2);
 		}
@@ -552,7 +598,6 @@ class RaytracingScene
 	void addObjectsToBLASBuildDataListAndGPUObjectsList(
 	    std::vector<BLASBuildData>& blasBuildDataList,
 	    std::vector<RaytracingWorldObject<T>>& referenceList,
-	    const ObjectType objectType,
 	    const std::vector<T>& objectData,
 	    const std::vector<VkBuffer>& aabbBufferHandles)
 	{
@@ -566,7 +611,7 @@ class RaytracingScene
 			    referenceList[i].getTransform().getTransformMatrix());
 
 			referenceList[i].setInstanceIndex(blasBuildDataList.size());
-			gpuObjects.push_back(GPUInstance(objectType, i));
+			gpuObjects.push_back(GPUInstance(referenceList[i].getType(), i));
 			blasBuildDataList.push_back(buildData);
 		}
 	}
@@ -698,11 +743,8 @@ class RaytracingScene
 
 		// for each object add the extracted object data to the gpuObjects vector and create the
 		// buildData in blasBuildDataList
-		addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
-		                                               spheres,
-		                                               ObjectType::t_Sphere,
-		                                               spheresList,
-		                                               objectBuffers.spheresAABBBufferHandles);
+		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    blasBuildDataList, spheres, spheresList, objectBuffers.spheresAABBBufferHandles);
 
 		// addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
 		//                                                tetrahedrons2,
@@ -713,28 +755,24 @@ class RaytracingScene
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
 		    bezierTriangles2,
-		    ObjectType::t_BezierTriangle2,
 		    bezierTriangles2List,
 		    objectBuffers.bezierTriangles2AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
 		    bezierTriangles3,
-		    ObjectType::t_BezierTriangle3,
 		    bezierTriangles3List,
 		    objectBuffers.bezierTriangles3AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
 		    bezierTriangles4,
-		    ObjectType::t_BezierTriangle4,
 		    bezierTriangles4List,
 		    objectBuffers.bezierTriangles4AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
 		    blasBuildDataList,
 		    rectangularBezierSurfaces2x2,
-		    ObjectType::t_RectangularBezierSurface2x2,
 		    rectangularSurfaces2x2List,
 		    objectBuffers.rectangularBezierSurfacesAABB2x2BufferHandles);
 
