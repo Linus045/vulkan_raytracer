@@ -75,7 +75,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		visualizeTetrahedronSides(raytracingScene,
 		                          tetrahedron2,
 		                          sceneConfig.visualizeSampledSurface,
-		                          sceneConfig.visualizeControlPoints);
+		                          sceneConfig.visualizeSampledVolume);
 	}
 	else if (sceneNr == 2)
 	{
@@ -103,7 +103,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		visualizeTetrahedronSides(raytracingScene,
 		                          tetrahedron2,
 		                          sceneConfig.visualizeSampledSurface,
-		                          sceneConfig.visualizeControlPoints);
+		                          sceneConfig.visualizeSampledVolume);
 	}
 	else if (sceneNr == 3)
 	{
