@@ -354,6 +354,7 @@ void renderHelpInfo(const tracer::ui::UIData& uiData)
 	ImGui::Text("Scroll up/down to increase/decrease movement speed");
 	ImGui::Text("Arrow keys to rotate");
 	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
+	ImGui::Text("C to [C]ollapse/Expand menu");
 
 	ImGui::Separator();
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
