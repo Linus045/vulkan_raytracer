@@ -127,10 +127,27 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
                                       DeletionQueue& deletionQueue,
                                       const VkCommandBuffer bottomLevelCommandBuffer,
                                       const VkQueue graphicsQueue,
-                                      const BLASBuildData blasBuildData,
+                                      const std::vector<BLASBuildData> blasBuildDatas,
                                       const VkFence accelerationStructureBuildFence)
 {
 	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
+
+	std::vector<uint32_t> bottomLevelMaxPrimitiveCountList;
+	std::vector<VkAccelerationStructureGeometryKHR> geometries;
+	std::vector<VkAccelerationStructureBuildRangeInfoKHR>
+	    bottomLevelAccelerationStructureBuildRangeInfos;
+
+	bottomLevelMaxPrimitiveCountList.resize(blasBuildDatas.size());
+	geometries.resize(blasBuildDatas.size());
+	bottomLevelAccelerationStructureBuildRangeInfos.resize(blasBuildDatas.size());
+
+	for (size_t i = 0; i < blasBuildDatas.size(); i++)
+	{
+		auto& buildData = blasBuildDatas[i];
+		geometries[i] = buildData.geometry;
+		bottomLevelMaxPrimitiveCountList[i] = buildData.buildRangeInfo.primitiveCount;
+		bottomLevelAccelerationStructureBuildRangeInfos[i] = buildData.buildRangeInfo;
+	}
 
 	// Create buffer for the bottom level acceleration structure
 	VkAccelerationStructureBuildGeometryInfoKHR bottomLevelAccelerationStructureBuildGeometryInfo
@@ -142,14 +159,11 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	        .mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
 	        .srcAccelerationStructure = VK_NULL_HANDLE,
 	        .dstAccelerationStructure = VK_NULL_HANDLE,
-	        .geometryCount = 1,
-	        .pGeometries = &blasBuildData.geometry,
+	        .geometryCount = static_cast<uint32_t>(geometries.size()),
+	        .pGeometries = geometries.data(),
 	        .ppGeometries = NULL,
 	        .scratchData = {.deviceAddress = 0},
 	    };
-
-	std::vector<uint32_t> bottomLevelMaxPrimitiveCountList
-	    = {blasBuildData.buildRangeInfo.primitiveCount};
 
 	VkAccelerationStructureBuildSizesInfoKHR bottomLevelAccelerationStructureBuildSizesInfo = {
 	    .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
@@ -235,9 +249,6 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	    .deviceAddress = bottomLevelAccelerationStructureScratchBufferDeviceAddress,
 	};
 
-	const VkAccelerationStructureBuildRangeInfoKHR* bottomLevelAccelerationStructureBuildRangeInfos
-	    = &blasBuildData.buildRangeInfo;
-
 	VkCommandBufferBeginInfo bottomLevelCommandBufferBeginInfo = {
 	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
 	    .pNext = NULL,
@@ -269,11 +280,13 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 
 	vkCmdPipelineBarrier2(bottomLevelCommandBuffer, &dependencyInfoWaitforAccelerationStructure);
 
+	const VkAccelerationStructureBuildRangeInfoKHR* const buildRangeInfo[1]
+	    = {bottomLevelAccelerationStructureBuildRangeInfos.data()};
+
 	tracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
 	    bottomLevelCommandBuffer,
 	    1,
-	    &bottomLevelAccelerationStructureBuildGeometryInfo,
-	    &bottomLevelAccelerationStructureBuildRangeInfos);
+	    &bottomLevelAccelerationStructureBuildGeometryInfo, buildRangeInfo);
 
 	VK_CHECK_RESULT(vkEndCommandBuffer(bottomLevelCommandBuffer));
 

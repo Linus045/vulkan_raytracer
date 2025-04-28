@@ -819,8 +819,8 @@ class RaytracingScene
 	                                    VkFence accelerationStructureBuildFence)
 	{
 		std::vector<VkAccelerationStructureInstanceKHR> instances;
-		for (const auto& buildData : BLASBuildDataList)
-		{
+		//for (const auto& buildData : BLASBuildDataList)
+		//{
 			// build the BLAS on GPI
 			VkAccelerationStructureKHR bottomLevelAccelerationStructure
 			    = buildBottomLevelAccelerationStructure(physicalDevice,
@@ -829,7 +829,7 @@ class RaytracingScene
 			                                            deletionQueueForAccelerationStructure,
 			                                            bottomLevelCommandBuffer,
 			                                            graphicsQueue,
-			                                            buildData,
+			                                            BLASBuildDataList,
 			                                            accelerationStructureBuildFence);
 
 			// retrieve the device address of the built acceleration structure
@@ -847,13 +847,13 @@ class RaytracingScene
 
 			// create the blas instance
 			auto bottomLevelGeometryInstance = VkAccelerationStructureInstanceKHR{
-			    .transform = buildData.transformMatrix,
+		        .transform = BLASBuildDataList[0].transformMatrix,
 			    // TODO: maybe add a method that makes sure objectType does not exceed 24 bits
 			    // see:
 			    // https://registry.khronos.org/vulkan/specs/latest/man/html/InstanceCustomIndexKHR.html
 			    // only grab 24 bits
 			    .instanceCustomIndex
-			    = static_cast<uint32_t>(buildData.instanceCustomIndex) & 0xFFFFFF,
+		        = static_cast<uint32_t>(BLASBuildDataList[0].instanceCustomIndex) & 0xFFFFFF,
 			    .mask = 0xFF,
 			    .instanceShaderBindingTableRecordOffset = 0,
 			    .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -861,7 +861,7 @@ class RaytracingScene
 			};
 
 			instances.push_back(std::move(bottomLevelGeometryInstance));
-		}
+		//}
 		return instances;
 	}
 

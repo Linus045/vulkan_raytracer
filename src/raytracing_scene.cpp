@@ -47,8 +47,9 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	raytracingScene.currentSceneNr = sceneNr;
 
 	// first sphere represents light
-	raytracingScene.addObjectSphere(
-	    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
+	// TODO: add into its own BLAS Instance
+	//raytracingScene.addObjectSphere(
+	//    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
 
 	// TODO: support multiple slicing planes
 	// raytracingScene.addSlicingPlane(SlicingPlane{

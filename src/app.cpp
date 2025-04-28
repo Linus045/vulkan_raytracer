@@ -152,7 +152,7 @@ bool Application::checkValidationLayerSupport()
 
 bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
                                          tracer::rt::RaytracingScene& raytracingScene,
-                                         tracer::Renderer& renderer,
+                                         [[maybe_unused]] tracer::Renderer& renderer,
                                          const tracer::SceneConfig sceneConfig)
 {
 	static auto filemanager = OpenVolumeMesh::IO::FileManager();
@@ -198,8 +198,8 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	raytracingScene.clearScene();
 
 	// first sphere represents light
-	raytracingScene.addObjectSphere(
-	    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
+	//raytracingScene.addObjectSphere(
+	//    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
 
 	// if we found the control points property
 	if (propertyControlPointsOpt)
@@ -207,8 +207,8 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 		auto controlPointsVectors = propertyControlPointsOpt.value();
 
 		// TODO: temporary limit
-		const int triangle_max = 30;
-		int triangles_added = 0;
+		//const int triangle_max = 30;
+		//int triangles_added = 0;
 
 		// each vector represents one face - data is the control points as 3 doubles
 		for (auto it = controlPointsVectors.begin(); it != controlPointsVectors.end(); it++)
@@ -343,8 +343,8 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				}
 			}
 
-			triangles_added++;
-			if (triangles_added > triangle_max) break;
+			//triangles_added++;
+			//if (triangles_added > triangle_max) break;
 		}
 	}
 

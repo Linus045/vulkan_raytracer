@@ -122,7 +122,7 @@ void main()
 
 	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
 
-	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
+	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT + gl_GeometryIndexEXT];
 
 	vec3 lightColor
 	    = raytracingDataConstants.globalLightColor * raytracingDataConstants.globalLightIntensity;

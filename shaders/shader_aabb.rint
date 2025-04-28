@@ -629,7 +629,7 @@ void main()
 	ray.origin = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;
 
-	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT];
+	GPUInstance instance = gpuInstances[gl_InstanceCustomIndexEXT + gl_GeometryIndexEXT];
 	int objectType = instance.type;
 
 	vec3 cameraDir = raytracingDataConstants.cameraDir;
@@ -640,11 +640,14 @@ void main()
 	}
 
 	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
-
-	// debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d ObjectType: %d",
+	
+	//if(isCrosshairRay){
+	//debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d ObjectType: %d gl_GeometryIndexEXT: %d",
 	//                gl_InstanceCustomIndexEXT,
 	//                gl_PrimitiveID,
-	//                objectType);
+	//                objectType,
+	//gl_GeometryIndexEXT);
+	//}
 
 	// Tetrahedron data
 
