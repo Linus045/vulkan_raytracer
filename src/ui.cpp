@@ -341,6 +341,7 @@ void renderRaytracingProperties(const tracer::ui::UIData& uiData)
 	ImGui::SeparatorText("Raytracing Properties:");
 	ImGui::Text("Frame Count: %d", uiData.frameCount);
 	ImGui::Text("Estimated frame time: %.4fms", uiData.frameTimeMilliseconds);
+	ImGui::Text("Estimated FPS: %d", static_cast<int>(1000 / uiData.frameTimeMilliseconds));
 
 	// if (uiData.raytracingSupported)
 	{
