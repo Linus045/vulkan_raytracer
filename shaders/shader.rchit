@@ -218,19 +218,27 @@ void main()
 		float tMin = 0.001;
 		float tMax = length(raytracingDataConstants.globalLightPosition - shadowRayOrigin) - 0.005f;
 
-		isShadow = true;
-		traceRayEXT(topLevelAS,         // top level acceleration structure
-		            shadowRayFlags,     // rayFlags
-		            0xFF,               // cullMask
-		            0,                  // sbtRecordOffset
-		            0,                  // sbtRecordStride
-		            1,                  // miss index
-		            shadowRayOrigin,    // origin
-		            tMin,               // Tmin
-		            shadowRayDirection, // direction
-		            tMax,               // Tmax
-		            1                   // payloadIndex (location = 1)
-		);
+		// shadow calculations
+		if (raytracingDataConstants.renderShadows > 0.0)
+		{
+			isShadow = true;
+			traceRayEXT(topLevelAS,         // top level acceleration structure
+			            shadowRayFlags,     // rayFlags
+			            0xFF,               // cullMask
+			            0,                  // sbtRecordOffset
+			            0,                  // sbtRecordStride
+			            1,                  // miss index
+			            shadowRayOrigin,    // origin
+			            tMin,               // Tmin
+			            shadowRayDirection, // direction
+			            tMax,               // Tmax
+			            1                   // payloadIndex (location = 1)
+			);
+		}
+		else
+		{
+			isShadow = false;
+		}
 
 		if (isCrosshairRay)
 		{

@@ -470,12 +470,19 @@ void renderSceneOptions(UIData& uiData)
 		uiData.raytracingDataConstants.renderSideTriangle
 		    = static_cast<float>(renderSideTriangle ? 1 : 0);
 
-		bool debugShowSubdivisions = uiData.raytracingDataConstants.debugHighlightObjectEdges > 0;
+		bool debugHighlightObjectEdges
+		    = uiData.raytracingDataConstants.debugHighlightObjectEdges > 0;
 		valueChanged
-		    = ImGui::Checkbox("Show Tetrahedron Edges", &debugShowSubdivisions) || valueChanged;
+		    = ImGui::Checkbox("Show Tetrahedron Edges", &debugHighlightObjectEdges) || valueChanged;
 		TOOLTIP("Highlights the edges of the objects");
 		uiData.raytracingDataConstants.debugHighlightObjectEdges
-		    = static_cast<float>(debugShowSubdivisions ? 1 : 0);
+		    = static_cast<float>(debugHighlightObjectEdges ? 1 : 0);
+
+		bool renderShadows = uiData.raytracingDataConstants.renderShadows > 0;
+		valueChanged = ImGui::Checkbox("Calculate Shadows", &renderShadows) || valueChanged;
+		TOOLTIP("Whether to do shadow calculations or not. (Shadow calculations use one additional "
+		        "ray per pixel)");
+		uiData.raytracingDataConstants.renderShadows = static_cast<float>(renderShadows ? 1 : 0);
 	}
 
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
