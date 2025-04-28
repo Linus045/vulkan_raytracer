@@ -75,10 +75,21 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 	    .origin = camera.transform.getPos(),
 	    .direction = camera.transform.getForward(),
 	};
-	glm::vec3 v = (glm::abs(ray.direction.y) < 0.99f) ? glm::vec3(0.0f, 1.0f, 0.0f)
-	                                                  : glm::vec3(1.0f, 0.0f, 0.0f);
-	glm::vec3 n1 = normalize(cross(ray.direction, v));
-	glm::vec3 n2 = normalize(cross(ray.direction, n1));
+	glm::vec3 n1;
+	glm::vec3 n2;
+
+	float dx = ray.direction.x;
+	float dy = ray.direction.y;
+	float dz = ray.direction.z;
+	if (glm::abs(dx) > glm::abs(dy) && glm::abs(dx) > glm::abs(dz))
+	{
+		n1 = normalize(vec3(dy, -dx, 0));
+	}
+	else
+	{
+		n1 = normalize(vec3(0, dz, -dy));
+	}
+	n2 = normalize(cross(ray.direction, n1));
 
 	raytracingScene.getWorldObjectSpheres().clear();
 	tracer::rt::visualizePlane(raytracingScene, n1, camera.transform.getPos(), 1, 1);

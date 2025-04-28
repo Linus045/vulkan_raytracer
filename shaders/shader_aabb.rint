@@ -665,8 +665,14 @@ void main()
 		float dy = ray.direction.y;
 		float dz = ray.direction.z;
 
-		vec3 v = (abs(ray.direction.y) < 0.99) ? vec3(0.0f, 1.0f, 0.0f) : vec3(1.0f, 0.0f, 0.0f);
-		n1 = normalize(cross(ray.direction, v));
+		if (abs(dx) > abs(dy) && abs(dx) > abs(dz))
+		{
+			n1 = normalize(vec3(dy, -dx, 0));
+		}
+		else
+		{
+			n1 = normalize(vec3(0, dz, -dy));
+		}
 		n2 = normalize(cross(ray.direction, n1));
 
 		float t;
