@@ -6,6 +6,7 @@
 
 #include "deletion_queue.hpp"
 #include "device_procedures.hpp"
+#include "raytracing_worldobject.hpp"
 #include "vk_utils.hpp"
 
 namespace tracer
@@ -13,21 +14,65 @@ namespace tracer
 namespace rt
 {
 
+// TODO: create blas.cpp and move functions  there
+// also move these structs into a different header file
 struct BLASBuildData
 {
 	// NOTE: maybe make this a vector of geometries
 	const VkAccelerationStructureGeometryKHR geometry;
 	const VkAccelerationStructureBuildRangeInfoKHR buildRangeInfo;
-	const int instanceCustomIndex;
+};
 
+// Holds a collection of objects to put into one BLAS
+struct SceneObject
+{
+	// we only store pointers to the actual data in the raytracingScene
+	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>*> rectangularBezierSurfaces2x2{};
+	// std::vector<rt::RaytracingWorldObject<Tetrahedron2>::Ptr> tetrahedrons2;
+	std::vector<RaytracingWorldObject<Sphere>*> spheres{};
+	std::vector<RaytracingWorldObject<BezierTriangle2>*> bezierTriangles2{};
+	std::vector<RaytracingWorldObject<BezierTriangle3>*> bezierTriangles3{};
+	std::vector<RaytracingWorldObject<BezierTriangle4>*> bezierTriangles4{};
+
+	const std::string name;
+	VkTransformMatrixKHR transformMatrix;
+	const uint32_t instanceCustomIndex;
+
+	~SceneObject() = default;
+	SceneObject(const SceneObject&) = delete;
+	SceneObject& operator=(const SceneObject&) = delete;
+
+	SceneObject(SceneObject&&) noexcept = default;
+	SceneObject& operator=(SceneObject&&) noexcept = delete;
+
+	void setTransformMatrix(const VkTransformMatrixKHR& newTransformMatrix)
+	{
+		transformMatrix = newTransformMatrix;
+	}
+
+  private:
+	SceneObject(const std::string& name,
+	            const VkTransformMatrixKHR& transformMatrix,
+	            const uint32_t instanceCustomIndex)
+	    : name(name), transformMatrix(transformMatrix), instanceCustomIndex(instanceCustomIndex)
+	{
+	}
+
+	// allow only the RaytracingScene to create a SceneObject
+	friend class RaytracingScene;
+};
+
+// holds the data for the BLAS build of a scene object
+struct BLASSceneObjectBuildData
+{
+	std::vector<BLASBuildData> blasData;
 	const VkTransformMatrixKHR transformMatrix;
+	const uint32_t instanceCustomIndex;
 };
 
 [[nodiscard]] inline BLASBuildData
 createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
-                                                    VkBuffer aabbBufferHandle,
-                                                    const int customIndex,
-                                                    VkTransformMatrixKHR modelMatrix)
+                                                    VkBuffer aabbBufferHandle)
 {
 	VkBufferDeviceAddressInfo aabbPositionsDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -68,8 +113,6 @@ createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
 	return BLASBuildData{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-	    .instanceCustomIndex = customIndex,
-	    .transformMatrix = modelMatrix,
 	};
 }
 
@@ -77,9 +120,7 @@ createBottomLevelAccelerationStructureBuildDataAABB(VkDevice logicalDevice,
 createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
                                                         uint32_t verticesCount,
                                                         VkDeviceAddress vertexBufferDeviceAddress,
-                                                        VkDeviceAddress indexBufferDeviceAddress,
-                                                        const int customIndex,
-                                                        VkTransformMatrixKHR transformMatrix)
+                                                        VkDeviceAddress indexBufferDeviceAddress)
 {
 
 	// create Bottom Level Acceleration Structure
@@ -115,8 +156,6 @@ createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
 	return BLASBuildData{
 	    .geometry = bottomLevelAccelerationStructureGeometry,
 	    .buildRangeInfo = bottomLevelAccelerationStructureBuildRangeInfo,
-	    .instanceCustomIndex = customIndex,
-	    .transformMatrix = transformMatrix,
 	};
 }
 
@@ -127,7 +166,7 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
                                       DeletionQueue& deletionQueue,
                                       const VkCommandBuffer bottomLevelCommandBuffer,
                                       const VkQueue graphicsQueue,
-                                      const std::vector<BLASBuildData> blasBuildDatas,
+                                      const BLASSceneObjectBuildData blasBuildDatas,
                                       const VkFence accelerationStructureBuildFence)
 {
 	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
@@ -137,13 +176,13 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	std::vector<VkAccelerationStructureBuildRangeInfoKHR>
 	    bottomLevelAccelerationStructureBuildRangeInfos;
 
-	bottomLevelMaxPrimitiveCountList.resize(blasBuildDatas.size());
-	geometries.resize(blasBuildDatas.size());
-	bottomLevelAccelerationStructureBuildRangeInfos.resize(blasBuildDatas.size());
+	bottomLevelMaxPrimitiveCountList.resize(blasBuildDatas.blasData.size());
+	geometries.resize(blasBuildDatas.blasData.size());
+	bottomLevelAccelerationStructureBuildRangeInfos.resize(blasBuildDatas.blasData.size());
 
-	for (size_t i = 0; i < blasBuildDatas.size(); i++)
+	for (size_t i = 0; i < blasBuildDatas.blasData.size(); i++)
 	{
-		auto& buildData = blasBuildDatas[i];
+		auto& buildData = blasBuildDatas.blasData[i];
 		geometries[i] = buildData.geometry;
 		bottomLevelMaxPrimitiveCountList[i] = buildData.buildRangeInfo.primitiveCount;
 		bottomLevelAccelerationStructureBuildRangeInfos[i] = buildData.buildRangeInfo;
@@ -286,7 +325,8 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	tracer::procedures::pvkCmdBuildAccelerationStructuresKHR(
 	    bottomLevelCommandBuffer,
 	    1,
-	    &bottomLevelAccelerationStructureBuildGeometryInfo, buildRangeInfo);
+	    &bottomLevelAccelerationStructureBuildGeometryInfo,
+	    buildRangeInfo);
 
 	VK_CHECK_RESULT(vkEndCommandBuffer(bottomLevelCommandBuffer));
 
@@ -402,13 +442,11 @@ inline std::pair<VkBuffer, VmaAllocation> createObjectBuffer(VkPhysicalDevice ph
 template <typename T>
 [[nodiscard]] inline BLASBuildData
 createBottomLevelAccelerationStructureBuildDataForObject(VkDevice logicalDevice,
-                                                         const int customIndex,
-                                                         VkTransformMatrixKHR modelMatrix,
                                                          VkBuffer& aabbObjectBufferHandle)
 {
 	// TODO: Make it possible to have multiple BLAS with their individual AABBs
-	return createBottomLevelAccelerationStructureBuildDataAABB(
-	    logicalDevice, aabbObjectBufferHandle, customIndex, modelMatrix);
+	return createBottomLevelAccelerationStructureBuildDataAABB(logicalDevice,
+	                                                           aabbObjectBufferHandle);
 }
 
 } // namespace rt

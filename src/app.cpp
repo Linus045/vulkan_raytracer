@@ -196,10 +196,15 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	}
 
 	raytracingScene.clearScene();
+	auto& sceneObject = raytracingScene.createNamedSceneObject("model");
 
 	// first sphere represents light
-	//raytracingScene.addObjectSphere(
-	//    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
+
+	auto& sceneObjectLight = raytracingScene.createNamedSceneObject("light");
+	raytracingScene.addObjectSphere(sceneObjectLight,
+	                                renderer.getRaytracingDataConstants().globalLightPosition,
+	                                0.2f,
+	                                ColorIdx::t_yellow);
 
 	// if we found the control points property
 	if (propertyControlPointsOpt)
@@ -207,8 +212,8 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 		auto controlPointsVectors = propertyControlPointsOpt.value();
 
 		// TODO: temporary limit
-		//const int triangle_max = 30;
-		//int triangles_added = 0;
+		// const int triangle_max = 30;
+		// int triangles_added = 0;
 
 		// each vector represents one face - data is the control points as 3 doubles
 		for (auto it = controlPointsVectors.begin(); it != controlPointsVectors.end(); it++)
@@ -268,7 +273,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[4] = faceControlPoints[3];
 
 				bezierTriangle.controlPoints[5] = faceControlPoints[5];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
 			}
 			else if (N == 3)
 			{
@@ -295,7 +300,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[8] = faceControlPoints[7];
 
 				bezierTriangle.controlPoints[9] = faceControlPoints[9];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
 			}
 			else if (N == 4)
 			{
@@ -327,7 +332,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[13] = faceControlPoints[12];
 
 				bezierTriangle.controlPoints[14] = faceControlPoints[14];
-				raytracingScene.addObjectBezierTriangle(bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
 			}
 			else
 			{
@@ -338,13 +343,15 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 			{
 				for (auto& point : faceControlPoints)
 				{
-					raytracingScene.addObjectSphere(point, 0.02f, ColorIdx::t_orange);
+					auto& sceneObjectControlPoints = raytracingScene.createSceneObject(point);
+					raytracingScene.addObjectSphere(
+					    sceneObjectControlPoints, point, 0.02f, ColorIdx::t_orange);
 					// printf("Control point: (%f, %f, %f)\n", point.x, point.y, point.z);
 				}
 			}
 
-			//triangles_added++;
-			//if (triangles_added > triangle_max) break;
+			// triangles_added++;
+			// if (triangles_added > triangle_max) break;
 		}
 	}
 
@@ -413,7 +420,6 @@ void Application::handle_dropped_file(GLFWwindow* window, const std::string path
 	// Rebuild Bottom and Top Level Acceleration Structure
 	if (loadingSuccessful && renderer.getRaytracingSupported())
 	{
-		vkQueueWaitIdle(renderer.getRaytracingInfo().graphicsQueueHandle);
 		raytracingScene.recreateAccelerationStructures(renderer.getRaytracingInfo(), true);
 
 		// =========================================================================

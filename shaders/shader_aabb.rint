@@ -640,14 +640,16 @@ void main()
 	}
 
 	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
-	
-	//if(isCrosshairRay){
-	//debugPrintfEXT("istanceCustomIndexEXT: %d primitiveID: %d ObjectType: %d gl_GeometryIndexEXT: %d",
-	//                gl_InstanceCustomIndexEXT,
-	//                gl_PrimitiveID,
-	//                objectType,
-	//gl_GeometryIndexEXT);
-	//}
+
+	// if (isCrosshairRay)
+	// {
+	// 	debugPrintfEXT(
+	// 	    "istanceCustomIndexEXT: %d primitiveID: %d ObjectType: %d gl_GeometryIndexEXT: %d",
+	// 	    gl_InstanceCustomIndexEXT,
+	// 	    gl_PrimitiveID,
+	// 	    objectType,
+	// 	    gl_GeometryIndexEXT);
+	// }
 
 	// Tetrahedron data
 
@@ -800,7 +802,6 @@ void main()
 		}
 		else
 		{
-
 			tHit = hitSphere(sphere, ray);
 			if (tHit > 0)
 			{

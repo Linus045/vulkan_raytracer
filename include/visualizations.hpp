@@ -9,8 +9,10 @@
 #include <glm/ext/vector_float3.hpp>
 #include <glm/geometric.hpp>
 #include <glm/matrix.hpp>
+#include <vulkan/vulkan_core.h>
 
 #include "bezier_math.hpp"
+#include "blas.hpp"
 #include "common_types.h"
 #include "logger.hpp"
 #include "raytracing_scene.hpp"
@@ -329,6 +331,7 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
                                    const glm::vec3 n1,
                                    const glm::vec3 n2)
 {
+
 	bool hit = false;
 	const int max_iterations = 100 + 1;
 	vec2 u[max_iterations];
@@ -365,7 +368,9 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		u[c + 1] = u[c] - differenceInUV;
 
 		vec3 surfacePoint = BezierTrianglePoint(triangle, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
+		auto& sceneObject = raytracingScene.createSceneObject(surfacePoint);
 		raytracingScene.addObjectSphere(
+		    sceneObject,
 		    surfacePoint,
 		    0.1f
 		        * (static_cast<float>(raytracingDataConstants.newtonMaxIterations - c)
@@ -452,7 +457,8 @@ inline void visualizePlane(RaytracingScene& raytracingScene,
 		{
 			// auto pos = glm::dot(pointOnPlane, normal);
 			auto pos = pointOnPlane + (x - sizeX / 2.0f) * b2 + (z - sizeZ / 2.0f) * b3;
-			raytracingScene.addObjectSphere(pos, 0.005f, ColorIdx::t_pink);
+			auto& sceneObject = raytracingScene.createSceneObject(pos);
+			raytracingScene.addObjectSphere(sceneObject, pos, 0.005f, ColorIdx::t_pink);
 		}
 	}
 }
@@ -565,7 +571,10 @@ inline void visualizeTetrahedronControlPoints(RaytracingScene& raytracingScene,
                                               const T& tetrahedron)
 {
 	for (auto& point : tetrahedron.controlPoints)
-		raytracingScene.addObjectSphere(point, 0.06f, ColorIdx::t_orange);
+	{
+		auto& sceneObject = raytracingScene.createSceneObject(point);
+		raytracingScene.addObjectSphere(sceneObject, point, 0.06f, ColorIdx::t_orange);
+	}
 }
 
 /// Visualize a tetrahedron by sampling points on the surface
@@ -590,30 +599,35 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (visualizeSides && isFace1)
 					{
-						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_red);
+						auto& sceneObject = raytracingScene.createSceneObject(p);
+						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = glm::abs(v) < 1e-4 && u + w <= 1;
 					if (visualizeSides && isFace2)
 					{
-						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_purple);
+						auto& sceneObject = raytracingScene.createSceneObject(p);
+						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = glm::abs(w) < 1e-4 && u + v <= 1;
 					if (visualizeSides && isFace3)
 					{
-						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_green);
+						auto& sceneObject = raytracingScene.createSceneObject(p);
+						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1.0f) <= 1e-4;
 					if (visualizeSides && isFace4)
 					{
-						raytracingScene.addObjectSphere(p, 0.01f, ColorIdx::t_blue);
+						auto& sceneObject = raytracingScene.createSceneObject(p);
+						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_blue);
 					}
 
 					if (visualizeVolume && !isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						raytracingScene.addObjectSphere(p, 0.02f, ColorIdx::t_black);
+						auto& sceneObject = raytracingScene.createSceneObject(p);
+						raytracingScene.addObjectSphere(sceneObject, p, 0.02f, ColorIdx::t_black);
 					}
 				}
 		}

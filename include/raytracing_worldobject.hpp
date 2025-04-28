@@ -64,21 +64,6 @@ class RaytracingWorldObject : public WorldObject
 		                             "specialization in raytracing_worldobject.cpp");
 	}
 
-	void setInstanceIndex(const size_t index)
-	{
-		// if (instanceIndex.has_value())
-		// {
-		// 	std::cout << "Warning: Instance index already set. Current index: "
-		// 	          << instanceIndex.value() << ", new index: " << index << std::endl;
-		// }
-		instanceIndex = index;
-	}
-
-	std::optional<size_t> getInstanceIndex() const
-	{
-		return instanceIndex;
-	}
-
 	// const TLASInstance& getTLASInstance() const
 	// {
 	// 	return tlasInstance;
@@ -87,12 +72,6 @@ class RaytracingWorldObject : public WorldObject
   protected:
 	Geometry<T> geometry;
 	ObjectType type;
-
-	// TODO: The RaytracingWorldObject should not keep track of its index, create some kind of
-	// mapping inside RaytracingScene that holds the mapping from the object to its entry in the
-	// gpuInstances array instead
-	std::optional<size_t> instanceIndex = std::nullopt;
-	// TLASInstance& tlasInstance;
 };
 
 template <>

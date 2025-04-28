@@ -100,8 +100,7 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
                     VmaAllocator vmaAllocator,
                     DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo,
-                    RaytracingScene& raytracingScene);
+                    RaytracingInfo& raytracingInfo);
 
 /**
  * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,

@@ -97,12 +97,8 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 
 	if (raytracingSupported)
 	{
-		tracer::rt::initRayTracing(physicalDevice,
-		                           logicalDevice,
-		                           vmaAllocator,
-		                           deletionQueue,
-		                           raytracingInfo,
-		                           *raytracingScene);
+		tracer::rt::initRayTracing(
+		    physicalDevice, logicalDevice, vmaAllocator, deletionQueue, raytracingInfo);
 	}
 
 	raytracingInfo.raytracingConstants = {
@@ -303,7 +299,37 @@ void Renderer::drawFrame(Camera& camera,
 			}
 			else
 			{
-				raytracingScene->copyObjectsToBuffers();
+				raytracingScene->copyGPUObjectsToBuffers();
+			}
+
+			// make sure the light position is up-to-date
+			{
+				// TODO: create a setUIData() and retrieveUIData() function that sets/loads these
+				// values correspondingly
+
+				// TODO: abstract this away so we just need get the reference and set the position
+				auto light = raytracingScene->getSceneObject("light");
+				if (light.has_value())
+				{
+					if (light.value()->spheres.size() > 0)
+					{
+						auto& lightSphere = light.value()->spheres[0];
+						// we assume the first sphere always represents the light
+						lightSphere->setPosition(
+						    uiData.raytracingDataConstants.globalLightPosition);
+						std::printf("LightSphere Pos: %f %f %f\n",
+						            lightSphere->getTransform().getX(),
+						            lightSphere->getTransform().getY(),
+						            lightSphere->getTransform().getZ());
+						auto transformMatrix = lightSphere->getTransform().getTransformMatrix();
+
+						light.value()->setTransformMatrix(transformMatrix);
+						std::printf("Setting light position for instanceCustomIndex: %d\n",
+						            light.value()->instanceCustomIndex);
+						raytracingScene->setTransformMatrixForInstance(
+						    light.value()->instanceCustomIndex + 0, transformMatrix);
+					}
+				}
 			}
 
 			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
@@ -325,26 +351,6 @@ void Renderer::drawFrame(Camera& camera,
 	uiData.raytracingDataConstants.cameraDir = camera.transform.getForward();
 
 	// if (raytracingSupported)
-	{
-		// TODO: create a setUIData() and retrieveUIData() function that sets/loads these values
-		// correspondingly
-		//
-		// TODO: abstract this away so we just need get the reference and set the position
-		if (raytracingScene->getWorldObjectSpheres().size() > 0)
-		{
-			auto& lightSphere = raytracingScene->getWorldObjectSpheres()[0];
-			auto instanceIdx = lightSphere.getInstanceIndex();
-			if (instanceIdx)
-			{
-				// we assume the first sphere always represents the light
-				lightSphere.setPosition(uiData.raytracingDataConstants.globalLightPosition);
-				auto transformMatrix = lightSphere.getTransform().getTransformMatrix();
-				raytracingScene->setTransformMatrixForInstance(instanceIdx.value(),
-				                                               transformMatrix);
-			}
-		}
-	}
-
 	recordCommandBuffer(commandBuffers[currentFrame], imageIndex, uiData);
 
 	VkSubmitInfo submitInfo{};

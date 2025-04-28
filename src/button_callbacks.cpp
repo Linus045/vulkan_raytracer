@@ -91,7 +91,6 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 	}
 	n2 = normalize(cross(ray.direction, n1));
 
-	raytracingScene.getWorldObjectSpheres().clear();
 	tracer::rt::visualizePlane(raytracingScene, n1, camera.transform.getPos(), 1, 1);
 	tracer::rt::visualizePlane(raytracingScene, n2, camera.transform.getPos(), 1, 1);
 
@@ -103,7 +102,6 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 	auto& raytracingScene = renderer.getRaytracingScene();
 	auto& slicingPlane = raytracingScene.getSlicingPlanes()[0];
 
-	raytracingScene.getWorldObjectSpheres().clear();
 	tracer::rt::visualizePlane(
 	    raytracingScene, slicingPlane.normal, slicingPlane.planeOrigin, 2.5, 2.5);
 

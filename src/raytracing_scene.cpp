@@ -18,12 +18,23 @@ static glm::vec3 getRandomOffset(const int min, const int max)
 
 void RaytracingScene::clearScene()
 {
-	getWorldObjectSpheres().clear();
-	// raytracingScene.getWorldObjectTetrahedrons().clear();
-	getWorldObjectBezierTriangles<BezierTriangle2>().clear();
-	getWorldObjectBezierTriangles<BezierTriangle3>().clear();
-	getWorldObjectBezierTriangles<BezierTriangle4>().clear();
-	getWorldObjectRectangularBezierSurfaces2x2().clear();
+	for (auto& sceneObject : sceneObjects)
+	{
+		getWorldObjectSpheres(sceneObject).clear();
+		// raytracingScene.getWorldObjectTetrahedrons().clear();
+		getWorldObjectBezierTriangles<BezierTriangle2>(sceneObject).clear();
+		getWorldObjectBezierTriangles<BezierTriangle3>(sceneObject).clear();
+		getWorldObjectBezierTriangles<BezierTriangle4>(sceneObject).clear();
+		getWorldObjectRectangularBezierSurfaces2x2(sceneObject).clear();
+	}
+	sceneObjects.clear();
+	objectNameToSceneObjectMap.clear();
+
+	spheresList.clear();
+	bezierTriangles2List.clear();
+	bezierTriangles3List.clear();
+	bezierTriangles4List.clear();
+	rectangularSurfaces2x2List.clear();
 
 	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it
 	/// per scene
@@ -48,14 +59,22 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 	// first sphere represents light
 	// TODO: add into its own BLAS Instance
-	//raytracingScene.addObjectSphere(
-	//    renderer.getRaytracingDataConstants().globalLightPosition, 0.2f, ColorIdx::t_yellow);
+	auto& sceneObjectLight = raytracingScene.createNamedSceneObject(
+	    "light", renderer.getRaytracingDataConstants().globalLightPosition);
+	raytracingScene.addObjectSphere(sceneObjectLight,
+	                                renderer.getRaytracingDataConstants().globalLightPosition,
+	                                0.2f,
+	                                ColorIdx::t_yellow);
 
 	// TODO: support multiple slicing planes
 	// raytracingScene.addSlicingPlane(SlicingPlane{
 	//     glm::vec3(0, 5, 0),
 	//     glm::vec3(0, 1, 0),
 	// });
+
+	// create a scene object to which is build up of multiple teteahedron (they will be stored in
+	// the same BLAS)
+	auto& sceneObject = raytracingScene.createNamedSceneObject("model");
 
 	if (sceneNr == 1)
 	{
@@ -71,7 +90,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(1.0f, 1.0f, 0.0f),
 		    glm::vec3(2.0f, 0.0f, 0.0f),
 		}));
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
+		    sceneObject, tetrahedron2, {true, true, false, false});
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -99,7 +119,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3.0f, 1.5f, 0.0f) * scalar + offset,
 		}));
 
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -135,7 +155,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 			// mark left side triangle as inside
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
-			    tetrahedron2, {true, true, true, true}, {false, false, true, false});
+			    sceneObject, tetrahedron2, {true, true, true, true}, {false, false, true, false});
 
 			if (sceneConfig.visualizeControlPoints)
 			{
@@ -162,7 +182,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 			// mark right side triangle as inside
 			raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
-			    tetrahedron2, {true, true, true, true}, {false, false, false, true});
+			    sceneObject, tetrahedron2, {true, true, true, true}, {false, false, false, true});
 			if (sceneConfig.visualizeControlPoints)
 			{
 				visualizeTetrahedronControlPoints(raytracingScene, tetrahedron2);
@@ -183,7 +203,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(2, 0, 0), glm::vec3(2, 0, 1), glm::vec3(2, 1, 0), glm::vec3(3, 0, 0),
 		}));
 
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron3);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron3);
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -211,7 +231,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(0, 2),
 		}));
 
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -243,7 +263,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 				    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(0, 2),
 				}));
 
-				raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron2);
+				raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
 				// Visualize control points
 				// for (auto& point : tetrahedron2.controlPoints)
 				// {
@@ -274,7 +294,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3, 0, 1), glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
 		}));
 
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron4);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron4);
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -299,7 +319,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3, 0, 1),   glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
 		}));
 
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(tetrahedron4);
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron4);
 
 		if (sceneConfig.visualizeControlPoints)
 		{
@@ -315,6 +335,27 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	{
 		std::printf("Scene %d not implemented\n", sceneNr);
 	}
+}
+
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle2>*>&
+RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
+{
+	return sceneObject.bezierTriangles2;
+}
+
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle3>*>&
+RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
+{
+	return sceneObject.bezierTriangles3;
+}
+
+template <>
+std::vector<RaytracingWorldObject<BezierTriangle4>*>&
+RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
+{
+	return sceneObject.bezierTriangles4;
 }
 
 template <>
