@@ -27,14 +27,21 @@ namespace rt
 
 void requestRaytracingProperties(
     VkPhysicalDevice physicalDevice,
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties)
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties,
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR&
+        physicalDeviceAccelerationStructureProperties)
 {
-	VkPhysicalDeviceProperties physicalDeviceProperties;
+	VkPhysicalDeviceProperties physicalDeviceProperties{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
 
 	physicalDeviceRayTracingPipelineProperties.sType
 	    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR;
-	physicalDeviceRayTracingPipelineProperties.pNext = NULL;
+	physicalDeviceRayTracingPipelineProperties.pNext
+	    = &physicalDeviceAccelerationStructureProperties;
+
+	physicalDeviceAccelerationStructureProperties.sType
+	    = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR;
+	physicalDeviceAccelerationStructureProperties.pNext = NULL;
 
 	VkPhysicalDeviceProperties2 physicalDeviceProperties2 = {
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
@@ -643,11 +650,29 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
                     VmaAllocator vmaAllocator,
                     DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo)
+                    RaytracingInfo& raytracingInfo,
+                    VkPhysicalDeviceAccelerationStructurePropertiesKHR&
+                        physicalDeviceAccelerationStructureProperties)
 {
+	// Requesting acceleration Structure properties
+
 	// Requesting ray tracing properties
 	VkPhysicalDeviceRayTracingPipelinePropertiesKHR physicalDeviceRayTracingPipelineProperties{};
-	requestRaytracingProperties(physicalDevice, physicalDeviceRayTracingPipelineProperties);
+
+	requestRaytracingProperties(physicalDevice,
+	                            physicalDeviceRayTracingPipelineProperties,
+	                            physicalDeviceAccelerationStructureProperties);
+
+	// clang-format off
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxGeometryCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxGeometryCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxInstanceCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxInstanceCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPrimitiveCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxPrimitiveCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorAccelerationStructures: {%d}\n", physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorAccelerationStructures);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorUpdateAfterBindAccelerationStructures: {%d}\n", physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorUpdateAfterBindAccelerationStructures);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxDescriptorSetAccelerationStructures {%d}\n", physicalDeviceAccelerationStructureProperties.maxDescriptorSetAccelerationStructures);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxDescriptorSetUpdateAfterBindAccelerationStructures: {%d}\n", physicalDeviceAccelerationStructureProperties.maxDescriptorSetUpdateAfterBindAccelerationStructures);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment: {%d}\n", physicalDeviceAccelerationStructureProperties.minAccelerationStructureScratchOffsetAlignment);
+	// clang-format onn
 
 	debug_printFmt("physicalDeviceRayTracingPipelineProperties.maxRayRecursionDepth: {%d}\n",
 	               physicalDeviceRayTracingPipelineProperties.maxRayRecursionDepth);

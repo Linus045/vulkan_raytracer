@@ -173,7 +173,8 @@ createBuffer([[maybe_unused]] VkPhysicalDevice physicalDevice,
              VkMemoryPropertyFlags properties,
              [[maybe_unused]] const VkMemoryAllocateFlagsInfo& additionalMemoryAllocateFlagsInfo,
              VkBuffer& buffer,
-             VmaAllocation& allocation)
+             VmaAllocation& allocation,
+             VkDeviceSize alignment = 0)
 {
 	VkBufferCreateInfo bufferInfo{};
 	bufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -190,8 +191,16 @@ createBuffer([[maybe_unused]] VkPhysicalDevice physicalDevice,
 	allocInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
 	allocInfo.memoryTypeBits = 0; // no restrictions
 
-	VK_CHECK_RESULT(
-	    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr));
+	if (alignment == 0)
+	{
+		VK_CHECK_RESULT(
+		    vmaCreateBuffer(allocator, &bufferInfo, &allocInfo, &buffer, &allocation, nullptr));
+	}
+	else
+	{
+		VK_CHECK_RESULT(vmaCreateBufferWithAlignment(
+		    allocator, &bufferInfo, &allocInfo, alignment, &buffer, &allocation, nullptr));
+	}
 
 	deletionQueue.push_function([=]() { vmaDestroyBuffer(allocator, buffer, allocation); });
 

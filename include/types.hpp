@@ -146,6 +146,7 @@ struct RaytracingInfo
 	uint32_t missGroupSize = 0;
 
 	RaytracingDataConstants raytracingConstants;
+	VkDeviceSize minAccelerationStructureScratchOffsetAlignment;
 
 	// the mesh objects that are shown in the scene (loaded obj files)
 	std::vector<MeshObject> meshObjects;

@@ -618,7 +618,8 @@ class RaytracingScene
 			           raytracingInfo.graphicsQueueHandle,
 			           raytracingInfo.uniformBufferHandle,
 			           raytracingInfo.uniformBufferAllocation,
-			           raytracingInfo.uniformStructure);
+			           raytracingInfo.uniformStructure,
+			           raytracingInfo.minAccelerationStructureScratchOffsetAlignment);
 		}
 		else
 		{
@@ -646,7 +647,8 @@ class RaytracingScene
 			           raytracingInfo.graphicsQueueHandle,
 			           raytracingInfo.uniformBufferHandle,
 			           raytracingInfo.uniformBufferAllocation,
-			           raytracingInfo.uniformStructure);
+			           raytracingInfo.uniformStructure,
+			           raytracingInfo.minAccelerationStructureScratchOffsetAlignment);
 		}
 	}
 
@@ -1060,7 +1062,8 @@ class RaytracingScene
 	    VkQueue graphicsQueueHandle,
 	    VkBuffer& uniformBufferHandle,
 	    VmaAllocation& uniformBufferAllocation,
-	    UniformStructure& uniformStructure)
+	    UniformStructure& uniformStructure,
+	    VkDeviceSize minAccelerationStructureScratchOffsetAlignment)
 	{
 		if (blasInstances.size() > 0)
 		{
@@ -1082,7 +1085,8 @@ class RaytracingScene
 			    topLevelAccelerationStructureDeviceScratchMemoryHandle,
 			    topLevelAccelerationStructureBuildRangeInfo,
 			    commandBufferBuildTopAndBottomLevel,
-			    graphicsQueueHandle);
+			    graphicsQueueHandle,
+			    minAccelerationStructureScratchOffsetAlignment);
 			// =========================================================================
 			// Uniform Buffer
 			if (!onlyUpdate)

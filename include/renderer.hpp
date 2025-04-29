@@ -279,6 +279,9 @@ class Renderer
 	VkRenderPass raytracingRenderPass = VK_NULL_HANDLE;
 	VkFramebuffer raytracingFramebuffer = VK_NULL_HANDLE;
 
+	VkPhysicalDeviceAccelerationStructurePropertiesKHR
+	    physicalDeviceAccelerationStructureProperties;
+
 	// format used for raytracing image
 	VkFormat raytracingImageColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 

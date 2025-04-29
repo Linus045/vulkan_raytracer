@@ -41,7 +41,8 @@ inline void createAndBuildTopLevelAccelerationStructure(
     VmaAllocation& topLevelAccelerationStructureScratchBufferAllocation,
     VkAccelerationStructureBuildRangeInfoKHR& topLevelAccelerationStructureBuildRangeInfo,
     VkCommandBuffer commandBufferBuildTopAndBottomLevel,
-    VkQueue graphicsQueueHandle)
+    VkQueue graphicsQueueHandle,
+    VkDeviceSize minAccelerationStructureScratchOffsetAlignment)
 
 {
 	// std::vector<VkAccelerationStructureInstanceKHR> blasGeometryInstances;
@@ -223,7 +224,8 @@ inline void createAndBuildTopLevelAccelerationStructure(
 		             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 		             memoryAllocateFlagsInfo,
 		             topLevelAccelerationStructureScratchBufferHandle,
-		             topLevelAccelerationStructureScratchBufferAllocation);
+		             topLevelAccelerationStructureScratchBufferAllocation,
+		             minAccelerationStructureScratchOffsetAlignment);
 
 		VkBufferDeviceAddressInfo topLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 		    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

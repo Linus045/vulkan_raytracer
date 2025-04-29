@@ -97,8 +97,16 @@ void Renderer::initRenderer(VkInstance& vulkanInstance, rt::RaytracingScene& ray
 
 	if (raytracingSupported)
 	{
-		tracer::rt::initRayTracing(
-		    physicalDevice, logicalDevice, vmaAllocator, deletionQueue, raytracingInfo);
+		tracer::rt::initRayTracing(physicalDevice,
+		                           logicalDevice,
+		                           vmaAllocator,
+		                           deletionQueue,
+		                           raytracingInfo,
+		                           physicalDeviceAccelerationStructureProperties);
+
+		raytracingInfo.minAccelerationStructureScratchOffsetAlignment
+		    = physicalDeviceAccelerationStructureProperties
+		          .minAccelerationStructureScratchOffsetAlignment;
 	}
 
 	raytracingInfo.raytracingConstants = {

@@ -59,7 +59,9 @@ void updateAccelerationStructureDescriptorSet(VkDevice logicalDevice,
  */
 void requestRaytracingProperties(
     VkPhysicalDevice physicalDevice,
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties);
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR& physicalDeviceRayTracingPipelineProperties,
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR&
+        physicalDeviceAccelerationStructureProperties);
 
 /**
  * @brief Creates the command buffer for the top and bottom level acceleration structure creation
@@ -100,7 +102,9 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
                     VkDevice logicalDevice,
                     VmaAllocator vmaAllocator,
                     DeletionQueue& deletionQueue,
-                    RaytracingInfo& raytracingInfo);
+                    RaytracingInfo& raytracingInfo,
+                    VkPhysicalDeviceAccelerationStructurePropertiesKHR&
+                        physicalDeviceAccelerationStructureProperties);
 
 /**
  * @brief Records the commands for the ray tracing: preparing the image, doing the ray tracing,
