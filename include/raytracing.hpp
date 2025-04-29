@@ -279,7 +279,6 @@ void freeRaytraceImageAndImageView(VkDevice logicalDevice,
  * @param raytracingInfo the handles will be stored in the raytracingInfo struct
  */
 void createRaytracingImage(VkPhysicalDevice physicalDevice,
-                           VkDevice logicalDevice,
                            VmaAllocator vmaAllocator,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo);

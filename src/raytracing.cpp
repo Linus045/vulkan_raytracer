@@ -1573,7 +1573,6 @@ void loadShaderModules(VkDevice logicalDevice,
 }
 
 void createRaytracingImage([[maybe_unused]] VkPhysicalDevice physicalDevice,
-                           VkDevice logicalDevice,
                            VmaAllocator vmaAllocator,
                            VkExtent2D currentExtent,
                            RaytracingInfo& raytracingInfo)
@@ -1615,8 +1614,6 @@ void createRaytracingImage([[maybe_unused]] VkPhysicalDevice physicalDevice,
 	                               &raytracingInfo.rayTraceImageDeviceMemoryHandle,
 	                               &allocationInfo));
 
-	// transition image layout
-	prepareRaytracingImageLayout(logicalDevice, raytracingInfo);
 }
 
 void prepareRaytracingImageLayout(VkDevice logicalDevice, const RaytracingInfo& raytracingInfo)
@@ -1752,7 +1749,10 @@ void recreateRaytracingImageBuffer(VkPhysicalDevice physicalDevice,
 	                              raytracingInfo.rayTraceImageDeviceMemoryHandle);
 
 	createRaytracingImage(
-	    physicalDevice, logicalDevice, vmaAllocator, windowExtent, raytracingInfo);
+	    physicalDevice, vmaAllocator, windowExtent, raytracingInfo);
+
+	// transition image layout
+	prepareRaytracingImageLayout(logicalDevice, raytracingInfo);
 
 	raytracingInfo.rayTraceImageViewHandle
 	    = createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);

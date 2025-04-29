@@ -85,18 +85,19 @@ void Renderer::initRenderer(VkInstance& vulkanInstance, rt::RaytracingScene& ray
 	}
 
 	tracer::createRaytracingImage(
-	    physicalDevice, logicalDevice, vmaAllocator, window.getSwapChainExtent(), raytracingInfo);
+	    physicalDevice, vmaAllocator, window.getSwapChainExtent(), raytracingInfo);
 
 	raytracingInfo.rayTraceImageViewHandle
 	    = tracer::createRaytracingImageView(logicalDevice, raytracingInfo.rayTraceImageHandle);
-
 	createRaytracingRenderpassAndFramebuffer();
 	updateRaytracingDescriptorSet();
 
 	currentRaytracingScene = &raytracingScene;
-
 	if (raytracingSupported)
 	{
+		// transition image layout
+		prepareRaytracingImageLayout(logicalDevice, raytracingInfo);
+
 		tracer::rt::initRayTracing(physicalDevice,
 		                           logicalDevice,
 		                           vmaAllocator,
