@@ -939,12 +939,12 @@ class RaytracingScene
 		// NOTE: chaning the amount of objects only allowed when we do a full rebuild
 		// also this function only needs to be called when doing a full rebuild
 		assert(!isFullRebuild
-		       || instancesCount == gpuObjects.size()
-		              && "Amount of objects in the scene does not match the "
-		                 "previous amount of objects in the GPU buffer. Changing the object "
-		                 "count is "
-		                 "not yetsceneObject. "
-		                 "supported!");
+		       || (instancesCount == gpuObjects.size()
+		           && "Amount of objects in the scene does not match the "
+		              "previous amount of objects in the GPU buffer. Changing the object "
+		              "count is "
+		              "not yetsceneObject. "
+		              "supported!"));
 
 		// TODO: the size of the elements does not change as of now, we need to  implement
 		// recreation/resizing of the buffer otherwise
