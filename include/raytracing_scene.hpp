@@ -244,7 +244,7 @@ class RaytracingScene
 	                                              = {true, true, true, true},
 	                                              const std::array<bool, 4>& markTriangleAsInside
 	                                              = {false, false, false, false},
-	                                              const int subdivisions = 0)
+	                                              [[maybe_unused]] const int subdivisions = 0)
 	{
 		using S = typename BezierTriangleFromTetrahedron<T>::type;
 
