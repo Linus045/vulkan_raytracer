@@ -166,19 +166,29 @@ class AABB
 		};
 	}
 
-	static AABB fromSphere(const Sphere& sphere)
+	// localSpace is used to determine if the AABB should be created in local space or
+	// in global space.
+	// We need the global space if the transform matrix of the BLAS that contains this sphere is the
+	// identity matrix
+	// Note that moving the sphere without recreating the BLAS is only possible when
+	// using localSpace since then we only modity the transform matrix and not the actually sphere
+	// position -- localSpace is used for the light sphere to move it without rebuilding the
+	// acceleration struture
+	static AABB fromSphere(const Sphere& sphere, const bool localSpace)
 	{
+		glm::vec3 offset = localSpace ? glm::vec3(0) : sphere.center;
+
 		return AABB
 		{
 			.min = {
-				-sphere.radius,
-				-sphere.radius,
-				-sphere.radius,
+				-sphere.radius + offset.x,
+				-sphere.radius + offset.y,
+				-sphere.radius + offset.z,
 			},
 			.max = {
-				+sphere.radius,
-				+sphere.radius,
-				+sphere.radius,
+				+sphere.radius + offset.x,
+				+sphere.radius + offset.y,
+				+sphere.radius + offset.z,
 			},
 		};
 	}

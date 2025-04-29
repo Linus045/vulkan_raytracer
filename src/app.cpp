@@ -225,15 +225,22 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	}
 
 	raytracingScene.clearScene();
-	auto& sceneObject = raytracingScene.createNamedSceneObject("model");
 
 	// first sphere represents light
-
-	auto& sceneObjectLight = raytracingScene.createNamedSceneObject("light");
+	auto& sceneObjectLight = raytracingScene.createNamedSceneObject(
+	    "light", renderer.getRaytracingDataConstants().globalLightPosition);
 	raytracingScene.addObjectSphere(sceneObjectLight,
 	                                renderer.getRaytracingDataConstants().globalLightPosition,
+	                                true,
 	                                0.2f,
 	                                ColorIdx::t_yellow);
+
+	auto& sceneObject = raytracingScene.createNamedSceneObject("model");
+
+	// NOTE: we can't  add elements to sceneObjects out of order, therefore to show the
+	// controlpoints, we will add them after adding all bezier triangles to the sceneObject 'model'
+	// Although this is every inefficient, its fine since we only do it when loading the model once
+	auto allControlPoints = std::vector<glm::vec3>();
 
 	// if we found the control points property
 	if (propertyControlPointsOpt)
@@ -372,15 +379,23 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 			{
 				for (auto& point : faceControlPoints)
 				{
-					auto& sceneObjectControlPoints = raytracingScene.createSceneObject(point);
-					raytracingScene.addObjectSphere(
-					    sceneObjectControlPoints, point, 0.02f, ColorIdx::t_orange);
+					allControlPoints.push_back(point);
 					// printf("Control point: (%f, %f, %f)\n", point.x, point.y, point.z);
 				}
 			}
 
 			// triangles_added++;
 			// if (triangles_added > triangle_max) break;
+		}
+	}
+
+	if (sceneConfig.visualizeControlPoints)
+	{
+		auto& sceneObjectControlPoints = raytracingScene.createSceneObject();
+		for (auto& point : allControlPoints)
+		{
+			raytracingScene.addObjectSphere(
+			    sceneObjectControlPoints, point, false, 0.02f, ColorIdx::t_orange);
 		}
 	}
 

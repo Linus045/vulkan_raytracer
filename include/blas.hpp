@@ -41,12 +41,27 @@ struct SceneObject
 	VkTransformMatrixKHR transformMatrix;
 	const uint32_t instanceCustomIndex;
 
+	// store the buffer offsets for the objects inside the SceneObject
+	// inside the shader we need to start accessing the objects with with this offet into the
+	// spheres[]/tetrahedrons2[] etc. buffers
+	const size_t spheresBufferOffset;
+	const size_t bezierTriangles2BufferOffset;
+	const size_t bezierTriangles3BufferOffset;
+	const size_t bezierTriangles4BufferOffset;
+	const size_t rectangularBezierSurfaces2x2BufferOffset;
+
 	~SceneObject() = default;
 	SceneObject(const SceneObject&) = delete;
 	SceneObject& operator=(const SceneObject&) = delete;
 
 	SceneObject(SceneObject&&) noexcept = default;
 	SceneObject& operator=(SceneObject&&) noexcept = delete;
+
+	size_t totalElementsCount()
+	{
+		return spheres.size() + bezierTriangles2.size() + bezierTriangles3.size()
+		       + bezierTriangles4.size() + rectangularBezierSurfaces2x2.size();
+	}
 
 	void setTransformMatrix(const VkTransformMatrixKHR& newTransformMatrix)
 	{
@@ -56,11 +71,20 @@ struct SceneObject
   private:
 	SceneObject(const std::string& name,
 	            const VkTransformMatrixKHR& transformMatrix,
-	            const uint32_t instanceCustomIndex)
-	    : name(name), transformMatrix(transformMatrix), instanceCustomIndex(instanceCustomIndex)
+	            const uint32_t instanceCustomIndex,
+	            const size_t spheresBufferOffset,
+	            const size_t bezierTriangles2BufferOffset,
+	            const size_t bezierTriangles3BufferOffset,
+	            const size_t bezierTriangles4BufferOffset,
+	            const size_t rectangularBezierSurfaces2x2BufferOffset)
+	    : name(name), transformMatrix(transformMatrix), instanceCustomIndex(instanceCustomIndex),
+	      spheresBufferOffset(spheresBufferOffset),
+	      bezierTriangles2BufferOffset(bezierTriangles2BufferOffset),
+	      bezierTriangles3BufferOffset(bezierTriangles3BufferOffset),
+	      bezierTriangles4BufferOffset(bezierTriangles4BufferOffset),
+	      rectangularBezierSurfaces2x2BufferOffset(rectangularBezierSurfaces2x2BufferOffset)
 	{
 	}
-
 	// allow only the RaytracingScene to create a SceneObject
 	friend class RaytracingScene;
 };

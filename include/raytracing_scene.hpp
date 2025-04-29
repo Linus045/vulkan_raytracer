@@ -136,6 +136,7 @@ class RaytracingScene
 
 	std::shared_ptr<RaytracingWorldObject<Sphere>> addObjectSphere(SceneObject& sceneObject,
 	                                                               const glm::vec3 position,
+	                                                               const bool localSpace,
 	                                                               const float radius,
 	                                                               const ColorIdx colorIdx)
 	{
@@ -145,8 +146,11 @@ class RaytracingScene
 		    .colorIdx = static_cast<int>(colorIdx),
 		};
 
+		debug_printFmt("Adding sphere to sceneObject %d (%s)\n",
+		               sceneObject.instanceCustomIndex,
+		               sceneObject.name.c_str());
 		spheres.emplace_back(std::make_shared<RaytracingWorldObject<Sphere>>(
-		    ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position));
+		    ObjectType::t_Sphere, AABB::fromSphere(sphere, localSpace), sphere, position));
 		auto& obj = spheres.back();
 		sceneObject.spheres.push_back(obj);
 		return obj;
@@ -191,6 +195,11 @@ class RaytracingScene
 				    "addObjectBezierTriangle - Object type has no inside variant");
 			}
 		}
+
+		debug_printFmt("Adding bezierTriangle of type %d to sceneObject (%s): %d\n",
+		               static_cast<int>(objectType),
+		               sceneObject.name.c_str(),
+		               sceneObject.instanceCustomIndex);
 
 		auto& trianglesList = getTriangleList<S>();
 		trianglesList.emplace_back(
@@ -438,6 +447,8 @@ class RaytracingScene
 		}
 	}
 
+	// NOTE:  we assume we add the objects directly after creating the SceneObject
+	// it it NOT possible to add objects after a new instance of SceneObject has been created
 	SceneObject& createSceneObject(const glm::vec3 pos = glm::vec3(0),
 	                               const glm::quat rotation = glm::quat(),
 	                               const glm::vec3 scale = glm::vec3(1))
@@ -445,6 +456,8 @@ class RaytracingScene
 		return createNamedSceneObject("", pos, rotation, scale);
 	}
 
+	// NOTE:  we assume we add the objects directly after creating the SceneObject
+	// it it NOT possible to add objects after a new instance of SceneObject has been created
 	SceneObject& createNamedSceneObject(const std::string& name = "",
 	                                    const glm::vec3 pos = glm::vec3(0),
 	                                    const glm::quat rotation = glm::quat(),
@@ -452,7 +465,12 @@ class RaytracingScene
 	{
 		Transform identityTransform(pos, rotation, scale);
 
-		const size_t instanceCustomIndex = sceneObjects.size();
+		// get the next instance index by seeing how many objects are already in the scene
+		size_t instanceCustomIndex = 0;
+		for (auto& obj : sceneObjects)
+		{
+			instanceCustomIndex += obj.totalElementsCount();
+		}
 
 		// only the first 24 bits are used for the instance custom index in vulkan
 		// therefore this ensures that the index is not larger than 24 bits
@@ -466,8 +484,26 @@ class RaytracingScene
 		}
 
 		const auto instanceIndex = static_cast<uint32_t>(instanceCustomIndex);
+		debug_printFmt(
+		    "Created SceneObject '%s' with instance index %u\n", name.c_str(), instanceIndex);
 		const auto transformMatrix = identityTransform.getTransformMatrix();
-		sceneObjects.push_back(SceneObject(name, transformMatrix, instanceIndex));
+
+		const auto& spheresBufferOffset = spheres.size();
+		const auto& bezierTriangles2BufferOffset = bezierTriangles2.size();
+		const auto& bezierTriangles3BufferOffset = bezierTriangles3.size();
+		const auto& bezierTriangles4BufferOffset = bezierTriangles4.size();
+		const auto& rectangularBezierSurfaces2x2BufferOffset = rectangularBezierSurfaces2x2.size();
+
+		// TODO: we could order the objects that are inside the scene object later on before we move
+		// them to the GPU and assign the correct indices then, but for now this will work fine
+		sceneObjects.push_back(SceneObject(name,
+		                                   transformMatrix,
+		                                   instanceIndex,
+		                                   spheresBufferOffset,
+		                                   bezierTriangles2BufferOffset,
+		                                   bezierTriangles3BufferOffset,
+		                                   bezierTriangles4BufferOffset,
+		                                   rectangularBezierSurfaces2x2BufferOffset));
 
 		auto& obj = sceneObjects.back();
 		objectNameToSceneObjectMap.emplace(name, obj);
@@ -701,6 +737,7 @@ class RaytracingScene
   private:
 	template <typename T>
 	void addObjectsToBLASBuildDataListAndGPUObjectsList(
+	    size_t indexStart,
 	    std::vector<BLASBuildData>& blasBuildDataList,
 	    const std::vector<std::shared_ptr<RaytracingWorldObject<T>>>& sceneObjectObjects,
 	    std::vector<VkBuffer>& aabbBufferHandles)
@@ -714,7 +751,11 @@ class RaytracingScene
 			    logicalDevice, aabbBufferHandles[i]);
 
 			auto objectType = sceneObjectObjects[i]->getType();
-			gpuObjects.push_back(GPUInstance(objectType, i));
+			debug_printFmt("Added object %ld with type %d and bufferIndex %ld to gpuObjects\n",
+			               gpuObjects.size(),
+			               static_cast<int>(objectType),
+			               indexStart + i);
+			gpuObjects.push_back(GPUInstance(objectType, indexStart + i));
 			blasBuildDataList.push_back(buildData);
 		}
 	}
@@ -833,8 +874,10 @@ class RaytracingScene
 
 		// for each object add the extracted object data to the gpuObjects vector and create the
 		// buildData in blasBuildDataList
-		addObjectsToBLASBuildDataListAndGPUObjectsList(
-		    blasBuildDataList, sceneObject.spheres, aabbBuffers.spheresAABBBufferHandles);
+		addObjectsToBLASBuildDataListAndGPUObjectsList(sceneObject.spheresBufferOffset,
+		                                               blasBuildDataList,
+		                                               sceneObject.spheres,
+		                                               aabbBuffers.spheresAABBBufferHandles);
 
 		// addObjectsToBLASBuildDataListAndGPUObjectsList(blasBuildDataList,
 		//                                                tetrahedrons2,
@@ -843,21 +886,25 @@ class RaytracingScene
 		//                                                aabbBuffers.tetrahedronsAABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    sceneObject.bezierTriangles2BufferOffset,
 		    blasBuildDataList,
 		    sceneObject.bezierTriangles2,
 		    aabbBuffers.bezierTriangles2AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    sceneObject.bezierTriangles3BufferOffset,
 		    blasBuildDataList,
 		    sceneObject.bezierTriangles3,
 		    aabbBuffers.bezierTriangles3AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    sceneObject.bezierTriangles4BufferOffset,
 		    blasBuildDataList,
 		    sceneObject.bezierTriangles4,
 		    aabbBuffers.bezierTriangles4AABBBufferHandles);
 
 		addObjectsToBLASBuildDataListAndGPUObjectsList(
+		    sceneObject.rectangularBezierSurfaces2x2BufferOffset,
 		    blasBuildDataList,
 		    sceneObject.rectangularBezierSurfaces2x2,
 		    aabbBuffers.rectangularBezierSurfacesAABB2x2BufferHandles);

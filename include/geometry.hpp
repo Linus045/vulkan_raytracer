@@ -2,7 +2,6 @@
 #pragma once
 
 #include "aabb.hpp"
-#include <stdexcept>
 namespace tracer
 {
 
@@ -36,29 +35,9 @@ class Geometry
 		return data;
 	}
 
-	/**
-	 * @brief recalculate the AABB for the geometry
-	 *
-	 * @return whether the AABB dimensions changed
-	 */
-	virtual bool recalculateAABB()
-	{
-		throw new std::runtime_error("recalculateAABB not implemented for type T. Please add a "
-		                             "specialization in geometry.cpp");
-	}
-
   private:
 	AABB aabb;
 	T data;
 };
-
-template <>
-bool Geometry<Sphere>::recalculateAABB();
-
-template <>
-bool Geometry<Tetrahedron2>::recalculateAABB();
-
-template <>
-bool Geometry<RectangularBezierSurface2x2>::recalculateAABB();
 
 } // namespace tracer

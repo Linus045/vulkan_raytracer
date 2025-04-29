@@ -372,6 +372,7 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		raytracingScene.addObjectSphere(
 		    sceneObject,
 		    surfacePoint,
+		    true,
 		    0.1f
 		        * (static_cast<float>(raytracingDataConstants.newtonMaxIterations - c)
 		           / static_cast<float>(raytracingDataConstants.newtonMaxIterations)),
@@ -450,6 +451,7 @@ inline void visualizePlane(RaytracingScene& raytracingScene,
 	glm::vec3 b2 = glm::normalize(glm::cross(normal, b1));
 	glm::vec3 b3 = glm::normalize(glm::cross(normal, b2));
 
+	auto& sceneObject = raytracingScene.createSceneObject();
 	float stepSize = 0.1f;
 	for (float x = 0; x <= sizeX; x += stepSize)
 	{
@@ -457,8 +459,7 @@ inline void visualizePlane(RaytracingScene& raytracingScene,
 		{
 			// auto pos = glm::dot(pointOnPlane, normal);
 			auto pos = pointOnPlane + (x - sizeX / 2.0f) * b2 + (z - sizeZ / 2.0f) * b3;
-			auto& sceneObject = raytracingScene.createSceneObject(pos);
-			raytracingScene.addObjectSphere(sceneObject, pos, 0.005f, ColorIdx::t_pink);
+			raytracingScene.addObjectSphere(sceneObject, pos, false, 0.005f, ColorIdx::t_pink);
 		}
 	}
 }
@@ -567,19 +568,20 @@ inline void visualizeBezierSurface([[maybe_unused]] std::vector<Sphere>& spheres
 
 /// Visualizes control points
 template <typename T>
-inline void visualizeTetrahedronControlPoints(RaytracingScene& raytracingScene,
+inline void visualizeTetrahedronControlPoints(SceneObject& sceneObject,
+                                              RaytracingScene& raytracingScene,
                                               const T& tetrahedron)
 {
 	for (auto& point : tetrahedron.controlPoints)
 	{
-		auto& sceneObject = raytracingScene.createSceneObject(point);
-		raytracingScene.addObjectSphere(sceneObject, point, 0.06f, ColorIdx::t_orange);
+		raytracingScene.addObjectSphere(sceneObject, point, false, 0.06f, ColorIdx::t_orange);
 	}
 }
 
 /// Visualize a tetrahedron by sampling points on the surface
 template <typename T>
-inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
+inline void visualizeTetrahedronSides(SceneObject& sceneObject,
+                                      RaytracingScene& raytracingScene,
                                       const T& tetrahedron,
                                       const bool visualizeSides,
                                       const bool visualizeVolume,
@@ -599,35 +601,35 @@ inline void visualizeTetrahedronSides(RaytracingScene& raytracingScene,
 					auto isFace1 = glm::abs(u) < 1e-4 && v + w <= 1;
 					if (visualizeSides && isFace1)
 					{
-						auto& sceneObject = raytracingScene.createSceneObject(p);
-						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_red);
+						raytracingScene.addObjectSphere(
+						    sceneObject, p, false, 0.01f, ColorIdx::t_red);
 					}
 
 					auto isFace2 = glm::abs(v) < 1e-4 && u + w <= 1;
 					if (visualizeSides && isFace2)
 					{
-						auto& sceneObject = raytracingScene.createSceneObject(p);
-						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_purple);
+						raytracingScene.addObjectSphere(
+						    sceneObject, p, false, 0.01f, ColorIdx::t_purple);
 					}
 
 					auto isFace3 = glm::abs(w) < 1e-4 && u + v <= 1;
 					if (visualizeSides && isFace3)
 					{
-						auto& sceneObject = raytracingScene.createSceneObject(p);
-						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_green);
+						raytracingScene.addObjectSphere(
+						    sceneObject, p, false, 0.01f, ColorIdx::t_green);
 					}
 
 					auto isFace4 = glm::abs(u + v + w - 1.0f) <= 1e-4;
 					if (visualizeSides && isFace4)
 					{
-						auto& sceneObject = raytracingScene.createSceneObject(p);
-						raytracingScene.addObjectSphere(sceneObject, p, 0.01f, ColorIdx::t_blue);
+						raytracingScene.addObjectSphere(
+						    sceneObject, p, false, 0.01f, ColorIdx::t_blue);
 					}
 
 					if (visualizeVolume && !isFace1 && !isFace2 && !isFace3 && !isFace4)
 					{
-						auto& sceneObject = raytracingScene.createSceneObject(p);
-						raytracingScene.addObjectSphere(sceneObject, p, 0.02f, ColorIdx::t_black);
+						raytracingScene.addObjectSphere(
+						    sceneObject, p, false, 0.02f, ColorIdx::t_black);
 					}
 				}
 		}
