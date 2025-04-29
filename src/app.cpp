@@ -80,9 +80,8 @@ void Application::run()
 	                                              renderer->getRaytracingDataConstants(),
 	                                              renderer->getFrameCount(),
 	                                              renderer->getBLASInstancesCount(*raytracingScene),
-	                                              raytracingScene->getSlicingPlanes()
-
-	);
+	                                              raytracingScene->getSlicingPlanes(),
+	                                              raytracingScene->getSceneObjects());
 
 	customUserData = std::make_unique<tracer::CustomUserData>(vulkan_initialized,
 	                                                          window,

@@ -57,7 +57,7 @@ struct SceneObject
 	SceneObject(SceneObject&&) noexcept = default;
 	SceneObject& operator=(SceneObject&&) noexcept = delete;
 
-	size_t totalElementsCount()
+	size_t totalElementsCount() const
 	{
 		return spheres.size() + bezierTriangles2.size() + bezierTriangles3.size()
 		       + bezierTriangles4.size() + rectangularBezierSurfaces2x2.size();

@@ -337,6 +337,11 @@ class RaytracingScene
 		return slicingPlanes;
 	}
 
+	std::vector<SceneObject>& getSceneObjects()
+	{
+		return sceneObjects;
+	}
+
 	inline void setTransformMatrixForInstance(const size_t instanceIndex,
 	                                          const VkTransformMatrixKHR& matrix)
 	{

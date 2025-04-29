@@ -8,6 +8,7 @@
 #include <glm/ext/vector_float3.hpp>
 
 #include <vulkan/vk_enum_string_helper.h>
+#include "blas.hpp"
 #include "common_types.h"
 
 // forward declarations
@@ -51,6 +52,8 @@ struct UIData
 	const uint32_t& frameCount;
 	const size_t& blasInstancesCount;
 	std::vector<SlicingPlane>& slicingPlanes;
+	std::vector<tracer::rt::SceneObject>& sceneObjects;
+
 	float frameTimeMilliseconds = 0.0f;
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
@@ -120,11 +123,13 @@ struct UIData
 	       RaytracingDataConstants& raytracingDataConstants,
 	       const uint32_t& frameCount,
 	       const size_t& blasInstancesCount,
-	       std::vector<SlicingPlane>& slicingPlanes)
+	       std::vector<SlicingPlane>& slicingPlanes,
+	       std::vector<tracer::rt::SceneObject>& sceneObjects)
 	    : camera(camera), window(window), raytracingSupported(raytracingSupported),
 	      physicalDeviceProperties(physicalDeviceProperties),
 	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount),
-	      blasInstancesCount(blasInstancesCount), slicingPlanes(slicingPlanes)
+	      blasInstancesCount(blasInstancesCount), slicingPlanes(slicingPlanes),
+	      sceneObjects(sceneObjects)
 	{
 	}
 };
@@ -148,6 +153,8 @@ void renderCameraProperties(const UIData& uiData);
 // 	              { pipelineCacheUUID.append(std::format("{:x}", n)); });
 // 	return pipelineCacheUUID;
 // }
+
+void renderBLASObjectInfo(const UIData& uiData);
 
 void renderGPUProperties(const UIData& uiData);
 

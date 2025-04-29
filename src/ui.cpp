@@ -305,6 +305,29 @@ void renderRaytracingOptions(UIData& uiData)
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;
 }
 
+void renderBLASObjectInfo(const UIData& uiData)
+{
+
+	if (ImGui::CollapsingHeader("BLAS - Objects Info"))
+	{
+		int i = 0;
+		for (const auto& sceneObject : uiData.sceneObjects)
+		{
+			ImGui::Text("Scene Object [%d]: %s", i, sceneObject.name.c_str());
+			ImGui::Text("Instance Custom Index: %d", sceneObject.instanceCustomIndex);
+			ImGui::Text("Spheres: %ld", sceneObject.spheres.size());
+			ImGui::Text("Bezier Triangles 2: %ld", sceneObject.bezierTriangles2.size());
+			ImGui::Text("Bezier Triangles 3: %ld", sceneObject.bezierTriangles3.size());
+			ImGui::Text("Bezier Triangles 4: %ld", sceneObject.bezierTriangles4.size());
+			ImGui::Text("Rectangular Bezier Surfaces 2x2: %ld",
+			            sceneObject.rectangularBezierSurfaces2x2.size());
+			ImGui::Text("Total Elements: %ld", sceneObject.totalElementsCount());
+			ImGui::Separator();
+			i++;
+		}
+	}
+}
+
 void renderButtons(const tracer::ui::UIData& uiData)
 {
 	for (const auto& button : uiData.buttonCallbacks)
@@ -537,6 +560,9 @@ void renderMainPanel(UIData& uiData)
 	renderRaytracingProperties(uiData);
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
+
+	ImGui::Separator();
+	renderBLASObjectInfo(uiData);
 
 	// TODO: display the control points in the ui and make them editable
 	// renderPositionSliders(uiData);
