@@ -15,6 +15,7 @@
 #include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
+#include "deletion_queue.hpp"
 #include "vk_mem_alloc.h"
 
 #define GLM_FORCE_DEPTH_ZERO_TO_ONE
@@ -50,13 +51,27 @@ void Application::run()
 {
 	// loadModels();
 
-	createWindow();
+	initWindow(window, framebufferResizeCallback);
 
 	initVulkan();
 
 	vmaAllocator = tracer::createVMAAllocator(physicalDevice, vulkanInstance, logicalDevice);
 
-	createRenderer();
+	raytracingScene = std::make_unique<tracer::rt::RaytracingScene>(
+	    physicalDevice, logicalDevice, vmaAllocator);
+
+	renderer = createRenderer(vulkanInstance,
+	                          physicalDevice,
+	                          logicalDevice,
+	                          mainDeletionQueue,
+	                          *raytracingScene,
+	                          window,
+	                          graphicsQueue,
+	                          presentQueue,
+	                          transferQueue,
+	                          raytracingSupported,
+	                          vmaAllocator,
+	                          swapChainSupportDetails);
 
 	uiData = std::make_unique<tracer::ui::UIData>(camera,
 	                                              window,
@@ -64,8 +79,8 @@ void Application::run()
 	                                              physicalDeviceProperties,
 	                                              renderer->getRaytracingDataConstants(),
 	                                              renderer->getFrameCount(),
-	                                              renderer->getBLASInstancesCount(),
-	                                              renderer->getRaytracingScene().getSlicingPlanes()
+	                                              renderer->getBLASInstancesCount(*raytracingScene),
+	                                              raytracingScene->getSlicingPlanes()
 
 	);
 
@@ -81,8 +96,7 @@ void Application::run()
 	window.setWindowUserPointer(customUserData.get());
 	initInputHandlers();
 
-	tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
-	setupScene(raytracingScene);
+	setupScene();
 	if (raytracingSupported)
 	{
 		tracer::rt::registerButtonFunctions(window, *renderer, camera, *uiData);
@@ -96,24 +110,38 @@ void Application::run()
 // std::shared_ptr<std::vector<tracer::WorldObject>> worldObjects
 //     = std::make_shared<std::vector<tracer::WorldObject>>();
 
-void Application::createWindow()
+void Application::initWindow(tracer::Window& wnd, GLFWframebuffersizefun framebufferResizeCallback)
 {
-	window.initWindow(&framebufferResizeCallback);
+	wnd.initWindow(framebufferResizeCallback);
 }
 
-void Application::createRenderer()
+[[nodiscard]]
+std::unique_ptr<tracer::Renderer>
+Application::createRenderer(VkInstance vulkanInstance,
+                            VkPhysicalDevice physicalDevice,
+                            VkDevice logicalDevice,
+                            tracer::DeletionQueue mainDeletionQueue,
+                            tracer::rt::RaytracingScene& raytracingScene,
+                            tracer::Window& window,
+                            VkQueue graphicsQueue,
+                            VkQueue presentQueue,
+                            VkQueue transferQueue,
+                            bool raytracingSupported,
+                            VmaAllocator vmaAllocator,
+                            tracer::SwapChainSupportDetails swapChainSupportDetails)
 {
 	int width, height;
 	window.getFramebufferSize(&width, &height);
-	renderer = std::make_unique<tracer::Renderer>(physicalDevice,
-	                                              logicalDevice,
-	                                              mainDeletionQueue,
-	                                              window,
-	                                              graphicsQueue,
-	                                              presentQueue,
-	                                              transferQueue,
-	                                              raytracingSupported,
-	                                              vmaAllocator);
+	std::unique_ptr<tracer::Renderer> renderer
+	    = std::make_unique<tracer::Renderer>(physicalDevice,
+	                                         logicalDevice,
+	                                         mainDeletionQueue,
+	                                         window,
+	                                         graphicsQueue,
+	                                         presentQueue,
+	                                         transferQueue,
+	                                         raytracingSupported,
+	                                         vmaAllocator);
 
 	window.createSwapChain(
 	    physicalDevice,
@@ -121,7 +149,8 @@ void Application::createRenderer()
 	    VkExtent2D{static_cast<unsigned int>(width), static_cast<unsigned int>(height)},
 	    swapChainSupportDetails);
 
-	renderer->initRenderer(vulkanInstance);
+	renderer->initRenderer(vulkanInstance, raytracingScene);
+	return renderer;
 }
 
 bool Application::checkValidationLayerSupport()
@@ -409,7 +438,7 @@ void Application::handle_dropped_file(GLFWwindow* window, const std::string path
 
 	auto& renderer = userData.renderer;
 	auto sceneConfig = tracer::SceneConfig::fromUIData(userData.uiData);
-	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& raytracingScene = renderer.getCurrentRaytracingScene();
 
 	std::printf("Loading OpenVolumeMesh model from file: %s\n", path.c_str());
 
@@ -429,24 +458,24 @@ void Application::handle_dropped_file(GLFWwindow* window, const std::string path
 	}
 }
 
-void Application::setupScene(tracer::rt::RaytracingScene& raytracingScene)
+void Application::setupScene()
 {
 	auto sceneConfig = tracer::SceneConfig::fromUIData(*uiData);
 
 	tracer::rt::RaytracingScene::loadScene(
-	    *renderer, raytracingScene, sceneConfig, raytracingScene.getCurrentSceneNr());
+	    *renderer, *raytracingScene, sceneConfig, raytracingScene->getCurrentSceneNr());
 
 	// =========================================================================
 	// Rebuild Bottom and Top Level Acceleration Structure
 	if (raytracingSupported)
 	{
 		vkQueueWaitIdle(renderer->getRaytracingInfo().graphicsQueueHandle);
-		raytracingScene.recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
+		raytracingScene->recreateAccelerationStructures(renderer->getRaytracingInfo(), true);
 
 		// =========================================================================
 		// Update Descriptor Set
 		tracer::rt::updateAccelerationStructureDescriptorSet(
-		    logicalDevice, raytracingScene, renderer->getRaytracingInfo());
+		    logicalDevice, *raytracingScene, renderer->getRaytracingInfo());
 	}
 
 	// // TODO: move this to a more appropriate place
@@ -864,7 +893,7 @@ void Application::resizeFramebuffer(VkPhysicalDevice physicalDevice,
 		if (raytracingSupported)
 		{
 			tracer::rt::updateAccelerationStructureDescriptorSet(
-			    logicalDevice, renderer.getRaytracingScene(), renderer.getRaytracingInfo());
+			    logicalDevice, renderer.getCurrentRaytracingScene(), renderer.getRaytracingInfo());
 		}
 
 		// reset frame count so the window gets refreshed properly
@@ -1063,8 +1092,7 @@ void Application::mainLoop()
 
 		if (uiData->sceneReloader.isReloadRequested())
 		{
-			tracer::rt::RaytracingScene& raytracingScene = renderer->getRaytracingScene();
-			setupScene(raytracingScene);
+			setupScene();
 
 			renderer->requestResetFrameCount();
 			uiData->sceneReloader.resetSceneReloadRequest();
@@ -1091,9 +1119,7 @@ void Application::mainLoop()
 				if (raytracingSupported)
 				{
 					tracer::rt::updateAccelerationStructureDescriptorSet(
-					    logicalDevice,
-					    renderer->getRaytracingScene(),
-					    renderer->getRaytracingInfo());
+					    logicalDevice, *raytracingScene, renderer->getRaytracingInfo());
 				}
 
 				camera.updateScreenSize(extent.width, extent.height);
@@ -1113,6 +1139,7 @@ void Application::cleanupApp()
 
 	vkDeviceWaitIdle(logicalDevice);
 
+	raytracingScene->cleanup(graphicsQueue);
 	renderer->cleanupRenderer();
 
 	window.cleanupSwapChain(logicalDevice);

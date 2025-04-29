@@ -134,10 +134,10 @@ class RaytracingScene
 	// 	return meshObjects.back();
 	// }
 
-	RaytracingWorldObject<Sphere>& addObjectSphere(SceneObject& sceneObject,
-	                                               const glm::vec3 position,
-	                                               const float radius,
-	                                               const ColorIdx colorIdx)
+	std::shared_ptr<RaytracingWorldObject<Sphere>> addObjectSphere(SceneObject& sceneObject,
+	                                                               const glm::vec3 position,
+	                                                               const float radius,
+	                                                               const ColorIdx colorIdx)
 	{
 		Sphere sphere{
 		    .center = position,
@@ -145,22 +145,24 @@ class RaytracingScene
 		    .colorIdx = static_cast<int>(colorIdx),
 		};
 
-		spheres.emplace_back(ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position);
+		spheres.emplace_back(std::make_shared<RaytracingWorldObject<Sphere>>(
+		    ObjectType::t_Sphere, AABB::fromSphere(sphere), sphere, position));
 		auto& obj = spheres.back();
-		sceneObject.spheres.push_back(&obj);
+		sceneObject.spheres.push_back(obj);
 		return obj;
 	}
 
-	template <typename T>
-	std::vector<RaytracingWorldObject<T>*>& getTriangleListForSceneObject(SceneObject& sceneObject);
-
-	template <typename T>
-	std::vector<RaytracingWorldObject<T>>& getTriangleList();
+	template <typename S>
+	std::vector<std::shared_ptr<RaytracingWorldObject<S>>>&
+	getTriangleListForSceneObject(SceneObject& sceneObject);
 
 	template <typename S>
-	RaytracingWorldObject<S>& addObjectBezierTriangle(SceneObject& sceneObject,
-	                                                  const S& bezierTriangle,
-	                                                  const bool markAsInside)
+	std::vector<std::shared_ptr<RaytracingWorldObject<S>>>& getTriangleList();
+
+	template <typename S>
+	std::shared_ptr<RaytracingWorldObject<S>> addObjectBezierTriangle(SceneObject& sceneObject,
+	                                                                  const S& bezierTriangle,
+	                                                                  const bool markAsInside)
 	{
 		AABB aabb = AABB::fromBezierTriangle(bezierTriangle);
 		constexpr auto objectType = getObjectType<S>();
@@ -191,23 +193,25 @@ class RaytracingScene
 		}
 
 		auto& trianglesList = getTriangleList<S>();
-		trianglesList.emplace_back(type, aabb, bezierTriangle, glm::vec3(0));
+		trianglesList.emplace_back(
+		    std::make_shared<RaytracingWorldObject<S>>(type, aabb, bezierTriangle, glm::vec3(0)));
 		auto& obj = trianglesList.back();
 
 		auto& trianglesListForSceneObject = getTriangleListForSceneObject<S>(sceneObject);
-		trianglesListForSceneObject.push_back(&obj);
+		trianglesListForSceneObject.push_back(obj);
 		return obj;
 	}
 
-	RaytracingWorldObject<RectangularBezierSurface2x2>&
+	std::shared_ptr<RaytracingWorldObject<RectangularBezierSurface2x2>>
 	addObjectRectangularBezierSurface2x2(SceneObject& sceneObject,
 	                                     const RectangularBezierSurface2x2& surface)
 	{
 		AABB aabb = AABB::fromRectangularBezierSurface2x2(surface);
 		rectangularBezierSurfaces2x2.emplace_back(
-		    ObjectType::t_RectangularBezierSurface2x2, aabb, surface, glm::vec3(0));
+		    std::make_shared<RaytracingWorldObject<RectangularBezierSurface2x2>>(
+		        ObjectType::t_RectangularBezierSurface2x2, aabb, surface, glm::vec3(0)));
 		auto& obj = rectangularBezierSurfaces2x2.back();
-		sceneObject.rectangularBezierSurfaces2x2.emplace_back(&obj);
+		sceneObject.rectangularBezierSurfaces2x2.emplace_back(obj);
 		return obj;
 	}
 
@@ -300,18 +304,20 @@ class RaytracingScene
 		}
 	}
 
-	std::vector<RaytracingWorldObject<Sphere>*>& getWorldObjectSpheres(SceneObject& sceneObject)
+	std::vector<std::shared_ptr<RaytracingWorldObject<Sphere>>>&
+	getWorldObjectSpheres(SceneObject& sceneObject)
 	{
 		return sceneObject.spheres;
 	}
 
 	template <typename S>
-	std::vector<RaytracingWorldObject<S>*>& getWorldObjectBezierTriangles(SceneObject& sceneObject)
+	std::vector<std::shared_ptr<RaytracingWorldObject<S>>>&
+	getWorldObjectBezierTriangles(SceneObject& sceneObject)
 	{
 		return getTriangleListForSceneObject<S>(sceneObject);
 	}
 
-	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>*>&
+	std::vector<std::shared_ptr<RaytracingWorldObject<RectangularBezierSurface2x2>>>&
 	getWorldObjectRectangularBezierSurfaces2x2(SceneObject& sceneObject)
 	{
 		return sceneObject.rectangularBezierSurfaces2x2;
@@ -526,30 +532,9 @@ class RaytracingScene
 			// the objects that are rendered using ray tracing (with an intersection shader)
 			RaytracingObjectAABBBuffers aabbBuffers{};
 
-			for (auto& sceneObject : sceneObjects)
+			for (const auto& sceneObject : sceneObjects)
 			{
 				vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
-				std::printf("SceneObject contains: \n");
-				std::printf("spheres count: %ld\n", sceneObject.spheres.size());
-				if (sceneObject.spheres.size() > 0)
-				{
-					for (const auto& sphere : sceneObject.spheres)
-					{
-						std::printf("spheres: type  %d\n", static_cast<int>(sphere->getType()));
-					}
-				}
-
-				std::printf("bezierTriangles2 count: %ld\n", sceneObject.bezierTriangles2.size());
-				if (sceneObject.bezierTriangles2.size() > 0)
-				{
-					for (const auto& bezierTriangle : sceneObject.bezierTriangles2)
-					{
-						std::printf("bezierTriangles2: type: %d\n",
-						            static_cast<int>(bezierTriangle->getType()));
-					}
-				}
-				std::printf("bezierTriangles3 count: %ld\n", sceneObject.bezierTriangles3.size());
-				std::printf("bezierTriangles4 count: %ld\n", sceneObject.bezierTriangles4.size());
 				aabbBuffers.clearAllHandles();
 
 				copyAABBsToBuffer(aabbBuffers, sceneObject);
@@ -557,7 +542,6 @@ class RaytracingScene
 
 				const std::vector<BLASBuildData> buildData
 				    = createBLASBuildDataForSceneObject(aabbBuffers, sceneObject);
-
 				auto blasBuildData = BLASSceneObjectBuildData{
 				    .blasData = buildData,
 				    .transformMatrix = sceneObject.transformMatrix,
@@ -570,6 +554,7 @@ class RaytracingScene
 				    raytracingInfo.commandBufferBuildTopAndBottomLevel,
 				    raytracingInfo.graphicsQueueHandle,
 				    raytracingInfo.accelerationStructureBuildFence);
+
 				blasInstances.push_back(blasInstance);
 			}
 
@@ -717,7 +702,7 @@ class RaytracingScene
 	template <typename T>
 	void addObjectsToBLASBuildDataListAndGPUObjectsList(
 	    std::vector<BLASBuildData>& blasBuildDataList,
-	    const std::vector<RaytracingWorldObject<T>*>& sceneObjectObjects,
+	    const std::vector<std::shared_ptr<RaytracingWorldObject<T>>>& sceneObjectObjects,
 	    std::vector<VkBuffer>& aabbBufferHandles)
 	{
 		// for each object in the SceneObject, create an entry in the gpuObjects vector to
@@ -729,22 +714,19 @@ class RaytracingScene
 			    logicalDevice, aabbBufferHandles[i]);
 
 			auto objectType = sceneObjectObjects[i]->getType();
-			std::printf("Adding object %ld to gpuObjects with objectType: %d and index: %ld\n",
-			            i,
-			            static_cast<int>(objectType),
-			            gpuObjects.size());
 			gpuObjects.push_back(GPUInstance(objectType, i));
 			blasBuildDataList.push_back(buildData);
 		}
 	}
 
-	// Extracts the data of the objects from the RaytracingWorldObject<T> vector into a vector
-	// and creates and copies the AABB to the corresponding buffer
+	// Extracts the data of the objects from the std::shared_ptr<RaytracingWorldObject<T>> vector
+	// into a vector and creates and copies the AABB to the corresponding buffer
 	template <typename T>
-	void extractAndCopyAABBsToBuffer(const std::vector<RaytracingWorldObject<T>*>& objects,
-	                                 std::vector<VkBuffer>& aabbBufferHandles,
-	                                 std::vector<VmaAllocation>& aabbBufferAllocations,
-	                                 std::vector<AABB>& objectsAABBs)
+	void extractAndCopyAABBsToBuffer(
+	    const std::vector<std::shared_ptr<RaytracingWorldObject<T>>>& objects,
+	    std::vector<VkBuffer>& aabbBufferHandles,
+	    std::vector<VmaAllocation>& aabbBufferAllocations,
+	    std::vector<AABB>& objectsAABBs)
 	{
 		if (objects.size() > 0)
 		{
@@ -807,7 +789,7 @@ class RaytracingScene
 		}
 	}
 
-	void copyAABBsToBuffer(RaytracingObjectAABBBuffers& aabbBuffers, SceneObject& sceneObject)
+	void copyAABBsToBuffer(RaytracingObjectAABBBuffers& aabbBuffers, const SceneObject& sceneObject)
 	{
 		// extract and copy AABBs to buffers
 		extractAndCopyAABBsToBuffer(sceneObject.spheres,
@@ -931,13 +913,6 @@ class RaytracingScene
 			             memoryAllocateFlagsInfo,
 			             gpuObjectsBufferHandle,
 			             gpuObjectsBufferAllocation);
-		}
-
-		for (auto& gpuInstance : gpuObjects)
-		{
-			std::printf("Adding gpuInstance with objectType: %d and index: %d\n",
-			            static_cast<int>(gpuInstance.type),
-			            gpuInstance.bufferIndex);
 		}
 
 		// update buffer data
@@ -1097,12 +1072,13 @@ class RaytracingScene
 
 	// stores the data of all objects added to the scene
 	// each SceneObject references to these objects
-	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>> rectangularBezierSurfaces2x2;
-	// std::vector<rt::RaytracingWorldObject<Tetrahedron2>> tetrahedrons2;
-	std::vector<RaytracingWorldObject<Sphere>> spheres;
-	std::vector<RaytracingWorldObject<BezierTriangle2>> bezierTriangles2;
-	std::vector<RaytracingWorldObject<BezierTriangle3>> bezierTriangles3;
-	std::vector<RaytracingWorldObject<BezierTriangle4>> bezierTriangles4;
+	// std::vector<rt::std::shared_ptr<RaytracingWorldObject<T>>etrahedron2>> tetrahedrons2;
+	std::vector<std::shared_ptr<RaytracingWorldObject<RectangularBezierSurface2x2>>>
+	    rectangularBezierSurfaces2x2;
+	std::vector<std::shared_ptr<RaytracingWorldObject<Sphere>>> spheres;
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle2>>> bezierTriangles2;
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle3>>> bezierTriangles3;
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle4>>> bezierTriangles4;
 
 	// TODO: does this really need to be a member variable? maybe export into some struct that
 	// holds the data temporarily and gets passed around temporarily used to collect all

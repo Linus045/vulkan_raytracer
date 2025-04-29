@@ -3,12 +3,14 @@
 #include <memory>
 
 #include "raytracing_scene.hpp"
+#include "types.hpp"
 #include "vk_mem_alloc.h"
 
 #include "custom_user_data.hpp"
 #include "deletion_queue.hpp"
 #include "ui.hpp"
 #include "renderer.hpp"
+#include "window.hpp"
 
 class Application
 {
@@ -25,8 +27,7 @@ class Application
 	void run();
 
   private:
-	void createWindow();
-	void createRenderer();
+	static void initWindow(tracer::Window& wnd, GLFWframebuffersizefun framebufferResizeCallback);
 	bool checkValidationLayerSupport();
 	void initInputHandlers();
 	void printSelectedGPU();
@@ -34,8 +35,26 @@ class Application
 	void createLogicalDevice(const std::vector<const char*>& requiredDeviceExtensions);
 	bool checkDeviceExtensionSupport(VkPhysicalDevice physicalDeviceToCheck,
 	                                 const std::vector<const char*> requiredDeviceExtensions);
+
 	[[nodiscard]] bool pickPhysicalDevice(const std::vector<const char*> requiredDeviceExtensions);
-	void setupScene(tracer::rt::RaytracingScene& RaytracingScene);
+
+	void setupScene();
+
+	[[nodiscard]]
+	static std::unique_ptr<tracer::Renderer>
+	createRenderer(VkInstance vulkanInstance,
+	               VkPhysicalDevice physicalDevice,
+	               VkDevice logicalDevice,
+	               tracer::DeletionQueue mainDeletionQueue,
+	               tracer::rt::RaytracingScene& raytracingScene,
+	               tracer::Window& window,
+	               VkQueue graphicsQueue,
+	               VkQueue presentQueue,
+	               VkQueue transferQueue,
+	               bool raytracingSupported,
+	               VmaAllocator vmaAllocator,
+	               tracer::SwapChainSupportDetails swapChainSupportDetails);
+
 	static bool loadOpenVolumeMeshFile(std::filesystem::path path,
 	                                   tracer::rt::RaytracingScene& raytracingScene,
 	                                   tracer::Renderer& renderer,
@@ -116,6 +135,8 @@ class Application
 	tracer::Window window;
 	std::unique_ptr<tracer::Renderer> renderer;
 	tracer::Camera camera;
+
+	std::unique_ptr<tracer::rt::RaytracingScene> raytracingScene;
 
 	// Handle for the debug message callback
 	VkDebugUtilsMessengerEXT debugMessenger;

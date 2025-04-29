@@ -1,5 +1,6 @@
 #pragma once
 
+#include "raytracing_scene.hpp"
 #include <cassert>
 #include <cstring>
 #include <vector>
@@ -52,7 +53,7 @@ class Renderer
 	Renderer(Renderer&&) = delete;
 	Renderer& operator=(Renderer&&) = delete;
 
-	void initRenderer(VkInstance& vulkanInstance);
+	void initRenderer(VkInstance& vulkanInstance, rt::RaytracingScene& raytracingScene);
 
 	inline void cleanupFramebufferAndImageViews()
 	{
@@ -71,7 +72,6 @@ class Renderer
 	{
 		// if (raytracingSupported)
 		{
-			raytracingScene->cleanup(raytracingInfo.graphicsQueueHandle);
 
 			tracer::freeRaytraceImageAndImageView(logicalDevice,
 			                                      vmaAllocator,
@@ -113,9 +113,9 @@ class Renderer
 		return raytracingInfo.uniformStructure.frameCount;
 	}
 
-	inline const size_t& getBLASInstancesCount() const
+	inline const size_t& getBLASInstancesCount(rt::RaytracingScene& raytracingScene) const
 	{
-		return raytracingScene->getBLASInstancesCount();
+		return raytracingScene.getBLASInstancesCount();
 	}
 
 	void createImageViews();
@@ -189,14 +189,14 @@ class Renderer
 		return raytracingInfo.raytracingConstants;
 	}
 
-	inline const rt::RaytracingScene& getRaytracingScene() const
+	inline const rt::RaytracingScene& getCurrentRaytracingScene() const
 	{
-		return *raytracingScene;
+		return *currentRaytracingScene;
 	}
 
-	inline rt::RaytracingScene& getRaytracingScene()
+	inline rt::RaytracingScene& getCurrentRaytracingScene()
 	{
-		return *raytracingScene;
+		return *currentRaytracingScene;
 	}
 
 	void updateRaytracingDescriptorSet();
@@ -244,8 +244,6 @@ class Renderer
 	VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
 	const bool raytracingSupported = false;
 
-	std::unique_ptr<rt::RaytracingScene> raytracingScene;
-
 	// Logical device to interact with
 	VkDevice logicalDevice;
 
@@ -268,6 +266,9 @@ class Renderer
 
 	VkCommandPool commandPool = VK_NULL_HANDLE;
 	std::vector<VkCommandBuffer> commandBuffers;
+
+	// TODO: not sure I really wanna use a raw pointer here
+	rt::RaytracingScene* currentRaytracingScene = nullptr;
 
 	// VkCommandPool commandPoolTransfer = VK_NULL_HANDLE;
 

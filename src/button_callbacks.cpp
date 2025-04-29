@@ -69,7 +69,7 @@ namespace rt
 
 static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UIData& uiData)
 {
-	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& raytracingScene = renderer.getCurrentRaytracingScene();
 
 	Ray ray{
 	    .origin = camera.transform.getPos(),
@@ -99,7 +99,7 @@ static void visualizeRayPlanes(Renderer& renderer, const Camera& camera, ui::UID
 
 static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 {
-	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& raytracingScene = renderer.getCurrentRaytracingScene();
 	auto& slicingPlane = raytracingScene.getSlicingPlanes()[0];
 
 	tracer::rt::visualizePlane(
@@ -110,7 +110,7 @@ static void visualizeSlicingPlanes(Renderer& renderer, ui::UIData& uiData)
 
 static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneNr)
 {
-	auto& raytracingScene = renderer.getRaytracingScene();
+	auto& raytracingScene = renderer.getCurrentRaytracingScene();
 	auto& sceneConfig = tracer::SceneConfig::fromUIData(uiData);
 
 	std::printf("Loading scene %d\n", sceneNr);

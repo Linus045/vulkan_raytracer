@@ -36,6 +36,12 @@ void RaytracingScene::clearScene()
 	bezierTriangles4List.clear();
 	rectangularSurfaces2x2List.clear();
 
+	spheres.clear();
+	bezierTriangles2.clear();
+	bezierTriangles3.clear();
+	bezierTriangles4.clear();
+	rectangularBezierSurfaces2x2.clear();
+
 	/// we add the slicing plane once in the RaytracingScene constructor instead of adding it
 	/// per scene
 	// raytracingScene.getSlicingPlanes().clear();
@@ -338,40 +344,43 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle2>*>&
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle2>>>&
 RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
 {
 	return sceneObject.bezierTriangles2;
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle3>*>&
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle3>>>&
 RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
 {
 	return sceneObject.bezierTriangles3;
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle4>*>&
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle4>>>&
 RaytracingScene::getTriangleListForSceneObject(SceneObject& sceneObject)
 {
 	return sceneObject.bezierTriangles4;
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle2>>& RaytracingScene::getTriangleList()
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle2>>>&
+RaytracingScene::getTriangleList()
 {
 	return bezierTriangles2;
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle3>>& RaytracingScene::getTriangleList()
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle3>>>&
+RaytracingScene::getTriangleList()
 {
 	return bezierTriangles3;
 }
 
 template <>
-std::vector<RaytracingWorldObject<BezierTriangle4>>& RaytracingScene::getTriangleList()
+std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle4>>>&
+RaytracingScene::getTriangleList()
 {
 	return bezierTriangles4;
 }

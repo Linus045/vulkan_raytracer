@@ -27,12 +27,15 @@ struct BLASBuildData
 struct SceneObject
 {
 	// we only store pointers to the actual data in the raytracingScene
-	std::vector<RaytracingWorldObject<RectangularBezierSurface2x2>*> rectangularBezierSurfaces2x2{};
+	// NOTE: idk why normal pointer caused issues here, instead of further debugging we just
+	// use shared pointers...
+	std::vector<std::shared_ptr<RaytracingWorldObject<RectangularBezierSurface2x2>>>
+	    rectangularBezierSurfaces2x2{};
 	// std::vector<rt::RaytracingWorldObject<Tetrahedron2>::Ptr> tetrahedrons2;
-	std::vector<RaytracingWorldObject<Sphere>*> spheres{};
-	std::vector<RaytracingWorldObject<BezierTriangle2>*> bezierTriangles2{};
-	std::vector<RaytracingWorldObject<BezierTriangle3>*> bezierTriangles3{};
-	std::vector<RaytracingWorldObject<BezierTriangle4>*> bezierTriangles4{};
+	std::vector<std::shared_ptr<RaytracingWorldObject<Sphere>>> spheres{};
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle2>>> bezierTriangles2{};
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle3>>> bezierTriangles3{};
+	std::vector<std::shared_ptr<RaytracingWorldObject<BezierTriangle4>>> bezierTriangles4{};
 
 	const std::string name;
 	VkTransformMatrixKHR transformMatrix;

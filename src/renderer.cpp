@@ -5,11 +5,12 @@
 #include "renderer.hpp"
 #include "raytracing.hpp"
 #include "model.hpp"
+#include "raytracing_scene.hpp"
 
 namespace tracer
 {
 
-void Renderer::initRenderer(VkInstance& vulkanInstance)
+void Renderer::initRenderer(VkInstance& vulkanInstance, rt::RaytracingScene& raytracingScene)
 {
 	// this->worldObjects = worldObjects;
 
@@ -92,8 +93,7 @@ void Renderer::initRenderer(VkInstance& vulkanInstance)
 	createRaytracingRenderpassAndFramebuffer();
 	updateRaytracingDescriptorSet();
 
-	raytracingScene
-	    = std::make_unique<rt::RaytracingScene>(physicalDevice, logicalDevice, vmaAllocator);
+	currentRaytracingScene = &raytracingScene;
 
 	if (raytracingSupported)
 	{
@@ -299,7 +299,7 @@ void Renderer::drawFrame(Camera& camera,
 			}
 			else
 			{
-				raytracingScene->copyGPUObjectsToBuffers();
+				getCurrentRaytracingScene().copyGPUObjectsToBuffers();
 			}
 
 			// make sure the light position is up-to-date
@@ -308,7 +308,7 @@ void Renderer::drawFrame(Camera& camera,
 				// values correspondingly
 
 				// TODO: abstract this away so we just need get the reference and set the position
-				auto light = raytracingScene->getSceneObject("light");
+				auto light = getCurrentRaytracingScene().getSceneObject("light");
 				if (light.has_value())
 				{
 					if (light.value()->spheres.size() > 0)
@@ -317,25 +317,19 @@ void Renderer::drawFrame(Camera& camera,
 						// we assume the first sphere always represents the light
 						lightSphere->setPosition(
 						    uiData.raytracingDataConstants.globalLightPosition);
-						std::printf("LightSphere Pos: %f %f %f\n",
-						            lightSphere->getTransform().getX(),
-						            lightSphere->getTransform().getY(),
-						            lightSphere->getTransform().getZ());
 						auto transformMatrix = lightSphere->getTransform().getTransformMatrix();
 
 						light.value()->setTransformMatrix(transformMatrix);
-						std::printf("Setting light position for instanceCustomIndex: %d\n",
-						            light.value()->instanceCustomIndex);
-						raytracingScene->setTransformMatrixForInstance(
+						getCurrentRaytracingScene().setTransformMatrixForInstance(
 						    light.value()->instanceCustomIndex + 0, transformMatrix);
 					}
 				}
 			}
 
-			raytracingScene->recreateAccelerationStructures(raytracingInfo, fullRebuild);
+			getCurrentRaytracingScene().recreateAccelerationStructures(raytracingInfo, fullRebuild);
 
 			updateAccelerationStructureDescriptorSet(
-			    logicalDevice, *raytracingScene, raytracingInfo);
+			    logicalDevice, getCurrentRaytracingScene(), raytracingInfo);
 
 			uiData.recreateAccelerationStructures.reset();
 			resetFrameCountRequested = true;
