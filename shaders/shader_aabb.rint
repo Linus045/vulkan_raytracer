@@ -717,63 +717,110 @@ void main()
 			    vec2(.5, .5),
 			};
 
+			SlicingPlane plane = slicingPlanes[0];
+
 			if (objectType == t_BezierTriangle2 || objectType == t_BezierTriangleInside2)
 			{
 				BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
-				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+
+				bool doNewtonsMethod = true;
+				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 				{
-					const vec2 guess = guesses2[i];
-					if (newtonsMethodTriangle2(hitPoint,
-					                           hitCoords,
-					                           hitNormal,
-					                           guess,
-					                           ray.origin,
-					                           ray.direction,
-					                           bezierTriangle.controlPoints,
-					                           n1,
-					                           n2))
+					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
 					{
-						verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						// whole AABB is in front of the slicing plane, ignore completely
+						doNewtonsMethod = false;
+					}
+				}
+
+				if (doNewtonsMethod)
+				{
+					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+					{
+						const vec2 guess = guesses2[i];
+						if (newtonsMethodTriangle2(hitPoint,
+						                           hitCoords,
+						                           hitNormal,
+						                           guess,
+						                           ray.origin,
+						                           ray.direction,
+						                           bezierTriangle.controlPoints,
+						                           n1,
+						                           n2))
+						{
+							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						}
 					}
 				}
 			}
 			else if (objectType == t_BezierTriangle3 || objectType == t_BezierTriangleInside3)
 			{
 				BezierTriangle3 bezierTriangle = bezierTriangles3[instance.bufferIndex];
-				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+
+				bool doNewtonsMethod = true;
+				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 				{
-					const vec2 guess = guesses3[i];
-					if (newtonsMethodTriangle3(hitPoint,
-					                           hitCoords,
-					                           hitNormal,
-					                           guess,
-					                           ray.origin,
-					                           ray.direction,
-					                           bezierTriangle.controlPoints,
-					                           n1,
-					                           n2))
+					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
 					{
-						verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						// whole AABB is in front of the slicing plane, ignore completely
+						doNewtonsMethod = false;
+					}
+				}
+
+				if (doNewtonsMethod)
+				{
+					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+					{
+						const vec2 guess = guesses3[i];
+						if (newtonsMethodTriangle3(hitPoint,
+						                           hitCoords,
+						                           hitNormal,
+						                           guess,
+						                           ray.origin,
+						                           ray.direction,
+						                           bezierTriangle.controlPoints,
+						                           n1,
+						                           n2))
+						{
+							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						}
 					}
 				}
 			}
 			else if (objectType == t_BezierTriangle4 || objectType == t_BezierTriangleInside4)
 			{
 				BezierTriangle4 bezierTriangle = bezierTriangles4[instance.bufferIndex];
-				for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+
+				bool doNewtonsMethod = true;
+				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
 				{
-					const vec2 guess = guesses4[i];
-					if (newtonsMethodTriangle4(hitPoint,
-					                           hitCoords,
-					                           hitNormal,
-					                           guess,
-					                           ray.origin,
-					                           ray.direction,
-					                           bezierTriangle.controlPoints,
-					                           n1,
-					                           n2))
+					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
 					{
-						verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						// whole AABB is in front of the slicing plane, ignore completely
+						doNewtonsMethod = false;
+					}
+				}
+
+				if (doNewtonsMethod)
+				{
+					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
+					{
+						const vec2 guess = guesses4[i];
+						if (newtonsMethodTriangle4(hitPoint,
+						                           hitCoords,
+						                           hitNormal,
+						                           guess,
+						                           ray.origin,
+						                           ray.direction,
+						                           bezierTriangle.controlPoints,
+						                           n1,
+						                           n2))
+						{
+							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+						}
 					}
 				}
 			}

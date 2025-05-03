@@ -1,6 +1,10 @@
 #pragma once
 
+#include <stdexcept>
+
+#include "aabb.hpp"
 #include "worldobject.hpp"
+#include "common_types.h"
 
 namespace tracer
 {

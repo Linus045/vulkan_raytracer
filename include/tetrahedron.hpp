@@ -9,6 +9,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/ext/vector_float3.hpp"
 
+#include "aabb.hpp"
 #include "common_types.h"
 
 namespace tracer
@@ -365,6 +366,9 @@ inline S extractBezierTriangleFromTetrahedron(const T& tetrahedron, const int si
 	{
 		static_assert(false, "Unsupported tetrahedron type");
 	}
+
+	auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
+	bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
 
 	return bezierTriangle;
 }

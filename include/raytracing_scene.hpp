@@ -18,6 +18,7 @@
 #include "tlas.hpp"
 #include "ui.hpp"
 #include "vk_utils.hpp"
+#include "tetrahedron.hpp"
 
 // TODO: move functions into raytracing_scene.cpp file
 

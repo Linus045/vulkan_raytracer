@@ -204,25 +204,32 @@ struct Triangle
 	vec3 c;
 };
 
+// NOTE: as far as I'm aware it is impossible to retrieve the AABB from the Acceleration Structure
+// directly, so we need to manually store the AABB in the triangle struct to be able to
+// retrieve it later in the shader
 // Formula for amount of control points is: (n+1)(n+2)/2
 struct BezierTriangle1
 {
 	vec3 controlPoints[3];
+	Aabb aabb;
 };
 
 struct BezierTriangle2
 {
 	vec3 controlPoints[6];
+	Aabb aabb;
 };
 
 struct BezierTriangle3
 {
 	vec3 controlPoints[10];
+	Aabb aabb;
 };
 
 struct BezierTriangle4
 {
 	vec3 controlPoints[15];
+	Aabb aabb;
 };
 
 struct SlicingPlane
