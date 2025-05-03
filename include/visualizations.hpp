@@ -368,9 +368,9 @@ inline bool newtonsMethodTriangle2([[maybe_unused]] RaytracingScene& raytracingS
 		u[c + 1] = u[c] - differenceInUV;
 
 		vec3 surfacePoint = BezierTrianglePoint(triangle, u[c].x, u[c].y, 1.0f - u[c].x - u[c].y);
-		auto& sceneObject = raytracingScene.createSceneObject(surfacePoint);
+		auto sceneObject = raytracingScene.createSceneObject(surfacePoint);
 		raytracingScene.addObjectSphere(
-		    sceneObject,
+		    *sceneObject,
 		    surfacePoint,
 		    true,
 		    0.1f
@@ -451,7 +451,7 @@ inline void visualizePlane(RaytracingScene& raytracingScene,
 	glm::vec3 b2 = glm::normalize(glm::cross(normal, b1));
 	glm::vec3 b3 = glm::normalize(glm::cross(normal, b2));
 
-	auto& sceneObject = raytracingScene.createSceneObject();
+	auto sceneObject = raytracingScene.createSceneObject();
 	float stepSize = 0.1f;
 	for (float x = 0; x <= sizeX; x += stepSize)
 	{
@@ -459,7 +459,7 @@ inline void visualizePlane(RaytracingScene& raytracingScene,
 		{
 			// auto pos = glm::dot(pointOnPlane, normal);
 			auto pos = pointOnPlane + (x - sizeX / 2.0f) * b2 + (z - sizeZ / 2.0f) * b3;
-			raytracingScene.addObjectSphere(sceneObject, pos, false, 0.005f, ColorIdx::t_pink);
+			raytracingScene.addObjectSphere(*sceneObject, pos, false, 0.005f, ColorIdx::t_pink);
 		}
 	}
 }

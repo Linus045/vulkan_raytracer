@@ -317,21 +317,17 @@ void Renderer::drawFrame(Camera& camera,
 				// values correspondingly
 
 				// TODO: abstract this away so we just need get the reference and set the position
-				auto light = getCurrentRaytracingScene().getSceneObject("light");
-				if (light.has_value())
+				auto lightSceneObject = getCurrentRaytracingScene().getSceneObject("light");
+				if (lightSceneObject.has_value() && lightSceneObject.value()->spheres.size() > 0)
 				{
-					if (light.value()->spheres.size() > 0)
-					{
-						auto& lightSphere = light.value()->spheres[0];
-						// we assume the first sphere always represents the light
-						lightSphere->setPosition(
-						    uiData.raytracingDataConstants.globalLightPosition);
-						auto transformMatrix = lightSphere->getTransform().getTransformMatrix();
+					auto& lightSphere = lightSceneObject.value()->spheres[0];
+					// we assume the first sphere always represents the light
+					lightSphere->setPosition(uiData.raytracingDataConstants.globalLightPosition);
+					auto transformMatrix = lightSphere->getTransform().getTransformMatrix();
 
-						light.value()->setTransformMatrix(transformMatrix);
-						getCurrentRaytracingScene().setTransformMatrixForInstance(
-						    light.value()->instanceCustomIndex + 0, transformMatrix);
-					}
+					lightSceneObject.value()->setTransformMatrix(transformMatrix);
+					getCurrentRaytracingScene().setTransformMatrixForInstance(
+					    lightSceneObject.value()->instanceCustomIndex + 0, transformMatrix);
 				}
 			}
 

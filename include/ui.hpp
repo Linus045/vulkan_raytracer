@@ -7,6 +7,7 @@
 
 #include <glm/ext/vector_float3.hpp>
 
+#include <memory>
 #include <vulkan/vk_enum_string_helper.h>
 #include "blas.hpp"
 #include "common_types.h"
@@ -52,7 +53,7 @@ struct UIData
 	const uint32_t& frameCount;
 	const size_t& blasInstancesCount;
 	std::vector<SlicingPlane>& slicingPlanes;
-	std::vector<tracer::rt::SceneObject>& sceneObjects;
+	std::vector<std::shared_ptr<tracer::rt::SceneObject>>& sceneObjects;
 
 	float frameTimeMilliseconds = 0.0f;
 
@@ -124,7 +125,7 @@ struct UIData
 	       const uint32_t& frameCount,
 	       const size_t& blasInstancesCount,
 	       std::vector<SlicingPlane>& slicingPlanes,
-	       std::vector<tracer::rt::SceneObject>& sceneObjects)
+	       std::vector<std::shared_ptr<tracer::rt::SceneObject>>& sceneObjects)
 	    : camera(camera), window(window), raytracingSupported(raytracingSupported),
 	      physicalDeviceProperties(physicalDeviceProperties),
 	      raytracingDataConstants(raytracingDataConstants), frameCount(frameCount),

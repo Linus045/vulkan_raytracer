@@ -226,15 +226,15 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	raytracingScene.clearScene();
 
 	// first sphere represents light
-	auto& sceneObjectLight = raytracingScene.createNamedSceneObject(
+	auto sceneObjectLight = raytracingScene.createNamedSceneObject(
 	    "light", renderer.getRaytracingDataConstants().globalLightPosition);
-	raytracingScene.addObjectSphere(sceneObjectLight,
+	raytracingScene.addObjectSphere(*sceneObjectLight,
 	                                renderer.getRaytracingDataConstants().globalLightPosition,
 	                                true,
 	                                0.2f,
 	                                ColorIdx::t_yellow);
 
-	auto& sceneObject = raytracingScene.createNamedSceneObject("model");
+	auto sceneObject = raytracingScene.createNamedSceneObject("model");
 
 	// NOTE: we can't  add elements to sceneObjects out of order, therefore to show the
 	// controlpoints, we will add them after adding all bezier triangles to the sceneObject 'model'
@@ -311,7 +311,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
-				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
 			}
 			else if (N == 3)
 			{
@@ -340,7 +340,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[9] = faceControlPoints[9];
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
-				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
 			}
 			else if (N == 4)
 			{
@@ -375,7 +375,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
-				raytracingScene.addObjectBezierTriangle(sceneObject, bezierTriangle, false);
+				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
 			}
 			else
 			{
@@ -398,11 +398,11 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 
 	if (sceneConfig.visualizeControlPoints)
 	{
-		auto& sceneObjectControlPoints = raytracingScene.createSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createSceneObject();
 		for (auto& point : allControlPoints)
 		{
 			raytracingScene.addObjectSphere(
-			    sceneObjectControlPoints, point, false, 0.02f, ColorIdx::t_orange);
+			    *sceneObjectControlPoints, point, false, 0.02f, ColorIdx::t_orange);
 		}
 	}
 

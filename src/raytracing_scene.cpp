@@ -20,12 +20,12 @@ void RaytracingScene::clearScene()
 {
 	for (auto& sceneObject : sceneObjects)
 	{
-		getWorldObjectSpheres(sceneObject).clear();
+		getWorldObjectSpheres(*sceneObject).clear();
 		// raytracingScene.getWorldObjectTetrahedrons().clear();
-		getWorldObjectBezierTriangles<BezierTriangle2>(sceneObject).clear();
-		getWorldObjectBezierTriangles<BezierTriangle3>(sceneObject).clear();
-		getWorldObjectBezierTriangles<BezierTriangle4>(sceneObject).clear();
-		getWorldObjectRectangularBezierSurfaces2x2(sceneObject).clear();
+		getWorldObjectBezierTriangles<BezierTriangle2>(*sceneObject).clear();
+		getWorldObjectBezierTriangles<BezierTriangle3>(*sceneObject).clear();
+		getWorldObjectBezierTriangles<BezierTriangle4>(*sceneObject).clear();
+		getWorldObjectRectangularBezierSurfaces2x2(*sceneObject).clear();
 	}
 	sceneObjects.clear();
 	objectNameToSceneObjectMap.clear();
@@ -65,9 +65,9 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 
 	// first sphere represents light
 	// TODO: add into its own BLAS Instance
-	auto& sceneObjectLight = raytracingScene.createNamedSceneObject(
+	auto sceneObjectLight = raytracingScene.createNamedSceneObject(
 	    "light", renderer.getRaytracingDataConstants().globalLightPosition);
-	raytracingScene.addObjectSphere(sceneObjectLight,
+	raytracingScene.addObjectSphere(*sceneObjectLight,
 	                                renderer.getRaytracingDataConstants().globalLightPosition,
 	                                true,
 	                                0.2f,
@@ -93,16 +93,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(1.0f, 1.0f, 0.0f),
 		    glm::vec3(2.0f, 0.0f, 0.0f),
 		}));
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron2);
 
-		auto& sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron2);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron2);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron2,
 		                          sceneConfig.visualizeSampledSurface,
@@ -129,16 +129,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3.0f, 1.5f, 0.0f) * scalar + offset,
 		}));
 
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron2);
 
-		auto& sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron2);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron2);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron2,
 		                          sceneConfig.visualizeSampledSurface,
@@ -182,24 +182,24 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		// create a scene object to which is build up of multiple teteahedron (they will be stored
 		// in
 		// the same BLAS)
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
 
 		// first add all the triangles (so the data is in one chunk inside the SceneObject)
 		// mark left side triangle as inside
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
-		    sceneObject, tetrahedron2_1, {true, true, true, true}, {false, false, true, false});
+		    *sceneObject, tetrahedron2_1, {true, true, true, true}, {false, false, true, false});
 		// mark right side triangle as inside
 		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(
-		    sceneObject, tetrahedron2_2, {true, true, true, true}, {false, false, false, true});
+		    *sceneObject, tetrahedron2_2, {true, true, true, true}, {false, false, false, true});
 
-		auto& sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
 		// second add all the spheres
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron2_1);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron2_1);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron2_1,
 		                          sceneConfig.visualizeSampledSurface,
@@ -208,9 +208,9 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron2_2);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron2_2);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron2_2,
 		                          sceneConfig.visualizeSampledSurface,
@@ -229,16 +229,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		// create a scene object to which is build up of multiple teteahedron (they will be stored
 		// in
 		// the same BLAS)
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron3);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron3);
 
-		auto& sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron3);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron3);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron3,
 		                          sceneConfig.visualizeSampledSurface,
@@ -261,16 +261,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(2.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(0, 2),
 		}));
 
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron2);
 
-		auto& sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createNamedSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron2);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron2);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron2,
 		                          sceneConfig.visualizeSampledSurface,
@@ -280,7 +280,7 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	{
 		// create a scene object to which is build up of multiple teteahedron (they will be stored
 		// in the same BLAS)
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
 
 		auto tetrahedrons = std::vector<Tetrahedron2>();
 		for (float x = 0; x < 10; x++)
@@ -303,20 +303,21 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 				}));
 				tetrahedrons.push_back(tetrahedron2);
 
-				raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron2);
+				raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject,
+				                                                         tetrahedron2);
 			}
 		}
 
-		auto& sceneObjectControlPoints = raytracingScene.createSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createSceneObject();
 		// after creating all the tetrahedrons (in one chunk), we can add the spheres
 		for (const auto& tetrahedron2 : tetrahedrons)
 		{
 			if (sceneConfig.visualizeControlPoints)
 			{
 				visualizeTetrahedronControlPoints(
-				    sceneObjectControlPoints, raytracingScene, tetrahedron2);
+				    *sceneObjectControlPoints, raytracingScene, tetrahedron2);
 			}
-			visualizeTetrahedronSides(sceneObjectControlPoints,
+			visualizeTetrahedronSides(*sceneObjectControlPoints,
 			                          raytracingScene,
 			                          tetrahedron2,
 			                          sceneConfig.visualizeSampledSurface,
@@ -337,16 +338,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3, 0, 1), glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
 		}));
 
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron4);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron4);
 
-		auto& sceneObjectControlPoints = raytracingScene.createSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron4);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron4);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron4,
 		                          sceneConfig.visualizeSampledSurface,
@@ -366,16 +367,16 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 		    glm::vec3(3, 0, 1),   glm::vec3(3, 1, 0), glm::vec3(4, 0, 0),
 		}));
 
-		auto& sceneObject = raytracingScene.createNamedSceneObject("model");
-		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(sceneObject, tetrahedron4);
+		auto sceneObject = raytracingScene.createNamedSceneObject("model");
+		raytracingScene.addSidesFromTetrahedronAsBezierTriangles(*sceneObject, tetrahedron4);
 
-		auto& sceneObjectControlPoints = raytracingScene.createSceneObject();
+		auto sceneObjectControlPoints = raytracingScene.createSceneObject();
 		if (sceneConfig.visualizeControlPoints)
 		{
 			visualizeTetrahedronControlPoints(
-			    sceneObjectControlPoints, raytracingScene, tetrahedron4);
+			    *sceneObjectControlPoints, raytracingScene, tetrahedron4);
 		}
-		visualizeTetrahedronSides(sceneObjectControlPoints,
+		visualizeTetrahedronSides(*sceneObjectControlPoints,
 		                          raytracingScene,
 		                          tetrahedron4,
 		                          sceneConfig.visualizeSampledSurface,

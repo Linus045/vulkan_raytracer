@@ -68,7 +68,6 @@ struct SceneObject
 		transformMatrix = newTransformMatrix;
 	}
 
-  private:
 	SceneObject(const std::string& name,
 	            const VkTransformMatrixKHR& transformMatrix,
 	            const uint32_t instanceCustomIndex,

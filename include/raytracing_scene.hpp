@@ -338,7 +338,7 @@ class RaytracingScene
 		return slicingPlanes;
 	}
 
-	std::vector<SceneObject>& getSceneObjects()
+	std::vector<std::shared_ptr<SceneObject>>& getSceneObjects()
 	{
 		return sceneObjects;
 	}
@@ -455,19 +455,19 @@ class RaytracingScene
 
 	// NOTE:  we assume we add the objects directly after creating the SceneObject
 	// it it NOT possible to add objects after a new instance of SceneObject has been created
-	SceneObject& createSceneObject(const glm::vec3 pos = glm::vec3(0),
-	                               const glm::quat rotation = glm::quat(),
-	                               const glm::vec3 scale = glm::vec3(1))
+	std::shared_ptr<SceneObject> createSceneObject(const glm::vec3 pos = glm::vec3(0),
+	                                               const glm::quat rotation = glm::quat(),
+	                                               const glm::vec3 scale = glm::vec3(1))
 	{
 		return createNamedSceneObject("", pos, rotation, scale);
 	}
 
 	// NOTE:  we assume we add the objects directly after creating the SceneObject
 	// it it NOT possible to add objects after a new instance of SceneObject has been created
-	SceneObject& createNamedSceneObject(const std::string& name = "",
-	                                    const glm::vec3 pos = glm::vec3(0),
-	                                    const glm::quat rotation = glm::quat(),
-	                                    const glm::vec3 scale = glm::vec3(1))
+	std::shared_ptr<SceneObject> createNamedSceneObject(const std::string& name = "",
+	                                                    const glm::vec3 pos = glm::vec3(0),
+	                                                    const glm::quat rotation = glm::quat(),
+	                                                    const glm::vec3 scale = glm::vec3(1))
 	{
 		Transform identityTransform(pos, rotation, scale);
 
@@ -475,7 +475,7 @@ class RaytracingScene
 		size_t instanceCustomIndex = 0;
 		for (auto& obj : sceneObjects)
 		{
-			instanceCustomIndex += obj.totalElementsCount();
+			instanceCustomIndex += obj->totalElementsCount();
 		}
 
 		// only the first 24 bits are used for the instance custom index in vulkan
@@ -502,16 +502,17 @@ class RaytracingScene
 
 		// TODO: we could order the objects that are inside the scene object later on before we move
 		// them to the GPU and assign the correct indices then, but for now this will work fine
-		sceneObjects.push_back(SceneObject(name,
-		                                   transformMatrix,
-		                                   instanceIndex,
-		                                   spheresBufferOffset,
-		                                   bezierTriangles2BufferOffset,
-		                                   bezierTriangles3BufferOffset,
-		                                   bezierTriangles4BufferOffset,
-		                                   rectangularBezierSurfaces2x2BufferOffset));
+		sceneObjects.push_back(
+		    std::make_shared<SceneObject>(name,
+		                                  transformMatrix,
+		                                  instanceIndex,
+		                                  spheresBufferOffset,
+		                                  bezierTriangles2BufferOffset,
+		                                  bezierTriangles3BufferOffset,
+		                                  bezierTriangles4BufferOffset,
+		                                  rectangularBezierSurfaces2x2BufferOffset));
 
-		auto& obj = sceneObjects.back();
+		auto& obj = sceneObjects[sceneObjects.size() - 1];
 		objectNameToSceneObjectMap.emplace(name, obj);
 		return obj;
 	}
@@ -579,15 +580,15 @@ class RaytracingScene
 				vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
 				aabbBuffers.clearAllHandles();
 
-				copyAABBsToBuffer(aabbBuffers, sceneObject);
-				addSceneObjectToGpuObjects(sceneObject);
+				copyAABBsToBuffer(aabbBuffers, *sceneObject);
+				addSceneObjectToGpuObjects(*sceneObject);
 
 				const std::vector<BLASBuildData> buildData
-				    = createBLASBuildDataForSceneObject(aabbBuffers, sceneObject);
+				    = createBLASBuildDataForSceneObject(aabbBuffers, *sceneObject);
 				auto blasBuildData = BLASSceneObjectBuildData{
 				    .blasData = buildData,
-				    .transformMatrix = sceneObject.transformMatrix,
-				    .instanceCustomIndex = sceneObject.instanceCustomIndex,
+				    .transformMatrix = sceneObject->transformMatrix,
+				    .instanceCustomIndex = sceneObject->instanceCustomIndex,
 				};
 
 				vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
@@ -630,9 +631,9 @@ class RaytracingScene
 		else
 		{
 			vkQueueWaitIdle(raytracingInfo.graphicsQueueHandle);
-			for (auto& sceneObject : sceneObjects)
+			for (const auto& sceneObject : sceneObjects)
 			{
-				addSceneObjectToGpuObjects(sceneObject);
+				addSceneObjectToGpuObjects(*sceneObject);
 			}
 			copyGPUObjectsToBuffers();
 
@@ -729,12 +730,12 @@ class RaytracingScene
 		}
 	}
 
-	std::optional<SceneObject*> getSceneObject(const std::string& name)
+	std::optional<std::shared_ptr<SceneObject>> getSceneObject(const std::string& name)
 	{
 		auto sceneObjectItr = objectNameToSceneObjectMap.find(name);
 		if (sceneObjectItr != objectNameToSceneObjectMap.end())
 		{
-			return &sceneObjectItr->second;
+			return sceneObjectItr->second;
 		}
 		else
 		{
@@ -1161,11 +1162,11 @@ class RaytracingScene
 
 	// basically gives the objects we add as blasInstances names so we can reference them
 	// later e.g. "light" will reference the blas that represents the light
-	std::map<std::string, SceneObject&> objectNameToSceneObjectMap;
+	std::map<std::string, std::shared_ptr<SceneObject>> objectNameToSceneObjectMap;
 
 	// keeps track of how many SceneObjects are currently added to this scene
 	uint32_t sceneObjectCounter = 0;
-	std::vector<SceneObject> sceneObjects;
+	std::vector<std::shared_ptr<SceneObject>> sceneObjects;
 	std::vector<VkAccelerationStructureInstanceKHR> blasInstances;
 
 	size_t blasInstancesCount = 0;
