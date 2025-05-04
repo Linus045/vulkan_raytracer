@@ -75,16 +75,10 @@ layout(push_constant) uniform RaytracingDataConstants{
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
-mat2x2 inverseJacobian(const mat2x2 J)
+mat2x2 inverseJacobian(const mat2x2 J, const float determinant)
 {
-	float d = determinant(J);
-	if (abs(d) < 0.00001)
-	{
-		return mat2x2(0, 0, 0, 0);
-	}
-
 	mat2x2 adj = mat2x2(J[1][1], -J[0][1], -J[1][0], J[0][0]);
-	mat2x2 mat = 1.0 / d * adj;
+	mat2x2 mat = 1.0 / determinant * adj;
 	return mat;
 }
 
@@ -313,13 +307,15 @@ bool newtonsMethodTriangle2(out vec3 hitPoint,
 	{
 		mat2x2 j
 		    = jacobianBezierTriangle2(controlPoints, n1, n2, u[c].x, u[c].y, partialU, partialV);
-		mat2x2 inv_j = inverseJacobian(j);
-		if (inv_j == mat2x2(0, 0, 0, 0))
+
+		float d = determinant(j);
+		if (abs(d) < 0.000001)
 		{
 			hit = false;
 			break;
 		}
 
+		mat2x2 inv_j = inverseJacobian(j, d);
 		vec2 f_value = fBezierTriangle2(
 		    controlPoints, rayOrigin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
 
@@ -408,13 +404,14 @@ bool newtonsMethodTriangle3(out vec3 hitPoint,
 	{
 		mat2x2 j
 		    = jacobianBezierTriangle3(controlPoints, n1, n2, u[c].x, u[c].y, partialU, partialV);
-		mat2x2 inv_j = inverseJacobian(j);
-		if (inv_j == mat2x2(0, 0, 0, 0))
+		float d = determinant(j);
+		if (abs(d) < 0.00001)
 		{
 			hit = false;
 			break;
 		}
 
+		mat2x2 inv_j = inverseJacobian(j, d);
 		vec2 f_value = fBezierTriangle3(
 		    controlPoints, rayOrigin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
 
@@ -503,13 +500,15 @@ bool newtonsMethodTriangle4(out vec3 hitPoint,
 	{
 		mat2x2 j
 		    = jacobianBezierTriangle4(controlPoints, n1, n2, u[c].x, u[c].y, partialU, partialV);
-		mat2x2 inv_j = inverseJacobian(j);
-		if (inv_j == mat2x2(0, 0, 0, 0))
+
+		float d = determinant(j);
+		if (abs(d) < 0.00001)
 		{
 			hit = false;
 			break;
 		}
 
+		mat2x2 inv_j = inverseJacobian(j, d);
 		vec2 f_value = fBezierTriangle4(
 		    controlPoints, rayOrigin, n1, n2, u[c].x, u[c].y, 1.0 - u[c].x - u[c].y);
 
