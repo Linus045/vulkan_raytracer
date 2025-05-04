@@ -632,13 +632,10 @@ void main()
 	int objectType = instance.type;
 
 	vec3 cameraDir = raytracingDataConstants.cameraDir;
-	// whether or not the current ray direction is the crosshair's direction
-	if (abs(dot(normalize(ray.direction), normalize(cameraDir)) - 1) < 0.0000001)
-	{
-		isCrosshairRay = true;
-	}
 
-	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0 && isCrosshairRay;
+	// whether or not the current ray direction is the crosshair's direction
+	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0
+	                 && abs(dot(normalize(ray.direction), normalize(cameraDir)) - 1) < 0.0000001;
 
 	// if (isCrosshairRay)
 	// {
