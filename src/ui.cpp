@@ -404,7 +404,7 @@ void renderSlicingPlaneSliders(UIData& uiData)
 		//////////////////////////////////////////////////////////////////////////
 		bool enableSlicingPlanes = uiData.raytracingDataConstants.enableSlicingPlanes > 0;
 		valueChanged
-		    = ImGui::Checkbox("Debug: Enable Slicing Planes", &enableSlicingPlanes) || valueChanged;
+		    = ImGui::Checkbox("Enable Slicing Planes", &enableSlicingPlanes) || valueChanged;
 		uiData.raytracingDataConstants.enableSlicingPlanes
 		    = static_cast<float>(enableSlicingPlanes ? 1 : 0);
 
