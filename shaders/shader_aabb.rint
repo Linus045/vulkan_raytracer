@@ -567,37 +567,23 @@ void verifyHit(inout float tHit,
                const Ray ray,
                const vec3 hitPoint,
                const vec2 hitCoords,
-               const vec3 hitNormal)
+               const vec3 hitNormal,
+               const bool aabbIsFullyInFrontOfSlicingPlane,
+               const bool aabbIsFullyBehindSlicingPlane)
 {
-	bool hitValid = true;
+	const SlicingPlane plane = slicingPlanes[0];
+	const bool slicingPlaneEnabled = raytracingDataConstants.enableSlicingPlanes > 0.0;
 
-	// check if hit point is in front of the slicing plane,
-	// if so, ignore the hit and search for a different point
-	if (raytracingDataConstants.enableSlicingPlanes > 0.0)
-	{
-		bool inFrontOfSlicingPlane = false;
-		// if we still hit no object, check if we hit a slicing plane
-		const int SLICING_PLANE_MAX_COUNT = 1;
-
-		for (int idx = 0; idx < SLICING_PLANE_MAX_COUNT; idx++)
-		{
-			SlicingPlane plane = slicingPlanes[idx];
-			if (hitPosInFrontOfPlane(plane, hitPoint))
-			{
-				// ignore hit
-				hitValid = false;
-				continue;
-			}
-			else
-			{
-				hitValid = true;
-			}
-		}
-	}
+	// if a hit is found, always count as valid if one of the following is true:
+	// 1. slicing plane is not enabled
+	// 2. aabb is fully behind the slicing plane
+	// 3. hit point is not in front of the slicing plane
+	const bool hitValid = !slicingPlaneEnabled || aabbIsFullyBehindSlicingPlane
+	                      || !hitPosInFrontOfPlane(plane, hitPoint);
 
 	if (hitValid)
 	{
-		float dist = distance(hitPoint, ray.origin);
+		const float dist = distance(hitPoint, ray.origin);
 		// if point is closer to camera, update values
 		if (tHit < 0 || dist < tHit)
 		{
@@ -719,18 +705,20 @@ void main()
 			{
 				BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
 
-				bool doNewtonsMethod = true;
-				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
-				{
-					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
-					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
-					{
-						// whole AABB is in front of the slicing plane, ignore completely
-						doNewtonsMethod = false;
-					}
-				}
+				// if whole aabb is in front of the slicing plane, ignore completely
+				const bool slicingPlaneEnabled = raytracingDataConstants.enableSlicingPlanes > 0.0;
+				const bool aabbIsFullyInFrontOfSlicingPlane
+				    = hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+				      && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
 
-				if (doNewtonsMethod)
+				// if slicing plane is not enabled, we always search for intersections
+				// if slicing plane is enabled, only search for intersections
+				// if the aabb is not in front of the slicing aka. it
+				// lies on top of or fully behind the slicing plane
+				const bool searchintersection
+				    = !slicingPlaneEnabled || !aabbIsFullyInFrontOfSlicingPlane;
+
+				if (searchintersection)
 				{
 					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
 					{
@@ -745,7 +733,20 @@ void main()
 						                           n1,
 						                           n2))
 						{
-							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+							// check if min and max position of AABB are both not in front of plane;
+							// in case min or max lies is exactly on slicing plane it gets counted
+							// as behind, this won't be a problem
+							const bool aabbIsFullyBehindSlicingPlane
+							    = slicingPlaneEnabled
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
+							verifyHit(tHit,
+							          ray,
+							          hitPoint,
+							          hitCoords,
+							          hitNormal,
+							          aabbIsFullyInFrontOfSlicingPlane,
+							          aabbIsFullyBehindSlicingPlane);
 						}
 					}
 				}
@@ -754,18 +755,15 @@ void main()
 			{
 				BezierTriangle3 bezierTriangle = bezierTriangles3[instance.bufferIndex];
 
-				bool doNewtonsMethod = true;
-				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
-				{
-					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
-					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
-					{
-						// whole AABB is in front of the slicing plane, ignore completely
-						doNewtonsMethod = false;
-					}
-				}
+				const bool slicingPlaneEnabled = raytracingDataConstants.enableSlicingPlanes > 0.0;
+				const bool aabbIsFullyInFrontOfSlicingPlane
+				    = hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+				      && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
 
-				if (doNewtonsMethod)
+				const bool searchintersection
+				    = !slicingPlaneEnabled || !aabbIsFullyInFrontOfSlicingPlane;
+
+				if (searchintersection)
 				{
 					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
 					{
@@ -780,7 +778,17 @@ void main()
 						                           n1,
 						                           n2))
 						{
-							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+							const bool aabbIsFullyBehindSlicingPlane
+							    = slicingPlaneEnabled
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
+							verifyHit(tHit,
+							          ray,
+							          hitPoint,
+							          hitCoords,
+							          hitNormal,
+							          aabbIsFullyInFrontOfSlicingPlane,
+							          aabbIsFullyBehindSlicingPlane);
 						}
 					}
 				}
@@ -789,18 +797,20 @@ void main()
 			{
 				BezierTriangle4 bezierTriangle = bezierTriangles4[instance.bufferIndex];
 
-				bool doNewtonsMethod = true;
-				if (raytracingDataConstants.enableSlicingPlanes > 0.0)
-				{
-					if (hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
-					    && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum))
-					{
-						// whole AABB is in front of the slicing plane, ignore completely
-						doNewtonsMethod = false;
-					}
-				}
+				// if whole aabb is in front of the slicing plane, ignore completely
+				const bool slicingPlaneEnabled = raytracingDataConstants.enableSlicingPlanes > 0.0;
+				const bool aabbIsFullyInFrontOfSlicingPlane
+				    = hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+				      && hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
 
-				if (doNewtonsMethod)
+				// if slicing plane is not enabled, we always search for intersections
+				// if slicing plane is enabled, only search for intersections
+				// if the aabb is not in front of the slicing aka. it
+				// lies on top of or fully behind the slicing plane
+				const bool searchintersection
+				    = !slicingPlaneEnabled || !aabbIsFullyInFrontOfSlicingPlane;
+
+				if (searchintersection)
 				{
 					for (int i = 0; i < raytracingDataConstants.newtonGuessesAmount; i++)
 					{
@@ -815,7 +825,17 @@ void main()
 						                           n1,
 						                           n2))
 						{
-							verifyHit(tHit, ray, hitPoint, hitCoords, hitNormal);
+							const bool aabbIsFullyBehindSlicingPlane
+							    = slicingPlaneEnabled
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)
+							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.maximum);
+							verifyHit(tHit,
+							          ray,
+							          hitPoint,
+							          hitCoords,
+							          hitNormal,
+							          aabbIsFullyInFrontOfSlicingPlane,
+							          aabbIsFullyBehindSlicingPlane);
 						}
 					}
 				}
