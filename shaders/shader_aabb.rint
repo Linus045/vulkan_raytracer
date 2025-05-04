@@ -672,13 +672,13 @@ void main()
 
 		if (abs(dx) > abs(dy) && abs(dx) > abs(dz))
 		{
-			n1 = normalize(vec3(dy, -dx, 0));
+			n1 = vec3(dy, -dx, 0);
 		}
 		else
 		{
-			n1 = normalize(vec3(0, dz, -dy));
+			n1 = vec3(0, dz, -dy);
 		}
-		n2 = normalize(cross(ray.direction, n1));
+		n2 = cross(ray.direction, n1);
 
 		float t;
 		if (raytracingDataConstants.renderSideTriangle > 0.0)
