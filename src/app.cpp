@@ -234,6 +234,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	                                0.2f,
 	                                ColorIdx::t_yellow);
 
+	renderer.setCurrentLightSceneObject(sceneObjectLight);
 	auto sceneObject = raytracingScene.createNamedSceneObject("model");
 
 	// NOTE: we can't  add elements to sceneObjects out of order, therefore to show the

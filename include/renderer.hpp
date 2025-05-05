@@ -202,6 +202,16 @@ class Renderer
 		return *currentRaytracingScene;
 	}
 
+	inline void setCurrentLightSceneObject(std::shared_ptr<rt::SceneObject> lightObject)
+	{
+		currentLightSceneObject = lightObject;
+	}
+
+	inline const std::shared_ptr<rt::SceneObject>& getCurrentLightSceneObject() const
+	{
+		return currentLightSceneObject;
+	}
+
 	void updateRaytracingDescriptorSet();
 
   private:
@@ -297,6 +307,8 @@ class Renderer
 	std::vector<VkDescriptorSet> descriptorSetHandleList{};
 
 	VmaAllocator vmaAllocator;
+
+	std::shared_ptr<rt::SceneObject> currentLightSceneObject = nullptr;
 };
 
 } // namespace tracer

@@ -175,7 +175,6 @@ void renderRaytracingOptions(UIData& uiData)
 			{
 				uiData.recreateAccelerationStructures.requestRecreate(false);
 			}
-
 			valueChanged = lightPositionChanged || valueChanged;
 
 			valueChanged = ImGui::SliderFloat("Global Light Intensity",
@@ -195,7 +194,35 @@ void renderRaytracingOptions(UIData& uiData)
 			      || valueChanged;
 
 			ImGui::Spacing();
+			ImGui::Separator();
+			// NOTE: since this is not passed the shader, we don't need to set
+			// configurationChanged
+			ImGui::Checkbox("Rotate Light in circle around Scene", &uiData.rotateLightAroundScene);
+			TOOLTIP("Ignores the current light position and rotates the light around the scene");
+
+			if (ImGui::CollapsingHeader("Rotating Light"))
+			{
+				ImGui::SliderFloat3("Rotating Light Origin",
+				                    &uiData.rotatingLightOrigin.x,
+				                    -30.0f,
+				                    30.0f,
+				                    "%.1f",
+				                    0);
+				TOOLTIP("The center of the circle around which the light rotates. "
+				        "This is only used if the rotating light is enabled.");
+				ImGui::SliderFloat(
+				    "Rotating Light Radius", &uiData.rotatingLightRadius, 0.0f, 30.0f, "%.1f", 0);
+				TOOLTIP("The radius of the circle around which the light rotates. "
+				        "This is only used if the rotating light is enabled.");
+
+				ImGui::SliderFloat(
+				    "Rotating Light Speed", &uiData.rotatingLightSpeed, 0.0f, 1.0f, "%.1f", 0);
+				TOOLTIP("The speed of the light rotation. "
+				        "This is only used if the rotating light is enabled.");
+			}
 		}
+
+		ImGui::Spacing();
 
 		ImGui::SeparatorText("Colors");
 		{

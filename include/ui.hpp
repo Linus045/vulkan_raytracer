@@ -61,6 +61,11 @@ struct UIData
 
 	bool renderCrosshairInCenter = true;
 
+	bool rotateLightAroundScene = false;
+	glm::vec3 rotatingLightOrigin = {0.0f, 5.0f, 0.0f};
+	float rotatingLightRadius = 5.0f;
+	float rotatingLightSpeed = 0.2f;
+
 	// pair - first value: recreateNeeded? second value: full rebuild?
 	struct recreateAccelerationStructure
 	{

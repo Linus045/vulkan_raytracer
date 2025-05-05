@@ -320,6 +320,8 @@ void Renderer::drawFrame(Camera& camera,
 				auto lightSceneObject = getCurrentRaytracingScene().getSceneObject("light");
 				if (lightSceneObject.has_value() && lightSceneObject.value()->spheres.size() > 0)
 				{
+					currentLightSceneObject = lightSceneObject.value();
+
 					auto& lightSphere = lightSceneObject.value()->spheres[0];
 					// we assume the first sphere always represents the light
 					lightSphere->setPosition(uiData.raytracingDataConstants.globalLightPosition);
@@ -328,6 +330,10 @@ void Renderer::drawFrame(Camera& camera,
 					lightSceneObject.value()->setTransformMatrix(transformMatrix);
 					getCurrentRaytracingScene().setTransformMatrixForInstance(
 					    lightSceneObject.value()->instanceCustomIndex + 0, transformMatrix);
+				}
+				else
+				{
+					currentLightSceneObject = nullptr;
 				}
 			}
 
@@ -338,6 +344,30 @@ void Renderer::drawFrame(Camera& camera,
 
 			uiData.recreateAccelerationStructures.reset();
 			resetFrameCountRequested = true;
+		}
+
+		if (uiData.rotateLightAroundScene && currentLightSceneObject != nullptr)
+		{
+			// we assume the first sphere always represents the light
+			auto& lightSphere = currentLightSceneObject->spheres[0];
+
+			static auto time = 0.0;
+			time += delta;
+
+			auto radius = uiData.rotatingLightRadius;
+			auto speed = uiData.rotatingLightSpeed;
+			auto position
+			    = uiData.rotatingLightOrigin
+			      + vec3(radius * glm::sin(time * speed), 0, radius * glm::cos(time * speed));
+			uiData.raytracingDataConstants.globalLightPosition = position;
+			lightSphere->setPosition(position);
+			auto transformMatrix = lightSphere->getTransform().getTransformMatrix();
+
+			currentLightSceneObject->setTransformMatrix(transformMatrix);
+			getCurrentRaytracingScene().setTransformMatrixForInstance(
+			    currentLightSceneObject->instanceCustomIndex + 0, transformMatrix);
+
+			getCurrentRaytracingScene().recreateAccelerationStructures(raytracingInfo, false);
 		}
 
 		tracer::updateRaytraceBuffer(

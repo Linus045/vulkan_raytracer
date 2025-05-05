@@ -98,7 +98,7 @@ class RaytracingScene
 	RaytracingScene(RaytracingScene&&) noexcept = delete;
 	RaytracingScene& operator=(RaytracingScene&&) noexcept = delete;
 
-	static void loadScene(const Renderer& renderer,
+	static void loadScene(Renderer& renderer,
 	                      RaytracingScene& raytracingScene,
 	                      const SceneConfig sceneConfig,
 	                      const int index);

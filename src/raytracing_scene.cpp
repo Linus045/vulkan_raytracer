@@ -49,7 +49,7 @@ void RaytracingScene::clearScene()
 
 /// Loads the scene with the given index. A manual rebuild of the acceleration
 /// structure is still required
-void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
+void RaytracingScene::loadScene([[maybe_unused]] Renderer& renderer,
                                 RaytracingScene& raytracingScene,
                                 const SceneConfig sceneConfig,
                                 const int sceneNr)
@@ -72,6 +72,8 @@ void RaytracingScene::loadScene([[maybe_unused]] const Renderer& renderer,
 	                                true,
 	                                0.2f,
 	                                ColorIdx::t_yellow);
+
+	renderer.setCurrentLightSceneObject(sceneObjectLight);
 
 	// TODO: support multiple slicing planes
 	// raytracingScene.addSlicingPlane(SlicingPlane{
