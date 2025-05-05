@@ -128,7 +128,10 @@ class Renderer
 	{
 		tracer::ui::beginFrame();
 		tracer::ui::renderMainPanel(uiData);
-		tracer::ui::renderCrosshair(uiData);
+		if (uiData.renderCrosshairInCenter)
+		{
+			tracer::ui::renderCrosshair(uiData);
+		}
 		tracer::ui::endFrame();
 		ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), commandBuffer);
 	}

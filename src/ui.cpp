@@ -509,6 +509,10 @@ void renderSceneOptions(UIData& uiData)
 		TOOLTIP("Whether to do shadow calculations or not. (Shadow calculations use one additional "
 		        "ray per pixel)");
 		uiData.raytracingDataConstants.renderShadows = static_cast<float>(renderShadows ? 1 : 0);
+
+		// NOTE: since this is not passed the shader, we don't need to set configurationChanged
+		ImGui::Checkbox("Render Crosshair in center of screen", &uiData.renderCrosshairInCenter);
+		TOOLTIP("Whether or not to render the crosshair in the center of the screen");
 	}
 
 	uiData.configurationChanged = uiData.configurationChanged || valueChanged;

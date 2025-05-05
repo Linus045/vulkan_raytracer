@@ -59,6 +59,8 @@ struct UIData
 
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 
+	bool renderCrosshairInCenter = true;
+
 	// pair - first value: recreateNeeded? second value: full rebuild?
 	struct recreateAccelerationStructure
 	{
