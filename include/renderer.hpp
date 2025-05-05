@@ -124,6 +124,8 @@ class Renderer
 
 	void createRaytracingRenderpassAndFramebuffer();
 
+	void saveFrameToFile(const std::filesystem::path& path);
+
 	inline void renderImguiFrame(const VkCommandBuffer commandBuffer, tracer::ui::UIData& uiData)
 	{
 		tracer::ui::beginFrame();

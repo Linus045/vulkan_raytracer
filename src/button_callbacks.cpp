@@ -121,6 +121,34 @@ static void loadScene(Renderer& renderer, ui::UIData& uiData, const int sceneNr)
 
 void registerButtonFunctions(Window& window, Renderer& renderer, Camera& camera, ui::UIData& uiData)
 {
+
+	auto takeScreenshot = [&]()
+	{
+		auto t = std::time(nullptr);
+		auto tm = *std::localtime(&t);
+
+		std::ostringstream oss;
+		oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
+		auto timestamp = oss.str();
+
+		std::filesystem::create_directories("screenshots");
+		std::filesystem::path path = std::format("screenshots/screenshot_{}.ppm", timestamp);
+		renderer.saveFrameToFile(path);
+
+		std::cout << "Screenshot saved to disk: " << std::filesystem::absolute(path) << std::endl;
+	};
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "[B] Take Screenshot",
+	    .tooltip = "Saves the current raytraicng image to a .ppm file (without the UI) in the "
+	               "directory ./screenshots/",
+	    .callback = takeScreenshot,
+	});
+	registerKeyListener(window,
+	                    GLFW_KEY_B,
+	                    tracer::KeyTriggerMode::KeyDown,
+	                    tracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
+	                    takeScreenshot);
+
 	auto openUI = [&]() { uiData.mainPanelCollapsed = !uiData.mainPanelCollapsed; };
 	uiData.buttonCallbacks.push_back(ui::ButtonData{
 	    .label = "[C] [C]ollapse/Uncollapse UI",
