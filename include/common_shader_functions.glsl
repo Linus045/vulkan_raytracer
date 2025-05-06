@@ -454,19 +454,46 @@ float hitSphere(const Sphere s, const Ray r)
 	}
 }
 
-// Ray-AABB intersection
-// returns the distance t to the intersection point
-float hitAabb(const Aabb aabb, const Ray r)
+bool intersectAABB(
+    vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax, out float tHit, out vec3 normal)
 {
-	vec3 invDir = 1.0 / r.direction;
-	vec3 tbot = invDir * (aabb.minimum - r.origin);
-	vec3 ttop = invDir * (aabb.maximum - r.origin);
-	vec3 tmin = min(ttop, tbot);
-	vec3 tmax = max(ttop, tbot);
-	float t0 = max(tmin.x, max(tmin.y, tmin.z));
-	float t1 = min(tmax.x, min(tmax.y, tmax.z));
-	return t1 > max(t0, 0.0) ? t0 : -1.0;
+	vec3 invDir = 1.0 / rayDir;
+	vec3 t0 = (boxMin - rayOrigin) * invDir;
+	vec3 t1 = (boxMax - rayOrigin) * invDir;
+	vec3 tmin = min(t0, t1);
+	vec3 tmax = max(t0, t1);
+	float tEntry = max(max(tmin.x, tmin.y), tmin.z);
+	float tExit = min(min(tmax.x, tmax.y), tmax.z);
+
+	// missed box
+	if (tEntry > tExit || tExit < 0.0)
+	{
+		return false;
+	}
+
+	tHit = tEntry;
+
+	// normal is based on which axis contributed to tEntry
+	if (tEntry == tmin.x)
+		normal = vec3(sign(rayDir.x), 0.0, 0.0);
+	else if (tEntry == tmin.y)
+		normal = vec3(0.0, sign(rayDir.y), 0.0);
+	else
+		normal = vec3(0.0, 0.0, sign(rayDir.z));
+
+	return true;
 }
+
+vec2 intersectAABB(vec3 rayOrigin, vec3 rayDir, vec3 boxMin, vec3 boxMax)
+{
+	vec3 tMin = (boxMin - rayOrigin) / rayDir;
+	vec3 tMax = (boxMax - rayOrigin) / rayDir;
+	vec3 t1 = min(tMin, tMax);
+	vec3 t2 = max(tMin, tMax);
+	float tNear = max(max(t1.x, t1.y), t1.z);
+	float tFar = min(min(t2.x, t2.y), t2.z);
+	return vec2(tNear, tFar);
+};
 
 // whether the hitPos is in front of the plane or not
 bool hitPosInFrontOfPlane(SlicingPlane plane, vec3 hitPos)

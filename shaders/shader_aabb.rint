@@ -598,18 +598,6 @@ void verifyHit(inout float tHit,
 
 void main()
 {
-	// Debugging, display aabb boxes
-	if (raytracingDataConstants.debugShowAABBs > 0.0)
-	{
-		// here we should actually calculate the intersection with the AABB but
-		// for simple debugging this is enough to show the AABBs
-
-		// NOTE: this fake hit distance must be greater than the tMin in the traceRayEXT used in the
-		// rGen shader
-		reportIntersectionEXT(0.1, t_AABBDebug);
-		return;
-	}
-
 	Ray ray;
 	ray.origin = gl_WorldRayOriginEXT;
 	ray.direction = gl_WorldRayDirectionEXT;
@@ -622,6 +610,54 @@ void main()
 	// whether or not the current ray direction is the crosshair's direction
 	isCrosshairRay = raytracingDataConstants.debugPrintCrosshairRay > 0.0
 	                 && abs(dot(normalize(ray.direction), normalize(cameraDir)) - 1) < 0.0000001;
+
+	// Debugging, display aabb boxes
+	if (raytracingDataConstants.debugShowAABBs > 0.0)
+	{
+		Aabb aabb;
+		if (objectType == t_BezierTriangle2 || objectType == t_BezierTriangleInside2)
+		{
+			BezierTriangle2 bezierTriangle = bezierTriangles2[instance.bufferIndex];
+			aabb.minimum = bezierTriangle.aabb.minimum;
+			aabb.maximum = bezierTriangle.aabb.maximum;
+		}
+		else if (objectType == t_BezierTriangle3 || objectType == t_BezierTriangleInside3)
+		{
+			BezierTriangle3 bezierTriangle = bezierTriangles3[instance.bufferIndex];
+			aabb.minimum = bezierTriangle.aabb.minimum;
+			aabb.maximum = bezierTriangle.aabb.maximum;
+		}
+		else if (objectType == t_BezierTriangle4 || objectType == t_BezierTriangleInside4)
+		{
+			BezierTriangle4 bezierTriangle = bezierTriangles4[instance.bufferIndex];
+			aabb.minimum = bezierTriangle.aabb.minimum;
+			aabb.maximum = bezierTriangle.aabb.maximum;
+		}
+		else
+		{
+			hitData.point = ray.origin + 0.1f * ray.direction;
+			hitData.normal = vec3(0, 1, 0);
+
+			// NOTE: this fake hit distance must be greater than the tMin in the traceRayEXT used in
+			// the rGen shader
+			reportIntersectionEXT(0.1, t_AABBDebug);
+			return;
+		}
+
+		float tHit = 0;
+		vec3 hitNormal = vec3(0);
+		if (intersectAABB(ray.origin, ray.direction, aabb.minimum, aabb.maximum, tHit, hitNormal))
+		{
+			hitData.point = ray.origin + tHit * ray.direction;
+			hitData.normal = hitNormal;
+			reportIntersectionEXT(tHit, t_AABBDebug);
+			return;
+		}
+		else
+		{
+			return;
+		}
+	}
 
 	// if (isCrosshairRay)
 	// {
@@ -638,8 +674,8 @@ void main()
 	// debugPrintfEXT("gl_InstanceCustomIndexEXT: %d", gl_InstanceCustomIndexEXT);
 	// debugPrintfEXT("Tetrahedron: a: %f, %f, %f",
 	// tetrahedron.a.x,tetrahedron.a.y,tetrahedron.a.z); debugPrintfEXT("Tetrahedron: b: %f, %f,
-	// %f", tetrahedron.b.x,tetrahedron.b.y,tetrahedron.b.z); debugPrintfEXT("Tetrahedron: c: %f,
-	// %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
+	// %f", tetrahedron.b.x,tetrahedron.b.y,tetrahedron.b.z); debugPrintfEXT("Tetrahedron: c:
+	// %f, %f, %f", tetrahedron.c.x,tetrahedron.c.y,tetrahedron.c.z);
 
 	float tHit = -1;
 	if (objectType == t_BezierTriangle2 || objectType == t_BezierTriangle3
@@ -733,9 +769,9 @@ void main()
 						                           n1,
 						                           n2))
 						{
-							// check if min and max position of AABB are both not in front of plane;
-							// in case min or max lies is exactly on slicing plane it gets counted
-							// as behind, this won't be a problem
+							// check if min and max position of AABB are both not in front of
+							// plane; in case min or max lies is exactly on slicing plane it
+							// gets counted as behind, this won't be a problem
 							const bool aabbIsFullyBehindSlicingPlane
 							    = slicingPlaneEnabled
 							      && !hitPosInFrontOfPlane(plane, bezierTriangle.aabb.minimum)

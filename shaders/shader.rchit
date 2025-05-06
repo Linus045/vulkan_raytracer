@@ -131,8 +131,15 @@ void main()
 	if (gl_HitKindEXT == t_AABBDebug)
 	{
 		// we hit a AABB (debugging)
-		payload.directColor = vec3(0.8, 0.8, 0.8);
-		payload.indirectColor = vec3(0, 0, 0);
+		vec3 surfaceColor = vec3(0.8, 0.8, 0.8);
+
+		vec3 positionToLightDirection
+		    = normalize(raytracingDataConstants.globalLightPosition - hitData.point);
+
+		payload.indirectColor = surfaceColor * raytracingDataConstants.environmentColor
+		                        * raytracingDataConstants.environmentLightIntensity;
+		payload.directColor
+		    = surfaceColor * lightColor * max(0, dot(-hitData.normal, positionToLightDirection));
 	}
 	else if (gl_HitKindEXT == t_BezierTriangle2 || gl_HitKindEXT == t_BezierTriangle3
 	         || gl_HitKindEXT == t_BezierTriangle4 || gl_HitKindEXT == t_BezierTriangleInside2
