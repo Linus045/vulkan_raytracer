@@ -388,6 +388,15 @@ void renderHelpInfo(const tracer::ui::UIData& uiData)
 	ImGui::Text("Movement speed: %f", uiData.camera.getMovementSpeed());
 }
 
+void renderWindowPropeties(const tracer::ui::UIData& uiData)
+{
+	ImGui::SeparatorText("Window:");
+	ImGui::Text("Window Resolution: %dx%d", uiData.window.getWidth(), uiData.window.getHeight());
+	ImGui::Text("Framebuffer Resolution: %dx%d",
+	            uiData.window.getFramebufferWidth(),
+	            uiData.window.getFramebufferHeight());
+}
+
 void renderRaytracingProperties(const tracer::ui::UIData& uiData)
 {
 	ImGui::SeparatorText("Raytracing Properties:");
@@ -589,6 +598,7 @@ void renderMainPanel(UIData& uiData)
 
 	ImGui::SeparatorText("Properties:");
 	renderRaytracingProperties(uiData);
+	renderWindowPropeties(uiData);
 	renderGPUProperties(uiData);
 	renderCameraProperties(uiData);
 

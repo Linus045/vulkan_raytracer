@@ -137,23 +137,29 @@ class Window
 	{
 		preferredWidth = width;
 		preferredHeight = height;
+		checkPreferredSizeChange = true;
 	}
 	// since we have to call glfwSetWindowSize() from the main thread, we can't simply change the
 	// size in the button callback
 	inline void checkPreferredWindowSize()
 	{
-		std::printf("Preferred Size: %dx%d, Window Size: %dx%d, Framebuffer Size %dx%d\n",
-		            preferredWidth,
-		            preferredHeight,
-		            getWidth(),
-		            getHeight(),
-		            getFramebufferWidth(),
-		            getFramebufferHeight());
-		if (getFramebufferWidth() != preferredWidth || getFramebufferHeight() != preferredHeight)
+		if (checkPreferredSizeChange)
 		{
-			glfwSetWindowSize(glfwWindow, preferredWidth, preferredHeight);
-			// glfwSetWindowMonitor(
-			//     glfwWindow, nullptr, 0, 0, preferredWidth, preferredHeight, GLFW_DONT_CARE);
+			checkPreferredSizeChange = false;
+			// std::printf("Preferred Size: %dx%d, Window Size: %dx%d, Framebuffer Size %dx%d\n",
+			//             preferredWidth,
+			//             preferredHeight,
+			//             getWidth(),
+			//             getHeight(),
+			//             getFramebufferWidth(),
+			//             getFramebufferHeight());
+			if (getFramebufferWidth() != preferredWidth
+			    || getFramebufferHeight() != preferredHeight)
+			{
+				glfwSetWindowSize(glfwWindow, preferredWidth, preferredHeight);
+				// glfwSetWindowMonitor(
+				//     glfwWindow, nullptr, 0, 0, preferredWidth, preferredHeight, GLFW_DONT_CARE);
+			}
 		}
 	}
 
@@ -438,6 +444,7 @@ class Window
 
 	int preferredWidth = static_cast<int>(initialWidth);
 	int preferredHeight = static_cast<int>(initialHeight);
+	bool checkPreferredSizeChange = false;
 
 	// window
 	GLFWwindow* glfwWindow = nullptr;
