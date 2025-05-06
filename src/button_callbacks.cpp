@@ -131,8 +131,17 @@ void registerButtonFunctions(Window& window, Renderer& renderer, Camera& camera,
 		oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
 		auto timestamp = oss.str();
 
+		float frametime = uiData.frameTimeMilliseconds;
+		int num_start_guesses = uiData.raytracingDataConstants.newtonGuessesAmount;
+		int width = window.getWidth();
+		int height = window.getHeight();
 		std::filesystem::create_directories("screenshots");
-		std::filesystem::path path = std::format("screenshots/screenshot_{}.ppm", timestamp);
+		std::filesystem::path path = std::format("screenshots/screenshot_{}_{}x{}_{}G_{}ms.ppm",
+		                                         timestamp,
+		                                         width,
+		                                         height,
+		                                         num_start_guesses,
+		                                         frametime);
 		renderer.saveFrameToFile(path);
 
 		std::cout << "Screenshot saved to disk: " << std::filesystem::absolute(path) << std::endl;
@@ -148,6 +157,17 @@ void registerButtonFunctions(Window& window, Renderer& renderer, Camera& camera,
 	                    tracer::KeyTriggerMode::KeyDown,
 	                    tracer::KeyListeningMode::UI_AND_FLYING_CAMERA,
 	                    takeScreenshot);
+
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "Set Window Resolution 1920x1080",
+	    .tooltip = "Sets the window Resolution to 1920x1080",
+	    .callback = [&]() { window.setPreferredSize(1920, 1080); },
+	});
+	uiData.buttonCallbacks.push_back(ui::ButtonData{
+	    .label = "Set Window Resolution 1280x720",
+	    .tooltip = "Sets the window Resolution to 1280x720",
+	    .callback = [&]() { window.setPreferredSize(1080, 720); },
+	});
 
 	auto openUI = [&]() { uiData.mainPanelCollapsed = !uiData.mainPanelCollapsed; };
 	uiData.buttonCallbacks.push_back(ui::ButtonData{

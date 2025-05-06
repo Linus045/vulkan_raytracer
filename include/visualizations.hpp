@@ -115,6 +115,64 @@ inline size_t getControlPointIndicesTetrahedron(int i, int j, int k, int l)
 	                         + " k:" + std::to_string(k) + " l:" + std::to_string(l));
 }
 
+template <unsigned int N>
+inline size_t getControlPointIndicesTriangle(int i, int j, int k)
+{
+	if constexpr (N == 1)
+	{
+		if (i == 0 && j == 0 && k == 1) return 0;
+		if (i == 0 && j == 1 && k == 0) return 1;
+		if (i == 1 && j == 0 && k == 0) return 2;
+	}
+	else if constexpr (N == 2)
+	{
+		if (i == 0 && j == 0 && k == 2) return 0;
+		if (i == 1 && j == 0 && k == 1) return 1;
+		if (i == 2 && j == 0 && k == 0) return 2;
+		if (i == 0 && j == 1 && k == 1) return 3;
+		if (i == 1 && j == 1 && k == 0) return 4;
+		if (i == 0 && j == 2 && k == 0) return 5;
+	}
+	else if constexpr (N == 3)
+	{
+		if (i == 0 && j == 0 && k == 3) return 0;
+		if (i == 1 && j == 0 && k == 2) return 1;
+		if (i == 2 && j == 0 && k == 1) return 2;
+		if (i == 3 && j == 0 && k == 0) return 3;
+		if (i == 0 && j == 1 && k == 2) return 4;
+		if (i == 1 && j == 1 && k == 1) return 5;
+		if (i == 2 && j == 1 && k == 0) return 6;
+		if (i == 0 && j == 2 && k == 1) return 7;
+		if (i == 1 && j == 2 && k == 0) return 8;
+		if (i == 0 && j == 3 && k == 0) return 9;
+	}
+	else if constexpr (N == 4)
+	{
+		if (i == 0 && j == 0 && k == 4) return 0;
+		if (i == 1 && j == 0 && k == 3) return 1;
+		if (i == 2 && j == 0 && k == 2) return 2;
+		if (i == 3 && j == 0 && k == 1) return 3;
+		if (i == 4 && j == 0 && k == 0) return 4;
+		if (i == 0 && j == 1 && k == 3) return 5;
+		if (i == 1 && j == 1 && k == 2) return 6;
+		if (i == 2 && j == 1 && k == 1) return 7;
+		if (i == 3 && j == 1 && k == 0) return 8;
+		if (i == 0 && j == 2 && k == 2) return 9;
+		if (i == 1 && j == 2 && k == 1) return 10;
+		if (i == 2 && j == 2 && k == 0) return 11;
+		if (i == 0 && j == 3 && k == 1) return 12;
+		if (i == 1 && j == 3 && k == 0) return 13;
+		if (i == 0 && j == 4 && k == 0) return 14;
+	}
+	else
+	{
+		throw std::runtime_error("Degree N: " + std::to_string(N) + " not implemented");
+	}
+
+	throw std::runtime_error("Invalid index: i:" + std::to_string(i) + " j:" + std::to_string(j)
+	                         + " k:" + std::to_string(k));
+}
+
 inline int iter_factorial(int n)
 {
 	int ret = 1;
@@ -231,8 +289,7 @@ inline glm::vec3 BezierTrianglePoint(const T& triangle, const float u, const flo
 			{
 				if (i + j + k == N)
 				{
-					size_t idx
-					    = static_cast<size_t>(getControlPointIndicesBezierTriangle2(i, j, k));
+					size_t idx = static_cast<size_t>(getControlPointIndicesTriangle<N>(i, j, k));
 					sum += triangle.controlPoints[idx]
 					       * BernsteinPolynomialBivariate(N, i, j, k, u, v, w);
 				}
@@ -575,6 +632,31 @@ inline void visualizeTetrahedronControlPoints(SceneObject& sceneObject,
 	for (auto& point : tetrahedron.controlPoints)
 	{
 		raytracingScene.addObjectSphere(sceneObject, point, false, 0.06f, ColorIdx::t_orange);
+	}
+}
+
+/// Visualize a tetrahedron by sampling points on the surface
+template <typename S>
+inline void visualizeTriangleSide(SceneObject& sceneObject,
+                                  RaytracingScene& raytracingScene,
+                                  const S& bezierTriangle,
+                                  const bool visualizeSides,
+                                  float stepSize = 0.1f)
+{
+	if (visualizeSides)
+	{
+		for (float u = 0; u <= 1.0f + 1e-4f; u += stepSize)
+		{
+			for (float v = 0; v <= 1.0f + 1e-4f; v += stepSize)
+			{
+				if (u + v <= 1.0f + 1e-4f)
+				{
+					float w = 1.0f - u - v;
+					auto p = BezierTrianglePoint(bezierTriangle, u, v, w);
+					raytracingScene.addObjectSphere(sceneObject, p, false, 0.06f, ColorIdx::t_red);
+				}
+			}
+		}
 	}
 }
 

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <limits>
 #include <stdexcept>
 
@@ -38,54 +39,68 @@ class Window
 	Window(Window&&) noexcept = delete;
 	Window& operator=(Window&&) noexcept = delete;
 
-	int getWidth() const
+	inline int getWidth() const
 	{
 		auto width = 0, _height = 0;
 		glfwGetWindowSize(glfwWindow, &width, &_height);
 		return width;
 	}
 
-	int getHeight() const
+	inline int getHeight() const
 	{
 		auto _width = 0, height = 0;
 		glfwGetWindowSize(glfwWindow, &_width, &height);
 		return height;
 	}
 
+	inline int getFramebufferWidth() const
+	{
+		auto width = 0, _height = 0;
+		glfwGetFramebufferSize(glfwWindow, &width, &_height);
+		return width;
+	}
+
+	inline int getFramebufferHeight() const
+	{
+		auto _width = 0, height = 0;
+		glfwGetFramebufferSize(glfwWindow, &_width, &height);
+		return height;
+	}
+
 	/// Returns the GLFW window
-	GLFWwindow*& getGLFWWindow()
+	inline GLFWwindow*& getGLFWWindow()
 	{
 		return glfwWindow;
 	}
 
 	/// Returns the vulkan surface
-	VkSurfaceKHR& getVkSurface()
+	inline VkSurfaceKHR& getVkSurface()
 	{
 		return vulkanSurface;
 	}
 
-	VkFormat getSwapChainImageFormat() const
+	inline VkFormat getSwapChainImageFormat() const
 	{
 		return swapChainImageFormat;
 	}
 
-	VkExtent2D getSwapChainExtent() const
+	inline VkExtent2D getSwapChainExtent() const
 	{
 		return swapChainExtent;
 	}
 
-	auto& getSwapChain()
+	inline auto& getSwapChain()
 	{
 		return swapChain;
 	}
 
-	auto& getMouseCursorCaptureEnabled() const
+	inline auto& getMouseCursorCaptureEnabled() const
 	{
 		return cursorCaptureEnabled;
 	}
 
 	/// Creates the window using GLFW
-	void initWindow(GLFWframebuffersizefun framebufferResizeCallback)
+	inline void initWindow(GLFWframebuffersizefun framebufferResizeCallback)
 	{
 		// init glfw
 		glfwInit();
@@ -118,7 +133,31 @@ class Window
 		setMouseCursorCapturedEnabled(cursorCaptureEnabled);
 	}
 
-	void setMouseCursorCapturedEnabled(const bool captureMouseCursor)
+	inline void setPreferredSize(int width, int height)
+	{
+		preferredWidth = width;
+		preferredHeight = height;
+	}
+	// since we have to call glfwSetWindowSize() from the main thread, we can't simply change the
+	// size in the button callback
+	inline void checkPreferredWindowSize()
+	{
+		std::printf("Preferred Size: %dx%d, Window Size: %dx%d, Framebuffer Size %dx%d\n",
+		            preferredWidth,
+		            preferredHeight,
+		            getWidth(),
+		            getHeight(),
+		            getFramebufferWidth(),
+		            getFramebufferHeight());
+		if (getFramebufferWidth() != preferredWidth || getFramebufferHeight() != preferredHeight)
+		{
+			glfwSetWindowSize(glfwWindow, preferredWidth, preferredHeight);
+			// glfwSetWindowMonitor(
+			//     glfwWindow, nullptr, 0, 0, preferredWidth, preferredHeight, GLFW_DONT_CARE);
+		}
+	}
+
+	inline void setMouseCursorCapturedEnabled(const bool captureMouseCursor)
 	{
 		cursorCaptureEnabled = captureMouseCursor;
 		if (cursorCaptureEnabled)
@@ -131,19 +170,19 @@ class Window
 		}
 	}
 
-	void setWindowUserPointer(void* ptr)
+	inline void setWindowUserPointer(void* ptr)
 	{
 		glfwSetWindowUserPointer(glfwWindow, ptr);
 	}
 
 	/// Returns whether the window should close (e.g. user pressed the close
 	/// button)
-	bool shouldClose() const
+	inline bool shouldClose() const
 	{
 		return glfwWindowShouldClose(glfwWindow);
 	}
 
-	void createVulkanSurface(VkInstance vulkanInstance)
+	inline void createVulkanSurface(VkInstance vulkanInstance)
 	{
 		if (glfwCreateWindowSurface(vulkanInstance, glfwWindow, nullptr, &vulkanSurface)
 		    != VK_SUCCESS)
@@ -152,12 +191,12 @@ class Window
 		}
 	}
 
-	void getFramebufferSize(int* width, int* height) const
+	inline void getFramebufferSize(int* width, int* height) const
 	{
 		glfwGetFramebufferSize(glfwWindow, width, height);
 	}
 
-	VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
+	inline VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR& capabilities)
 	{
 		// uint32_t max has a special meaning, it tells us to set the correct
 		// resolution
@@ -181,10 +220,10 @@ class Window
 		}
 	}
 
-	void createSwapChain(VkPhysicalDevice physicalDevice,
-	                     VkDevice logicalDevice,
-	                     VkExtent2D swapExtent,
-	                     SwapChainSupportDetails swapChainSupport)
+	inline void createSwapChain(VkPhysicalDevice physicalDevice,
+	                            VkDevice logicalDevice,
+	                            VkExtent2D swapExtent,
+	                            SwapChainSupportDetails swapChainSupport)
 	{
 
 		VkSurfaceFormatKHR surfaceFormat
@@ -253,22 +292,22 @@ class Window
 		swapChainExtent = swapExtent;
 	}
 
-	void recreateSwapChain(VkPhysicalDevice& physicalDevice,
-	                       VkDevice& logicalDevice,
-	                       VkExtent2D& swapExtent,
-	                       tracer::SwapChainSupportDetails& swapChainSupport)
+	inline void recreateSwapChain(VkPhysicalDevice& physicalDevice,
+	                              VkDevice& logicalDevice,
+	                              VkExtent2D& swapExtent,
+	                              tracer::SwapChainSupportDetails& swapChainSupport)
 	{
 
 		cleanupSwapChain(logicalDevice);
 		createSwapChain(physicalDevice, logicalDevice, swapExtent, swapChainSupport);
 	}
 
-	void cleanupSwapChain(VkDevice logicalDevice)
+	inline void cleanupSwapChain(VkDevice logicalDevice)
 	{
 		vkDestroySwapchainKHR(logicalDevice, swapChain, nullptr);
 	}
 
-	VkSurfaceFormatKHR
+	inline VkSurfaceFormatKHR
 	chooseSwapSurfaceFormat(VkPhysicalDevice physicalDevice,
 	                        const std::vector<VkSurfaceFormatKHR>& availableFormats)
 	{
@@ -352,7 +391,7 @@ class Window
 		throw std::runtime_error("failed to find suitable surface format!");
 	}
 
-	VkPresentModeKHR
+	inline VkPresentModeKHR
 	chooseSwapPresentMode(const std::vector<VkPresentModeKHR>& availablePresentModes)
 	{
 
@@ -394,8 +433,11 @@ class Window
   private:
 	const bool FULLSCREEN_ENABLED = false;
 
-	uint32_t initialWidth = 800;
-	uint32_t initialHeight = 600;
+	uint32_t initialWidth = 1920;
+	uint32_t initialHeight = 1080;
+
+	int preferredWidth = static_cast<int>(initialWidth);
+	int preferredHeight = static_cast<int>(initialHeight);
 
 	// window
 	GLFWwindow* glfwWindow = nullptr;

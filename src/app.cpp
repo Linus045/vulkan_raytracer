@@ -36,6 +36,7 @@
 #include "raytracing_scene.hpp"
 #include "button_callbacks.hpp"
 #include "common_types.h"
+#include "visualizations.hpp"
 
 #include <OpenVolumeMesh/FileManager/FileManager.hh>
 #include "OpenVolumeMesh/Mesh/TetrahedralMesh.hh"
@@ -242,6 +243,10 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 	// Although this is every inefficient, its fine since we only do it when loading the model once
 	auto allControlPoints = std::vector<glm::vec3>();
 
+	auto allBezierTriangles2 = std::vector<BezierTriangle2>();
+	auto allBezierTriangles3 = std::vector<BezierTriangle3>();
+	auto allBezierTriangles4 = std::vector<BezierTriangle4>();
+
 	// if we found the control points property
 	if (propertyControlPointsOpt)
 	{
@@ -313,6 +318,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
 				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
+				allBezierTriangles2.push_back(bezierTriangle);
 			}
 			else if (N == 3)
 			{
@@ -339,9 +345,11 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				bezierTriangle.controlPoints[8] = faceControlPoints[7];
 
 				bezierTriangle.controlPoints[9] = faceControlPoints[9];
+
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
 				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
+				allBezierTriangles3.push_back(bezierTriangle);
 			}
 			else if (N == 4)
 			{
@@ -377,6 +385,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 				auto aabb = tracer::AABB::fromBezierTriangle(bezierTriangle);
 				bezierTriangle.aabb = Aabb{aabb.min, aabb.max};
 				raytracingScene.addObjectBezierTriangle(*sceneObject, bezierTriangle, false);
+				allBezierTriangles4.push_back(bezierTriangle);
 			}
 			else
 			{
@@ -405,6 +414,31 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 			raytracingScene.addObjectSphere(
 			    *sceneObjectControlPoints, point, false, 0.02f, ColorIdx::t_orange);
 		}
+	}
+
+	auto sceneObjectControlPoints = raytracingScene.createSceneObject();
+	for (auto& bezierTriangle : allBezierTriangles2)
+	{
+		tracer::rt::visualizeTriangleSide(*sceneObjectControlPoints,
+		                                  raytracingScene,
+		                                  bezierTriangle,
+		                                  sceneConfig.visualizeSampledSurface);
+	}
+
+	for (auto& bezierTriangle : allBezierTriangles3)
+	{
+		tracer::rt::visualizeTriangleSide(*sceneObjectControlPoints,
+		                                  raytracingScene,
+		                                  bezierTriangle,
+		                                  sceneConfig.visualizeSampledSurface);
+	}
+
+	for (auto& bezierTriangle : allBezierTriangles4)
+	{
+		tracer::rt::visualizeTriangleSide(*sceneObjectControlPoints,
+		                                  raytracingScene,
+		                                  bezierTriangle,
+		                                  sceneConfig.visualizeSampledSurface);
 	}
 
 	// auto cells = mesh.cells();
@@ -1076,6 +1110,8 @@ void Application::mainLoop()
 	while (!window.shouldClose())
 	{
 		glfwPollEvents();
+
+		window.checkPreferredWindowSize();
 
 		currentFrame = glfwGetTime();
 		delta = glfwGetTime() - lastFrame;

@@ -128,7 +128,7 @@ void RaytracingScene::loadScene([[maybe_unused]] Renderer& renderer,
 		    glm::vec3(1.0f, 0.0f, 0.0f) * scalar + offset,
 		    glm::vec3(1.0f, 0.0f, 1.0f) * scalar + offset,
 		    glm::vec3(1.0f, 1.0f, 0.0f) * scalar + offset,
-		    glm::vec3(3.0f, 1.5f, 0.0f) * scalar + offset,
+		    glm::vec3(7.0f, -8.5f, 0.0f) * scalar + offset,
 		}));
 
 		auto sceneObject = raytracingScene.createNamedSceneObject("model");
@@ -148,12 +148,12 @@ void RaytracingScene::loadScene([[maybe_unused]] Renderer& renderer,
 	}
 	else if (sceneNr == 3)
 	{
-		auto point02 = glm::vec3(0.0f, 0.0f, 0.0f);
+		auto point02 = glm::vec3(-0.5f, 0.0f, 0.0f);
 		auto point34 = glm::vec3(0.0f, 1.0f, 0.0f);
 		auto point55 = glm::vec3(0.0f, 2.0f, 0.0f);
-		auto point67 = glm::vec3(1.0f, 0.0f, 0.0f);
+		auto point67 = glm::vec3(1.4f, 0.0f, 0.0f);
 		auto point88 = glm::vec3(1.0f, 1.0f, 0.0f);
-		auto point99 = glm::vec3(2.0f, 0.0f, 0.0f);
+		auto point99 = glm::vec3(2.0f, -1.0f, 0.0f);
 
 		[[maybe_unused]] auto tetrahedron2_1 = tracer::createTetrahedron2(std::to_array({
 		    point02,
@@ -290,7 +290,7 @@ void RaytracingScene::loadScene([[maybe_unused]] Renderer& renderer,
 			for (float z = 0; z < 10; z++)
 			{
 				float scalar = 1.0f;
-				glm::vec3 offset = glm::vec3(3.0 * x, 0, 3.0f * z);
+				glm::vec3 offset = glm::vec3(5.0 * x, 0, 5.0f * z);
 				[[maybe_unused]] auto tetrahedron2 = tracer::createTetrahedron2(std::to_array({
 				    glm::vec3(0.0f, 0.0f, 0.0f) * scalar + offset + getRandomOffset(0, 0),
 				    glm::vec3(0.0f, 0.0f, 1.0f) * scalar + offset + getRandomOffset(0, 0),
