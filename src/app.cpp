@@ -412,7 +412,7 @@ bool Application::loadOpenVolumeMeshFile(std::filesystem::path path,
 		for (auto& point : allControlPoints)
 		{
 			raytracingScene.addObjectSphere(
-			    *sceneObjectControlPoints, point, false, 0.02f, ColorIdx::t_orange);
+			    *sceneObjectControlPoints, point, false, 0.2f, ColorIdx::t_orange);
 		}
 	}
 
