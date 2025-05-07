@@ -19,6 +19,7 @@ class Camera;
 class Renderer;
 struct SwapChainSupportDetails;
 
+// the data that is stored inside the window's UserData pointer (used to handle window interactions)
 struct CustomUserData
 {
 	bool& vulkan_initialized;

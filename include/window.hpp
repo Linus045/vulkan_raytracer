@@ -19,6 +19,7 @@
 namespace tracer
 {
 
+// manages the window creation and swapchain stuff
 class Window
 {
   public:

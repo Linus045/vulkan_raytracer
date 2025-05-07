@@ -24,6 +24,7 @@
 namespace tracer
 {
 
+// This class manages the rendering of the scene to the window
 class Renderer
 {
   public:

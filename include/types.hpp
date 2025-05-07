@@ -20,6 +20,8 @@
 namespace tracer
 {
 
+// holds the queue family indices for the graphics and present queue
+// transfer queue is not used for now
 struct QueueFamilyIndices
 {
 	std::optional<uint32_t> graphicsFamily = std::nullopt;
@@ -41,12 +43,14 @@ struct SwapChainSupportDetails
 	std::vector<VkPresentModeKHR> presentModes;
 };
 
+// unused
 struct SharedInfo
 {
 	alignas(16) glm::mat4 view;
 	alignas(16) glm::mat4 proj;
 };
 
+// struct to group together all AABB objects needed for the BLAS creation
 struct RaytracingObjectAABBBuffers
 {
 
@@ -88,6 +92,7 @@ struct RaytracingObjectAABBBuffers
 };
 
 // TODO: split this up a bit into more sensible structs
+// holds all kinds of various pointers used for raytracing
 struct RaytracingInfo
 {
 	VkPipeline rayTracingPipelineHandle = VK_NULL_HANDLE;

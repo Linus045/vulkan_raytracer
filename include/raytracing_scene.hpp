@@ -51,6 +51,8 @@ namespace rt
 
 // TODO: give this a more fitting name, since its not really a singular scene but actually
 // controlling the current scene and its objects
+// Holds and manages the objects in the scene
+// also handles the TLAS/BLAS updating and related stuff
 class RaytracingScene
 {
   public:
@@ -70,9 +72,9 @@ class RaytracingScene
 	    "Tetrahedron degree 2 deformed slightly",
 	    "Tetrahedron degree 2 deformed strongly",
 	    "Two Tetrahedrons degree 2 stuck together",
-	    "Tetrahedron degree 3 deformed slightly",
+	    "Tetrahedron degree 3",
 	    "Tetrahedron degree 2 random control points",
-	    "A bunch of random tetrahedrons",
+	    "A bunch of random tetrahedrons degree 2",
 	    "Tetrahedron degree 4",
 	    "Tetrahedron degree 4 - inside volume pulled out",
 	};

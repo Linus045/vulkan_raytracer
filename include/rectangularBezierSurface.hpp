@@ -11,6 +11,7 @@
 
 namespace tracer
 {
+// unused
 class RectangularBezierSurface
 {
   public:

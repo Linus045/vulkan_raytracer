@@ -5,6 +5,7 @@
 namespace tracer
 {
 
+// holds the geometry data and the AABB of the object to be loaded into a BLAS
 template <typename T>
 class Geometry
 {

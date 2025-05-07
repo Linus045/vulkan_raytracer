@@ -6,6 +6,7 @@
 namespace tracer
 {
 
+// A simple deletion queue to handle cleanup of created vulkan objects
 struct DeletionQueue
 {
 	std::deque<std::function<void()>> deletors;

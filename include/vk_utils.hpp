@@ -71,6 +71,8 @@ inline std::string errorString(VkResult errorCode)
 		}                                                                                          \
 	}
 
+// used to create most buffer objects
+// see createBuffer() for more details
 constexpr VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo = {
     .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
     .pNext = NULL,
@@ -163,6 +165,7 @@ inline tracer::QueueFamilyIndices findQueueFamilies(VkPhysicalDevice physicalDev
 	return indices;
 }
 
+// creates a buffer and allocates memory for it on the GPU
 inline void
 createBuffer([[maybe_unused]] VkPhysicalDevice physicalDevice,
              [[maybe_unused]] VkDevice logicalDevice,

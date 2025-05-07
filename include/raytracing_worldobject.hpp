@@ -11,6 +11,8 @@ namespace tracer
 namespace rt
 {
 
+// a wrapper object for the primitive types needed for the glsl shader (see common_types.h)
+// this wrapper manages additional functionality such as translation and linking with AABB data
 template <typename T>
 class RaytracingWorldObject : public WorldObject
 {

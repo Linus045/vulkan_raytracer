@@ -13,6 +13,7 @@ namespace tracer
 
 namespace shader
 {
+// creates a shader module instance from a given glsl file
 inline void createShaderModule(const std::filesystem::path& filePath,
                                const VkDevice logicalDevice,
                                DeletionQueue& deletionQueue,
@@ -27,7 +28,7 @@ inline void createShaderModule(const std::filesystem::path& filePath,
 	shaderFile.read(reinterpret_cast<char*>(shaderSource.data()), shaderFileSize);
 	shaderFile.close();
 
-	VkShaderModuleCreateInfo rayClosestHitShaderModuleCreateInfo = {
+	VkShaderModuleCreateInfo shaderModuleCreateInfo = {
 	    .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
 	    .pNext = NULL,
 	    .flags = 0,
@@ -35,8 +36,8 @@ inline void createShaderModule(const std::filesystem::path& filePath,
 	    .pCode = shaderSource.data(),
 	};
 
-	VK_CHECK_RESULT(vkCreateShaderModule(
-	    logicalDevice, &rayClosestHitShaderModuleCreateInfo, NULL, &shaderModuleHandle));
+	VK_CHECK_RESULT(
+	    vkCreateShaderModule(logicalDevice, &shaderModuleCreateInfo, NULL, &shaderModuleHandle));
 
 	deletionQueue.push_function(
 	    [=]() { vkDestroyShaderModule(logicalDevice, shaderModuleHandle, NULL); });

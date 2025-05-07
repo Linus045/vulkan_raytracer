@@ -20,6 +20,7 @@
 namespace tracer
 {
 
+// unused
 struct Vertex
 {
 	glm::vec3 position;
@@ -63,6 +64,7 @@ struct Vertex
 	}
 };
 
+// unused
 class MeshObject : public WorldObject
 {
   public:

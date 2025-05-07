@@ -14,6 +14,7 @@
 namespace tracer
 {
 
+// a simple transform class to hold the position, rotation and scale of an object
 struct Transform
 {
 	explicit Transform(const glm::vec3 pos,

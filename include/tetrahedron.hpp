@@ -25,7 +25,6 @@ struct SubdividedTetrahedron2
 };
 
 // Tetrahedron -> BezierTriangle class mapping
-
 template <typename T>
 struct BezierTriangleFromTetrahedron;
 
@@ -54,8 +53,8 @@ struct BezierTriangleFromTetrahedron<Tetrahedron4>
 };
 
 /// workaround to get degree of a tetrahedron
-/// because Tetrahedron1/2... need to stay simple structs to be
-/// able to function within a shader
+/// because Tetrahedron1/2... need to stay simple structs (in common_types.h) to be
+/// able to function within a shader as well
 template <typename T>
 constexpr int degree()
 {

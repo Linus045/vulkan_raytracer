@@ -14,6 +14,7 @@
 namespace tracer
 {
 
+// Another wrapper for the simple object classes in common_types.h
 class WorldObject
 {
   public:

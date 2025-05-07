@@ -17,6 +17,9 @@
 #include "logger.hpp"
 #include "raytracing_scene.hpp"
 
+// This file contains mostly functions for debugging purposes
+// or little one of things, therefore performance is irrelevant here
+
 namespace tracer
 {
 namespace rt

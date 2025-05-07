@@ -41,6 +41,7 @@ struct ButtonData
 
 // TODO: consider storing the raw data values instead of pointers/references and
 // updating the struct regularly
+// Holds the data needed to render the UI
 struct UIData
 {
 	bool configurationChanged = false;
@@ -57,6 +58,7 @@ struct UIData
 
 	float frameTimeMilliseconds = 0.0f;
 
+	// unused
 	std::vector<glm::vec3> positions = std::vector<glm::vec3>(10);
 
 	bool renderCrosshairInCenter = true;
