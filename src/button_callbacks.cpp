@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstdio>
 #include <utility>
 #include <format>
@@ -124,12 +125,8 @@ void registerButtonFunctions(Window& window, Renderer& renderer, Camera& camera,
 
 	auto takeScreenshot = [&]()
 	{
-		auto t = std::time(nullptr);
-		auto tm = *std::localtime(&t);
-
-		std::ostringstream oss;
-		oss << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S");
-		auto timestamp = oss.str();
+		auto timenow = std::chrono::system_clock::now();
+		const auto timestamp = std::format("{:%d-%m-%Y_%H-%M-%S}", timenow);
 
 		float frametime = uiData.frameTimeMilliseconds;
 		int num_start_guesses = uiData.raytracingDataConstants.newtonGuessesAmount;
