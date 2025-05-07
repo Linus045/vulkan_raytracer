@@ -380,6 +380,7 @@ void renderHelpInfo(const tracer::ui::UIData& uiData)
 	ImGui::Text("Esc|G to [G]rab/release mouse cursor");
 	ImGui::Text("C to [C]ollapse/Expand menu");
 	ImGui::Text("H to move the camera [H]ome (back to original position/orientation");
+	ImGui::Text("B to take a screenshot (gets saved in ./screenshots)");
 
 	ImGui::SeparatorText("OpenVolumeMesh");
 	ImGui::Text("Drag & drop a .ovm file onto the window to load (OpenVolumeMesh)");
