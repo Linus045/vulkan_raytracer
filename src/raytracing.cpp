@@ -664,9 +664,9 @@ void initRayTracing(VkPhysicalDevice physicalDevice,
 	                            physicalDeviceAccelerationStructureProperties);
 
 	// clang-format off
-	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxGeometryCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxGeometryCount);
-	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxInstanceCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxInstanceCount);
-	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPrimitiveCount: {%ld}\n", physicalDeviceAccelerationStructureProperties.maxPrimitiveCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxGeometryCount: {%zu}\n", physicalDeviceAccelerationStructureProperties.maxGeometryCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxInstanceCount: {%zu}\n", physicalDeviceAccelerationStructureProperties.maxInstanceCount);
+	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPrimitiveCount: {%zu}\n", physicalDeviceAccelerationStructureProperties.maxPrimitiveCount);
 	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorAccelerationStructures: {%d}\n", physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorAccelerationStructures);
 	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorUpdateAfterBindAccelerationStructures: {%d}\n", physicalDeviceAccelerationStructureProperties.maxPerStageDescriptorUpdateAfterBindAccelerationStructures);
 	debug_printFmt("physicalDeviceAccelerationStructureProperties.maxDescriptorSetAccelerationStructures {%d}\n", physicalDeviceAccelerationStructureProperties.maxDescriptorSetAccelerationStructures);

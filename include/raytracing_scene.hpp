@@ -762,7 +762,7 @@ class RaytracingScene
 			    logicalDevice, aabbBufferHandles[i]);
 
 			auto objectType = sceneObjectObjects[i]->getType();
-			debug_printFmt("Added object %ld with type %d and bufferIndex %ld to gpuObjects\n",
+			debug_printFmt("Added object %zu with type %d and bufferIndex %zu to gpuObjects\n",
 			               gpuObjects.size(),
 			               static_cast<int>(objectType),
 			               indexStart + i);
