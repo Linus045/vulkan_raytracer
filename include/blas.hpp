@@ -185,15 +185,16 @@ createBottomLevelAccelerationStructureBuildDataTriangle(uint32_t primitiveCount,
 	};
 }
 
-inline VkAccelerationStructureKHR
-buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
-                                      VkDevice logicalDevice,
-                                      VmaAllocator vmaAllocator,
-                                      DeletionQueue& deletionQueue,
-                                      const VkCommandBuffer bottomLevelCommandBuffer,
-                                      const VkQueue graphicsQueue,
-                                      const BLASSceneObjectBuildData blasBuildDatas,
-                                      const VkFence accelerationStructureBuildFence)
+inline VkAccelerationStructureKHR buildBottomLevelAccelerationStructure(
+    VkPhysicalDevice physicalDevice,
+    VkDevice logicalDevice,
+    VmaAllocator vmaAllocator,
+    DeletionQueue& deletionQueue,
+    const VkCommandBuffer bottomLevelCommandBuffer,
+    const VkQueue graphicsQueue,
+    const BLASSceneObjectBuildData blasBuildDatas,
+    const VkFence accelerationStructureBuildFence,
+    const VkDeviceSize minAccelerationStructureScratchOffsetAlignment)
 {
 	VkAccelerationStructureKHR bottomLevelAccelerationStructureHandle = VK_NULL_HANDLE;
 
@@ -295,7 +296,8 @@ buildBottomLevelAccelerationStructure(VkPhysicalDevice physicalDevice,
 	             VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 	             memoryAllocateFlagsInfo,
 	             bottomLevelAccelerationStructureScratchBufferHandle,
-	             bottomLevelAccelerationStructureScratchBufferAllocation);
+	             bottomLevelAccelerationStructureScratchBufferAllocation,
+	             minAccelerationStructureScratchOffsetAlignment);
 
 	VkBufferDeviceAddressInfo bottomLevelAccelerationStructureScratchBufferDeviceAddressInfo = {
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,

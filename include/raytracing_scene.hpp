@@ -598,7 +598,8 @@ class RaytracingScene
 				    blasBuildData,
 				    raytracingInfo.commandBufferBuildTopAndBottomLevel,
 				    raytracingInfo.graphicsQueueHandle,
-				    raytracingInfo.accelerationStructureBuildFence);
+				    raytracingInfo.accelerationStructureBuildFence,
+				    raytracingInfo.minAccelerationStructureScratchOffsetAlignment);
 
 				blasInstances.push_back(blasInstance);
 			}
@@ -1008,11 +1009,12 @@ class RaytracingScene
 	// 	return instances;
 	// }
 
-	[[nodiscard]] const VkAccelerationStructureInstanceKHR
-	buildBLASInstancesFromBuildDataList(const BLASSceneObjectBuildData& BLASBuildData,
-	                                    const VkCommandBuffer bottomLevelCommandBuffer,
-	                                    const VkQueue graphicsQueue,
-	                                    const VkFence accelerationStructureBuildFence)
+	[[nodiscard]] const VkAccelerationStructureInstanceKHR buildBLASInstancesFromBuildDataList(
+	    const BLASSceneObjectBuildData& BLASBuildData,
+	    const VkCommandBuffer bottomLevelCommandBuffer,
+	    const VkQueue graphicsQueue,
+	    const VkFence accelerationStructureBuildFence,
+	    const VkDeviceSize minAccelerationStructureScratchOffsetAlignment)
 	{
 		//  build the BLAS on GPI
 		VkAccelerationStructureKHR bottomLevelAccelerationStructure
@@ -1023,7 +1025,8 @@ class RaytracingScene
 		                                            bottomLevelCommandBuffer,
 		                                            graphicsQueue,
 		                                            BLASBuildData,
-		                                            accelerationStructureBuildFence);
+		                                            accelerationStructureBuildFence,
+		                                            minAccelerationStructureScratchOffsetAlignment);
 
 		// retrieve the device address of the built acceleration structure
 		VkAccelerationStructureDeviceAddressInfoKHR
