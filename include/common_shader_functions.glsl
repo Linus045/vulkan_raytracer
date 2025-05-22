@@ -363,26 +363,67 @@ vec3 partialBezierTriangle4Directional(vec3 controlPoints[15], vec3 direction, f
 	vec3 sum = vec3(0);
 	float w = 1.0 - u - v;
 
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				if (i + j + k == n - 1)
-				{
-					int be1 = getControlPointIndicesBezierTriangle4(i + 1, j + 0, k + 0);
-					int be2 = getControlPointIndicesBezierTriangle4(i + 0, j + 1, k + 0);
-					int be3 = getControlPointIndicesBezierTriangle4(i + 0, j + 0, k + 1);
-					vec3 x = controlPoints[be1] * direction.x;
-					vec3 y = controlPoints[be2] * direction.y;
-					vec3 z = controlPoints[be3] * direction.z;
-					sum += (x + y + z) * BernsteinPolynomialBivariate(n - 1, i, j, k, u, v, w);
-				}
-			}
-		}
-	}
+	sum += (
+	controlPoints[4] * direction.x +
+	controlPoints[8] * direction.y +
+	controlPoints[3] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 3, 0, 0, u, v, w);
+
+		sum += (
+	controlPoints[8] * direction.x +
+	controlPoints[11] * direction.y +
+	controlPoints[7] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 2, 1, 0, u, v, w);
+
+		sum += (
+	controlPoints[11] * direction.x +
+	controlPoints[13] * direction.y +
+	controlPoints[10] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 1, 2, 0, u, v, w);
+
+		sum += (
+	controlPoints[13] * direction.x +
+	controlPoints[14] * direction.y +
+	controlPoints[12] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 0, 3, 0, u, v, w);
+
+		sum += (
+	controlPoints[3] * direction.x +
+	controlPoints[7] * direction.y +
+	controlPoints[2] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 2, 0, 1, u, v, w);
+
+		sum += (
+	controlPoints[7] * direction.x +
+	controlPoints[10] * direction.y +
+	controlPoints[6] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 1, 1, 1, u, v, w);
+
+		sum += (
+	controlPoints[10] * direction.x +
+	controlPoints[12] * direction.y +
+	controlPoints[9] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 0, 2, 1, u, v, w);
+
+		sum += (
+	controlPoints[2] * direction.x +
+	controlPoints[6] * direction.y +
+	controlPoints[1] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 1, 0, 2, u, v, w);
+
+		sum += (
+	controlPoints[6] * direction.x +
+	controlPoints[9] * direction.y +
+	controlPoints[5] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 0, 1, 2, u, v, w);
+
+		sum += (
+	controlPoints[1] * direction.x +
+	controlPoints[5] * direction.y +
+	controlPoints[0] * direction.z) * 
+	BernsteinPolynomialBivariate(n - 1, 0, 0, 3, u, v, w);
+
+
 	return n * sum;
 }
 
