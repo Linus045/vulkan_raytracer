@@ -89,29 +89,14 @@ vec3 BezierTriangle2Point(const vec3 controlPoints[6], const float u, const floa
 {
 	int n = 2;
 	vec3 sum = vec3(0);
-	// check if values are in the right range and if sum is equal to 1
-	// if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
-	// {
-	// 	return sum;
-	// }
 
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				// is it "== n" or "<= n" ????
-				// it is "== n", see Formula 1.10 in Farin "Triangular Bernstein-Bézier patches"
-				if (i + j + k == n)
-				{
-					int idx = getControlPointIndicesBezierTriangle2(i, j, k);
-					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
-				}
-			}
-		}
-	}
+	sum += controlPoints[2] * BernsteinPolynomialBivariate(n, 2, 0, 0, u, v, w);
+	sum += controlPoints[4] * BernsteinPolynomialBivariate(n, 1, 1, 0, u, v, w);
+	sum += controlPoints[5] * BernsteinPolynomialBivariate(n, 0, 2, 0, u, v, w);
+	sum += controlPoints[1] * BernsteinPolynomialBivariate(n, 1, 0, 1, u, v, w);
+	sum += controlPoints[3] * BernsteinPolynomialBivariate(n, 0, 1, 1, u, v, w);
+	sum += controlPoints[0] * BernsteinPolynomialBivariate(n, 0, 0, 2, u, v, w);
+
 	return sum;
 }
 
@@ -119,29 +104,18 @@ vec3 BezierTriangle3Point(const vec3 controlPoints[10], const float u, const flo
 {
 	int n = 3;
 	vec3 sum = vec3(0);
-	// check if values are in the right range and if sum is equal to 1
-	// if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
-	// {
-	// 	return sum;
-	// }
 
-	// TODO: remove this loop and write out the formula
-	for (int k = 0; k <= n; k++)
-	{
-		for (int j = 0; j <= n - k; j++)
-		{
-			for (int i = 0; i <= n - k - j; i++)
-			{
-				// is it "== n" or "<= n" ????
-				// it is "== n", see Formula 1.10 in Farin "Triangular Bernstein-Bézier patches"
-				if (i + j + k == n)
-				{
-					int idx = getControlPointIndicesBezierTriangle3(i, j, k);
-					sum += controlPoints[idx] * BernsteinPolynomialBivariate(n, i, j, k, u, v, w);
-				}
-			}
-		}
-	}
+	sum += controlPoints[3] * BernsteinPolynomialBivariate(n, 3, 0, 0, u, v, w);
+	sum += controlPoints[6] * BernsteinPolynomialBivariate(n, 2, 1, 0, u, v, w);
+	sum += controlPoints[8] * BernsteinPolynomialBivariate(n, 1, 2, 0, u, v, w);
+	sum += controlPoints[9] * BernsteinPolynomialBivariate(n, 0, 3, 0, u, v, w);
+	sum += controlPoints[2] * BernsteinPolynomialBivariate(n, 2, 0, 1, u, v, w);
+	sum += controlPoints[5] * BernsteinPolynomialBivariate(n, 1, 1, 1, u, v, w);
+	sum += controlPoints[7] * BernsteinPolynomialBivariate(n, 0, 2, 1, u, v, w);
+	sum += controlPoints[1] * BernsteinPolynomialBivariate(n, 1, 0, 2, u, v, w);
+	sum += controlPoints[4] * BernsteinPolynomialBivariate(n, 0, 1, 2, u, v, w);
+	sum += controlPoints[0] * BernsteinPolynomialBivariate(n, 0, 0, 3, u, v, w);
+
 	return sum;
 }
 
@@ -149,13 +123,7 @@ vec3 BezierTriangle4Point(const vec3 controlPoints[15], const float u, const flo
 {
 	int n = 4;
 	vec3 sum = vec3(0);
-	// check if values are in the right range and if sum is equal to 1
-	// if (u < 0 || u > 1 || v < 0 || v > 1 || w < 0 || w > 1 || (abs(u + v + w - 1) > 0.00001))
-	// {
-	// 	return sum;
-	// }
 
-	// TODO: remove this loop and write out the formula
 	sum += controlPoints[4] * BernsteinPolynomialBivariate(n, 4, 0, 0, u, v, w);
 	sum += controlPoints[8] * BernsteinPolynomialBivariate(n, 3, 1, 0, u, v, w);
 	sum += controlPoints[11] * BernsteinPolynomialBivariate(n, 2, 2, 0, u, v, w);
