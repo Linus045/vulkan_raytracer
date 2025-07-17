@@ -1,3 +1,6 @@
+<img width="400" src="https://github.com/user-attachments/assets/4373796d-d7fd-4d4b-bddd-03a656e60dbe" />
+<img width="400" src="https://github.com/user-attachments/assets/0fe3b0a4-48d3-44be-adf6-427a2ffcae3a" />
+
 # Setup
 
 ## 1. Install Dependencies
